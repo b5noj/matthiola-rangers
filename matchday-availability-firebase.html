@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matchday Availability</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --turf-deep:#173C2A;
+    --turf:#1F5C3F;
+    --turf-light:#2E7A54;
+    --line:#EFEDE2;
+    --card:#FFFFFF;
+    --ink:#122318;
+    --ink-soft:#4C5F52;
+    --amber:#F2A93B;
+    --amber-deep:#D98F1F;
+    --red:#C6432F;
+    --red-soft:#FBE5E0;
+    --green-soft:#E4F1E9;
+    --border:#D7E2DA;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--turf-deep);
+    background-image:
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 64px);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  .display{font-family:'Bebas Neue',sans-serif; letter-spacing:0.03em;}
+
+  .header{
+    padding:28px 20px 18px;
+    color:var(--line);
+    position:relative;
+    overflow:hidden;
+  }
+  .header::before{
+    content:"";
+    position:absolute; top:-40%; right:-10%;
+    width:260px; height:260px;
+    border:2px solid rgba(255,255,255,0.08);
+    border-radius:50%;
+  }
+  .kicker{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.18em;
+    color:var(--amber); font-weight:700; margin-bottom:6px;
+  }
+  .title{
+    font-size:38px; line-height:0.95; color:#fff; margin:0 0 4px;
+  }
+  .subtitle{font-size:13.5px; color:rgba(239,237,226,0.75); max-width:520px;}
+  .team-name-row{margin-top:14px; display:flex; align-items:center; gap:8px;}
+  .team-name-input{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.18);
+    color:#fff; font-family:'Inter'; font-weight:600; font-size:14px;
+    padding:8px 12px; border-radius:8px; width:220px;
+  }
+  .team-name-input::placeholder{color:rgba(239,237,226,0.5);}
+
+  .sheet-switch{
+    display:flex; gap:8px; padding:0 20px; margin-top:16px;
+  }
+  .sheet-btn{
+    flex:1; padding:12px 10px; border-radius:10px; cursor:pointer;
+    background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.14);
+    color:rgba(239,237,226,0.8); transition:all .15s ease;
+  }
+  .sheet-btn.active{ background:var(--amber); border-color:var(--amber); color:var(--turf-deep); }
+  .sheet-btn .sb-title{ font-family:'Bebas Neue'; font-size:19px; letter-spacing:0.03em; }
+  .sheet-btn .sb-sub{ font-size:11px; font-weight:600; opacity:0.85; }
+
+  .tabs{
+    display:flex; gap:6px; padding:0 20px; margin-top:14px;
+  }
+  .tab{
+    flex:1; text-align:center; padding:12px 8px;
+    font-family:'Bebas Neue'; font-size:18px; letter-spacing:0.04em;
+    color:rgba(239,237,226,0.55);
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1);
+    border-bottom:none;
+    border-radius:10px 10px 0 0;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .tab.active{
+    color:var(--turf-deep);
+    background:var(--line);
+  }
+
+  .panel{
+    background:var(--line);
+    margin:0 12px 12px;
+    border-radius:0 12px 12px 12px;
+    padding:18px 16px 22px;
+    min-height:400px;
+  }
+  @media(min-width:520px){ .panel{margin:0 20px 20px; padding:22px 24px 26px;} }
+
+  .section-label{
+    font-family:'Bebas Neue'; font-size:15px; letter-spacing:0.06em;
+    color:var(--turf); margin:0 0 10px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-label::before{content:""; width:8px; height:8px; background:var(--amber); border-radius:2px;}
+
+  .player-picker{
+    display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;
+  }
+  .player-chip{
+    padding:8px 14px; border-radius:20px; font-size:13.5px; font-weight:600;
+    background:#fff; border:1.5px solid var(--border); cursor:pointer; color:var(--ink);
+    transition:all .12s ease;
+  }
+  .player-chip.selected{
+    background:var(--turf); border-color:var(--turf); color:#fff;
+  }
+  .add-player-row{display:flex; gap:8px; margin-bottom:6px;}
+  .add-player-row input{
+    flex:1; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border);
+    font-size:13.5px; font-family:'Inter'; min-width:0;
+  }
+  .btn{
+    padding:9px 16px; border-radius:8px; border:none; font-weight:700; font-size:13px;
+    cursor:pointer; font-family:'Inter'; white-space:nowrap;
+  }
+  .btn-amber{background:var(--amber); color:var(--turf-deep);}
+  .btn-amber:hover{background:var(--amber-deep);}
+  .btn-ghost{background:transparent; color:var(--ink-soft); border:1.5px solid var(--border);}
+  .btn-turf{background:var(--turf); color:#fff;}
+
+  .hint{font-size:12.5px; color:var(--ink-soft); margin:2px 0 16px; line-height:1.5;}
+  .hint b{color:var(--ink);}
+
+  .sat-row{
+    background:#fff; border:1.5px solid var(--border); border-radius:10px;
+    padding:12px 14px; margin-bottom:10px;
+  }
+  .sat-row-head{
+    display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;
+  }
+  .sat-date{font-weight:800; font-size:14.5px;}
+  .sat-date .rel{font-weight:500; color:var(--ink-soft); font-size:12px; margin-left:6px;}
+  .slot-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
+  .slot-btn{
+    padding:10px 4px; text-align:center; border-radius:8px; border:1.5px solid var(--border);
+    font-size:13px; font-weight:700; background:#fafaf7; cursor:pointer; color:var(--ink-soft);
+    transition:all .12s ease;
+  }
+  .slot-btn.out{
+    background:var(--red-soft); border-color:var(--red); color:var(--red);
+  }
+  .full-out-btn{
+    margin-top:8px; width:100%; padding:8px; border-radius:8px; border:1.5px dashed var(--border);
+    background:transparent; font-size:12px; font-weight:700; color:var(--ink-soft); cursor:pointer;
+  }
+  .full-out-btn.active{
+    border-style:solid; border-color:var(--red); background:var(--red-soft); color:var(--red);
+  }
+  .single-toggle-btn{
+    width:100%; padding:12px; border-radius:8px; border:1.5px solid var(--border);
+    background:#fafaf7; font-size:13.5px; font-weight:700; color:var(--ink-soft); cursor:pointer;
+    transition:all .12s ease;
+  }
+  .single-toggle-btn.out{
+    background:var(--red-soft); border-color:var(--red); color:var(--red);
+  }
+
+  .summary-row{
+    background:#fff; border:1.5px solid var(--border); border-radius:10px;
+    padding:12px 14px; margin-bottom:10px;
+  }
+  .summary-row.short{border-color:var(--red); background:var(--red-soft);}
+  .summary-head{display:flex; justify-content:space-between; align-items:baseline;}
+  .summary-date{font-weight:800; font-size:14.5px;}
+  .summary-date .rel{font-weight:500; color:var(--ink-soft); font-size:12px; margin-left:6px;}
+  .slot-summary-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px;}
+  .slot-summary-grid.single{grid-template-columns:1fr;}
+  .slot-summary{
+    border-radius:8px; padding:8px 6px; text-align:center; background:var(--green-soft);
+    border:1.5px solid transparent;
+  }
+  .slot-summary.warn{background:var(--red-soft); border-color:var(--red);}
+  .slot-summary .count{font-family:'Bebas Neue'; font-size:26px; line-height:1; color:var(--turf);}
+  .slot-summary.warn .count{color:var(--red);}
+  .slot-summary .label{font-size:10.5px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:0.03em;}
+  .slot-summary .missing{font-size:10.5px; color:var(--ink-soft); margin-top:3px; line-height:1.3;}
+  .slot-summary.warn .missing{color:var(--red);}
+  .flag-pill{
+    font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;
+    color:var(--red); background:#fff; border:1.5px solid var(--red);
+    padding:3px 8px; border-radius:20px;
+  }
+  .roster-count{
+    font-size:12px; color:var(--ink-soft); margin-bottom:14px;
+  }
+  .month-header{
+    font-family:'Bebas Neue'; font-size:16px; letter-spacing:0.05em; color:#fff;
+    background:var(--turf); padding:7px 12px; border-radius:8px; margin:18px 0 10px;
+  }
+  .month-header:first-of-type{margin-top:0;}
+  .empty-state{
+    text-align:center; padding:40px 20px; color:var(--ink-soft); font-size:13.5px;
+  }
+  .loading{text-align:center; padding:60px 20px; color:rgba(239,237,226,0.6); font-family:'Bebas Neue'; font-size:18px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title display" id="teamTitle">MATTHIOLA RANGERS SQUAD AVAILABILITY TRACKER</div>
+</div>
+
+<div class="sheet-switch">
+  <div class="sheet-btn active" data-sheet="match">
+    <div class="sb-title display">MATCHES</div>
+  </div>
+  <div class="sheet-btn" data-sheet="training">
+    <div class="sb-title display">TRAINING</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="mark">Mark yourself out</div>
+  <div class="tab" data-tab="summary">Squad view</div>
+</div>
+
+<div class="panel" id="panel">
+  <div class="loading">Connecting to squad sheet…</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, doc, setDoc, getDoc, onSnapshot, collection
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import {
+  getAuth, signInAnonymously, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDXXl6SdeB7QF6s_Nhzw1BHAshab0AFUN8",
+  authDomain: "matthiola-rangers.firebaseapp.com",
+  projectId: "matthiola-rangers",
+  storageBucket: "matthiola-rangers.firebasestorage.app",
+  messagingSenderId: "763341402144",
+  appId: "1:763341402144:web:694113fd11bd65b37f0c45"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
+
+const DEFAULT_TEAM_NAME = 'Matthiola Rangers';
+const DEFAULT_ROSTER = ['Will','Teddy','Rex','Lennie','Brodie','Luca','Kayleb'];
+
+const SHEETS = {
+  match: {
+    label: 'Matches',
+    dayOfWeek: 6,
+    slots: [
+      {id:'s1', label:'9–10'},
+      {id:'s2', label:'10–11'},
+      {id:'s3', label:'11–12'}
+    ],
+    threshold: 7,
+    weeksAhead: 53,
+    kicker: 'Weekend Fixtures &middot; Squad Availability',
+    subtitle: "Mark the Saturday slots you can't make. Everyone sees the gaps before they become a problem.",
+    fullOutLabel: 'Mark out all morning',
+    fullOutActiveLabel: 'Out all morning'
+  },
+  training: {
+    label: 'Training',
+    dayOfWeek: 4,
+    slots: [
+      {id:'t1', label:'Session'}
+    ],
+    threshold: null,
+    weeksAhead: 53,
+    kicker: 'Thursday Training &middot; Squad Availability',
+    subtitle: "Mark the Thursdays you can't make training. No time slots needed \u2014 just in or out.",
+    fullOutLabel: '',
+    fullOutActiveLabel: ''
+  }
+};
+
+let roster = [];
+let availability = {match:{}, training:{}};
+let teamName = '';
+let selectedPlayer = null;
+let activeSheet = 'match';
+let activeTab = 'mark';
+let loaded = false;
+
+function nextDatesForDay(dayOfWeek, n){
+  const out = [];
+  const d = new Date();
+  const day = d.getDay();
+  const diff = (dayOfWeek - day + 7) % 7;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  for(let i=0;i<n;i++){
+    const dt = new Date(d);
+    dt.setDate(d.getDate() + i*7);
+    out.push(dt);
+  }
+  return out;
+}
+function isoDate(d){ return d.toISOString().slice(0,10); }
+function fmtDate(d){ return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}); }
+function relLabel(d, idx){
+  if(idx===0) return 'This week';
+  if(idx===1) return 'Next week';
+  return '';
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s){ return escapeHtml(s); }
+
+// ---- Firestore wiring ----
+
+let settingsInitialized = false;
+let availabilityInitialized = false;
+
+async function ensureSettingsSeeded(){
+  const ref = doc(db, 'team_config', 'settings');
+  const snap = await getDoc(ref);
+  if(!snap.exists()){
+    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER });
+  }
+}
+
+function watchSettings(){
+  const ref = doc(db, 'team_config', 'settings');
+  onSnapshot(ref, (snap) => {
+    if(snap.exists()){
+      const data = snap.data();
+      teamName = data.teamName || DEFAULT_TEAM_NAME;
+      roster = Array.isArray(data.roster) && data.roster.length ? data.roster : DEFAULT_ROSTER.slice();
+    } else {
+      teamName = DEFAULT_TEAM_NAME;
+      roster = DEFAULT_ROSTER.slice();
+    }
+    if(roster.length && !selectedPlayer) selectedPlayer = roster[0];
+    if(roster.length && !roster.includes(selectedPlayer)) selectedPlayer = roster[0];
+    settingsInitialized = true;
+    maybeFinishLoading();
+    render();
+  }, (err) => {
+    console.error('Settings sync error', err);
+    showConnectionWarning();
+  });
+}
+
+function watchAvailability(){
+  const ref = collection(db, 'availability');
+  onSnapshot(ref, (snap) => {
+    const next = {match:{}, training:{}};
+    snap.forEach(docSnap => {
+      const id = docSnap.id; // format: `${type}__${name}`
+      const sepIdx = id.indexOf('__');
+      if(sepIdx === -1) return;
+      const type = id.slice(0, sepIdx);
+      const name = id.slice(sepIdx + 2);
+      if(!next[type]) return;
+      next[type][name] = docSnap.data().dates || {};
+    });
+    availability = next;
+    availabilityInitialized = true;
+    maybeFinishLoading();
+    render();
+  }, (err) => {
+    console.error('Availability sync error', err);
+    showConnectionWarning();
+  });
+}
+
+function maybeFinishLoading(){
+  if(settingsInitialized && availabilityInitialized){
+    loaded = true;
+  }
+}
+
+
+async function saveSettings(){
+  try{
+    await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster });
+  }catch(e){
+    console.error('Failed to save settings', e);
+    showConnectionWarning();
+  }
+}
+
+async function savePlayerAvailability(type, name){
+  try{
+    await setDoc(doc(db, 'availability', `${type}__${name}`), {
+      dates: (availability[type] && availability[type][name]) || {}
+    });
+  }catch(e){
+    console.error('Failed to save availability', e);
+    showConnectionWarning();
+  }
+}
+
+let warnTimer = null;
+function showConnectionWarning(){
+  let el = document.getElementById('connWarning');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'connWarning';
+    el.style.cssText = 'position:fixed; left:12px; right:12px; bottom:12px; background:#C6432F; color:#fff; padding:10px 14px; border-radius:8px; font-family:Inter,sans-serif; font-size:12.5px; font-weight:600; z-index:999; box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+    el.textContent = "Couldn't sync with the server — check your connection and try again.";
+    document.body.appendChild(el);
+  }
+  el.style.display = 'block';
+  clearTimeout(warnTimer);
+  warnTimer = setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+// ---- Local state helpers ----
+
+function ensurePlayerSlot(type, name, dateKey){
+  if(!availability[type]) availability[type] = {};
+  if(!availability[type][name]) availability[type][name] = {};
+  if(!availability[type][name][dateKey]) availability[type][name][dateKey] = {};
+  return availability[type][name][dateKey];
+}
+function toggleSlot(type, name, dateKey, slotId){
+  const slot = ensurePlayerSlot(type, name, dateKey);
+  slot[slotId] = !slot[slotId];
+  savePlayerAvailability(type, name);
+  render();
+}
+function isFullOut(type, name, dateKey){
+  const slot = (availability[type][name] && availability[type][name][dateKey]) || {};
+  return SHEETS[type].slots.every(s => slot[s.id]);
+}
+function toggleFullOut(type, name, dateKey){
+  const slot = ensurePlayerSlot(type, name, dateKey);
+  const makeOut = !isFullOut(type, name, dateKey);
+  SHEETS[type].slots.forEach(s => slot[s.id] = makeOut);
+  savePlayerAvailability(type, name);
+  render();
+}
+
+async function addPlayer(){
+  const input = document.getElementById('newPlayerInput');
+  const name = input.value.trim();
+  if(!name) return;
+  if(roster.includes(name)){ input.value=''; return; }
+  roster.push(name);
+  availability.match[name] = {};
+  availability.training[name] = {};
+  await saveSettings();
+  selectedPlayer = name;
+  input.value = '';
+  render();
+}
+
+function switchSheet(type){
+  activeSheet = type;
+  document.querySelectorAll('.sheet-btn').forEach(el => {
+    el.classList.toggle('active', el.dataset.sheet === type);
+  });
+  render();
+}
+function switchTab(t){
+  activeTab = t;
+  document.querySelectorAll('.tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === t);
+  });
+  render();
+}
+
+// ---- Rendering (unchanged from the original design) ----
+
+function renderMarkTab(){
+  const panel = document.getElementById('panel');
+  const cfg = SHEETS[activeSheet];
+  const dates = nextDatesForDay(cfg.dayOfWeek, cfg.weeksAhead);
+  const multiSlot = cfg.slots.length > 1;
+
+  let html = '';
+  html += `<div class="section-label">Who are you?</div>`;
+  html += `<div class="player-picker">`;
+  roster.forEach(name => {
+    html += `<div class="player-chip ${name===selectedPlayer?'selected':''}" data-player="${escapeAttr(name)}">${escapeHtml(name)}</div>`;
+  });
+  html += `</div>`;
+  html += `<div class="add-player-row">
+    <input id="newPlayerInput" placeholder="Add a player to the squad…" maxlength="40"/>
+    <button class="btn btn-amber" id="addPlayerBtn">Add</button>
+  </div>`;
+  html += `<div class="hint">Squad size: <b>${roster.length}</b> player${roster.length===1?'':'s'}. Tap your name above, then mark the ${cfg.label.toLowerCase()} you'll miss.</div>`;
+
+  if(!selectedPlayer){
+    html += `<div class="empty-state">Add yourself to the squad list above to get started.</div>`;
+  } else {
+    let lastMonth = null;
+    dates.forEach((d, idx) => {
+      const key = isoDate(d);
+      const monthKey = d.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
+      if(monthKey !== lastMonth){
+        html += `<div class="month-header">${monthKey}</div>`;
+        lastMonth = monthKey;
+      }
+      const slot = (availability[activeSheet][selectedPlayer] && availability[activeSheet][selectedPlayer][key]) || {};
+      const rel = relLabel(d, idx);
+
+      html += `<div class="sat-row">
+        <div class="sat-row-head">
+          <div class="sat-date">${fmtDate(d)}${rel ? `<span class="rel">${rel}</span>`:''}</div>
+        </div>`;
+
+      if(multiSlot){
+        html += `<div class="slot-grid">
+          ${cfg.slots.map(s => `<div class="slot-btn ${slot[s.id]?'out':''}" data-date="${key}" data-slot="${s.id}">${s.label}${slot[s.id]?' · Out':''}</div>`).join('')}
+        </div>
+        <button class="full-out-btn ${isFullOut(activeSheet,selectedPlayer,key)?'active':''}" data-fullout="${key}">
+          ${isFullOut(activeSheet,selectedPlayer,key) ? cfg.fullOutActiveLabel : cfg.fullOutLabel}
+        </button>`;
+      } else {
+        const out = !!slot[cfg.slots[0].id];
+        html += `<button class="single-toggle-btn ${out?'out':''}" data-date="${key}" data-slot="${cfg.slots[0].id}">
+          ${out ? "Can't make it" : "Available"}
+        </button>`;
+      }
+      html += `</div>`;
+    });
+  }
+
+  panel.innerHTML = html;
+
+  panel.querySelectorAll('.player-chip').forEach(el => {
+    el.addEventListener('click', () => { selectedPlayer = el.dataset.player; render(); });
+  });
+  const addBtn = document.getElementById('addPlayerBtn');
+  if(addBtn) addBtn.addEventListener('click', addPlayer);
+  const newInput = document.getElementById('newPlayerInput');
+  if(newInput) newInput.addEventListener('keydown', e => { if(e.key==='Enter') addPlayer(); });
+
+  panel.querySelectorAll('.slot-btn, .single-toggle-btn').forEach(el => {
+    el.addEventListener('click', () => toggleSlot(activeSheet, selectedPlayer, el.dataset.date, el.dataset.slot));
+  });
+  panel.querySelectorAll('[data-fullout]').forEach(el => {
+    el.addEventListener('click', () => toggleFullOut(activeSheet, selectedPlayer, el.dataset.fullout));
+  });
+}
+
+function renderSummaryTab(){
+  const panel = document.getElementById('panel');
+  const cfg = SHEETS[activeSheet];
+  const dates = nextDatesForDay(cfg.dayOfWeek, cfg.weeksAhead);
+  const squadSize = roster.length;
+  const multiSlot = cfg.slots.length > 1;
+
+  let html = `<div class="section-label">Squad availability — ${cfg.label}</div>`;
+  html += `<div class="roster-count">Full squad: <b>${squadSize}</b> — ${roster.join(', ') || 'no players added yet'}</div>`;
+
+  if(squadSize === 0){
+    html += `<div class="empty-state">No players added yet. Switch to "Mark yourself out" to add the squad.</div>`;
+    panel.innerHTML = html;
+    return;
+  }
+
+  let lastMonth = null;
+  dates.forEach((d, idx) => {
+    const key = isoDate(d);
+    const monthKey = d.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
+    if(monthKey !== lastMonth){
+      html += `<div class="month-header">${monthKey}</div>`;
+      lastMonth = monthKey;
+    }
+    const rel = relLabel(d, idx);
+    let rowShort = false;
+    let slotsHtml = '';
+    cfg.slots.forEach(s => {
+      const missing = roster.filter(name => {
+        const slot = (availability[activeSheet][name] && availability[activeSheet][name][key]) || {};
+        return !!slot[s.id];
+      });
+      const available = squadSize - missing.length;
+      const warn = cfg.threshold !== null && available < cfg.threshold;
+      if(warn) rowShort = true;
+      slotsHtml += `<div class="slot-summary ${warn?'warn':''}">
+        <div class="count">${available}</div>
+        <div class="label">${multiSlot ? s.label : 'Available'}</div>
+        ${missing.length ? `<div class="missing">Out: ${missing.join(', ')}</div>` : ''}
+      </div>`;
+    });
+    html += `<div class="summary-row ${rowShort?'short':''}">
+      <div class="summary-head">
+        <div class="summary-date">${fmtDate(d)}${rel?`<span class="rel">${rel}</span>`:''}</div>
+        ${rowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
+      </div>
+      <div class="slot-summary-grid ${multiSlot?'':'single'}">${slotsHtml}</div>
+    </div>`;
+  });
+
+  panel.innerHTML = html;
+}
+
+function render(){
+  if(!loaded){
+    document.getElementById('panel').innerHTML = '<div class="loading">Connecting to squad sheet…</div>';
+    return;
+  }
+  if(activeTab === 'mark') renderMarkTab();
+  else renderSummaryTab();
+}
+
+document.querySelectorAll('.sheet-btn').forEach(el => {
+  el.addEventListener('click', () => switchSheet(el.dataset.sheet));
+});
+document.querySelectorAll('.tab').forEach(el => {
+  el.addEventListener('click', () => switchTab(el.dataset.tab));
+});
+
+// ---- Init ----
+let watchersStarted = false;
+onAuthStateChanged(auth, async (user) => {
+  if(!user || watchersStarted) return;
+  watchersStarted = true;
+  try{
+    await ensureSettingsSeeded();
+  }catch(e){
+    console.error('Seed failed', e);
+    showConnectionWarning();
+  }
+  watchSettings();
+  watchAvailability();
+});
+
+signInAnonymously(auth).catch((e) => {
+  console.error('Anonymous sign-in failed', e);
+  showConnectionWarning();
+});
+</script>
+</body>
+</html>
