@@ -329,7 +329,7 @@ import {
   getFirestore, doc, setDoc, getDoc, deleteDoc, onSnapshot, collection
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
+  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -424,7 +424,12 @@ function escapeAttr(s){ return escapeHtml(s); }
 
 // ---- Auth ----
 
-function doSignIn(){ signInWithRedirect(auth, googleProvider); }
+function doSignIn(){
+  signInWithPopup(auth, googleProvider).catch((e) => {
+    console.error('Popup sign-in failed, falling back to redirect', e);
+    signInWithRedirect(auth, googleProvider);
+  });
+}
 function doSignOut(){ signOut(auth); }
 
 function computeIsAdmin(){
