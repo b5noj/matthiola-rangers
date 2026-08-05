@@ -38,7 +38,7 @@
   .display{font-family:'Bebas Neue',sans-serif; letter-spacing:0.03em;}
 
   .header{
-    padding:24px 20px 20px;
+    padding:24px 20px 16px;
     color:var(--line);
     position:relative;
     overflow:hidden;
@@ -63,8 +63,17 @@
     color:rgba(251,243,234,0.7); font-weight:700; font-family:'Inter',sans-serif;
   }
 
+  .user-bar{
+    display:none; align-items:center; justify-content:space-between;
+    padding:8px 20px 14px; color:rgba(251,243,234,0.75); font-size:12px; font-weight:600;
+  }
+  .user-bar-signout{
+    background:transparent; border:1px solid rgba(255,255,255,0.25); color:rgba(251,243,234,0.85);
+    padding:5px 12px; border-radius:20px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:'Inter';
+  }
+
   .sheet-switch{
-    display:flex; gap:8px; padding:0 20px; margin-top:16px;
+    display:flex; gap:8px; padding:0 20px; margin-top:8px;
   }
   .sheet-btn{
     flex:1; padding:12px 10px; border-radius:10px; cursor:pointer;
@@ -73,14 +82,13 @@
   }
   .sheet-btn.active{ background:var(--amber); border-color:var(--amber); color:var(--brand-deep); }
   .sheet-btn .sb-title{ font-family:'Bebas Neue'; font-size:19px; letter-spacing:0.03em; }
-  .sheet-btn .sb-sub{ font-size:11px; font-weight:600; opacity:0.85; }
 
   .tabs{
     display:flex; gap:6px; padding:0 20px; margin-top:14px;
   }
   .tab{
     flex:1; text-align:center; padding:12px 8px;
-    font-family:'Bebas Neue'; font-size:18px; letter-spacing:0.04em;
+    font-family:'Bebas Neue'; font-size:17px; letter-spacing:0.04em;
     color:rgba(239,237,226,0.55);
     background:rgba(255,255,255,0.05);
     border:1px solid rgba(255,255,255,0.1);
@@ -110,8 +118,14 @@
   }
   .section-label::before{content:""; width:8px; height:8px; background:var(--amber); border-radius:2px;}
 
+  .my-child-label{
+    font-family:'Bebas Neue'; font-size:24px; color:var(--brand-deep);
+    background:#fff; border:1.5px solid var(--border); border-radius:10px;
+    padding:10px 16px; margin-bottom:14px; display:inline-block;
+  }
+
   .player-picker{
-    display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;
+    display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;
   }
   .player-chip{
     padding:8px 14px; border-radius:20px; font-size:13.5px; font-weight:600;
@@ -137,17 +151,6 @@
 
   .hint{font-size:12.5px; color:var(--ink-soft); margin:2px 0 16px; line-height:1.5;}
   .hint b{color:var(--ink);}
-  .admin-toggle{
-    font-size:12px; color:var(--ink-soft); font-weight:600; cursor:pointer;
-    margin-bottom:16px; display:inline-flex; align-items:center; gap:5px;
-  }
-  .admin-toggle:hover{ color:var(--brand); }
-  .admin-pin-row{ display:flex; gap:8px; margin-bottom:16px; align-items:center; }
-  .admin-pin-row input{
-    flex:1; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border);
-    font-size:13.5px; font-family:'Inter'; max-width:160px;
-  }
-  .admin-pin-error{ font-size:11.5px; color:var(--red); margin-top:-10px; margin-bottom:14px; font-weight:600; }
 
   .sat-row{
     background:#fff; border:1.5px solid var(--border); border-radius:10px;
@@ -163,7 +166,7 @@
   }
   .fixture-line.empty{ color:#B8A594; font-style:italic; font-weight:500; }
   .fixture-line .edit-ic{ font-size:11px; opacity:0.6; }
-  .fixture-readonly{ font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-top:4px; }
+  .fixture-readonly{ font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-bottom:10px; }
   .fixture-edit{ margin-bottom:10px; padding:10px; background:var(--ok-soft); border-radius:8px; }
   .fx-input{
     width:100%; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border);
@@ -258,6 +261,35 @@
     text-align:center; padding:40px 20px; color:var(--ink-soft); font-size:13.5px;
   }
   .loading{text-align:center; padding:60px 20px; color:rgba(239,237,226,0.6); font-family:'Bebas Neue'; font-size:18px;}
+
+  .login-screen{ text-align:center; padding:56px 16px; }
+  .login-title{ font-family:'Bebas Neue'; font-size:24px; color:var(--brand-deep); margin-bottom:8px; }
+  .login-sub{ font-size:13px; color:var(--ink-soft); margin-bottom:22px; max-width:320px; margin-left:auto; margin-right:auto; line-height:1.5; }
+  .login-btn{ padding:13px 28px; font-size:14px; }
+
+  .admin-subtabs{ display:flex; gap:6px; margin-bottom:16px; }
+  .admin-subtab{
+    flex:1; text-align:center; padding:9px 8px; border-radius:8px; cursor:pointer;
+    font-size:12.5px; font-weight:700; background:#fff; border:1.5px solid var(--border); color:var(--ink-soft);
+  }
+  .admin-subtab.active{ background:var(--brand); border-color:var(--brand); color:#fff; }
+  .admin-list{ margin-bottom:16px; }
+  .admin-list-row{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    background:#fff; border:1.5px solid var(--border); border-radius:8px;
+    padding:9px 12px; margin-bottom:8px; font-size:13px;
+  }
+  .admin-list-row span{ word-break:break-word; }
+  .admin-remove{ padding:5px 12px; font-size:11.5px; flex-shrink:0; }
+  .admin-form{
+    background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:14px;
+  }
+  .admin-form input{
+    width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border);
+    font-size:13.5px; font-family:'Inter'; margin-bottom:10px;
+  }
+  .admin-child-picker{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+  .admin-checkbox{ font-size:13px; display:flex; align-items:center; gap:5px; }
 </style>
 </head>
 <body>
@@ -274,6 +306,8 @@
   </div>
 </div>
 
+<div class="user-bar" id="userBar"></div>
+
 <div class="sheet-switch">
   <div class="sheet-btn active" data-sheet="match">
     <div class="sb-title display">MATCHES</div>
@@ -283,10 +317,7 @@
   </div>
 </div>
 
-<div class="tabs">
-  <div class="tab active" data-tab="mark">Mark yourself out</div>
-  <div class="tab" data-tab="summary">Squad view</div>
-</div>
+<div class="tabs" id="tabsBar"></div>
 
 <div class="panel" id="panel">
   <div class="loading">Connecting to squad sheet…</div>
@@ -295,10 +326,10 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc, getDoc, onSnapshot, collection
+  getFirestore, doc, setDoc, getDoc, deleteDoc, onSnapshot, collection
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
-  getAuth, signInAnonymously, onAuthStateChanged
+  getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -313,6 +344,12 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
+const googleProvider = new GoogleAuthProvider();
+
+// IMPORTANT: replace this with your real email address before deploying.
+// Anyone signed in with an email in this list is always an admin, even before
+// the Admins list below has been set up — this is how you bootstrap the first admin.
+const SEED_ADMIN_EMAILS = ['change-me@example.com'];
 
 const DEFAULT_TEAM_NAME = 'Matthiola Rangers';
 const DEFAULT_ROSTER = ['Will','Teddy','Rex','Lennie','Brodie','Luca','Kayleb'];
@@ -327,9 +364,6 @@ const SHEETS = {
       {id:'s3', label:'11–12'}
     ],
     threshold: 7,
-    weeksAhead: 53,
-    kicker: 'Weekend Fixtures &middot; Squad Availability',
-    subtitle: "Mark the Saturday slots you can't make. Everyone sees the gaps before they become a problem.",
     fullOutLabel: 'Mark out all morning',
     fullOutActiveLabel: 'Out all morning'
   },
@@ -340,58 +374,71 @@ const SHEETS = {
       {id:'t1', label:'Session'}
     ],
     threshold: 7,
-    weeksAhead: 53,
-    kicker: 'Thursday Training &middot; Squad Availability',
-    subtitle: "Mark the Thursdays you can't make training. No time slots needed \u2014 just in or out.",
     fullOutLabel: '',
     fullOutActiveLabel: ''
   }
 };
 
-let roster = [];
+let roster = DEFAULT_ROSTER.slice();
+let teamName = DEFAULT_TEAM_NAME;
 let availability = {match:{}, training:{}};
 let fixtures = {};        // dateKey -> {opponent, koTime, location}
 let trainingInfo = {};    // dateKey -> {time, location}
+let parentLinks = {};     // email -> {children:[...]}
+let admins = {};          // email -> true
+let currentUser = null;   // {email, name}
+let isAdmin = false;
 let editingFixture = null;
 let editingTrainingInfo = null;
-let expandedSlot = null;  // format: `${dateKey}__${slotId}`
-let isAdmin = false;
-let showAdminPinInput = false;
-let adminPinError = false;
-const ADMIN_PIN = '1873'; // change this to whatever passcode you want team admins to use
-let teamName = '';
+let expandedSlot = null;
 let selectedPlayer = null;
 let activeSheet = 'match';
 let activeTab = 'mark';
-let loaded = true;
+let adminSubTab = 'squad';
 
-function nextDatesForDay(dayOfWeek, n){
+roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
+
+// ---- Date helpers ----
+
+function getMonthWindowDates(dayOfWeek){
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 12, 0); // last day of month+11
   const out = [];
-  const d = new Date();
-  const day = d.getDay();
-  const diff = (dayOfWeek - day + 7) % 7;
+  let d = new Date(start);
+  const diff = (dayOfWeek - d.getDay() + 7) % 7;
   d.setDate(d.getDate() + diff);
   d.setHours(0,0,0,0);
-  for(let i=0;i<n;i++){
-    const dt = new Date(d);
-    dt.setDate(d.getDate() + i*7);
-    out.push(dt);
+  while(d <= end){
+    out.push(new Date(d));
+    d.setDate(d.getDate() + 7);
   }
   return out;
 }
 function isoDate(d){ return d.toISOString().slice(0,10); }
 function fmtDate(d){ return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}); }
 function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function escapeAttr(s){ return escapeHtml(s); }
 
+// ---- Auth ----
+
+function doSignIn(){ signInWithRedirect(auth, googleProvider); }
+function doSignOut(){ signOut(auth); }
+
+function computeIsAdmin(){
+  if(!currentUser){ isAdmin = false; return; }
+  isAdmin = SEED_ADMIN_EMAILS.includes(currentUser.email) || !!admins[currentUser.email];
+}
+
+function getMyChildren(){
+  if(!currentUser) return [];
+  const link = parentLinks[currentUser.email];
+  return (link && Array.isArray(link.children)) ? link.children.filter(n => roster.includes(n)) : [];
+}
+
 // ---- Firestore wiring ----
-// Show defaults immediately; Firestore listeners update state and re-render as data arrives.
-roster = DEFAULT_ROSTER.slice();
-teamName = DEFAULT_TEAM_NAME;
-roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
-selectedPlayer = roster[0];
 
 async function ensureSettingsSeeded(){
   const ref = doc(db, 'team_config', 'settings');
@@ -402,8 +449,7 @@ async function ensureSettingsSeeded(){
 }
 
 function watchSettings(){
-  const ref = doc(db, 'team_config', 'settings');
-  onSnapshot(ref, (snap) => {
+  onSnapshot(doc(db, 'team_config', 'settings'), (snap) => {
     if(snap.exists()){
       const data = snap.data();
       teamName = data.teamName || DEFAULT_TEAM_NAME;
@@ -412,18 +458,14 @@ function watchSettings(){
     if(roster.length && !selectedPlayer) selectedPlayer = roster[0];
     if(roster.length && !roster.includes(selectedPlayer)) selectedPlayer = roster[0];
     render();
-  }, (err) => {
-    console.error('Settings sync error', err);
-    showConnectionWarning();
-  });
+  }, (err) => { console.error('Settings sync error', err); showConnectionWarning(); });
 }
 
 function watchAvailability(){
-  const ref = collection(db, 'availability');
-  onSnapshot(ref, (snap) => {
+  onSnapshot(collection(db, 'availability'), (snap) => {
     const next = {match:{}, training:{}};
     snap.forEach(docSnap => {
-      const id = docSnap.id; // format: `${type}__${name}`
+      const id = docSnap.id;
       const sepIdx = id.indexOf('__');
       if(sepIdx === -1) return;
       const type = id.slice(0, sepIdx);
@@ -433,74 +475,80 @@ function watchAvailability(){
     });
     availability = next;
     render();
-  }, (err) => {
-    console.error('Availability sync error', err);
-    showConnectionWarning();
-  });
+  }, (err) => { console.error('Availability sync error', err); showConnectionWarning(); });
 }
 
 function watchFixtures(){
-  const ref = collection(db, 'fixtures');
-  onSnapshot(ref, (snap) => {
+  onSnapshot(collection(db, 'fixtures'), (snap) => {
     const next = {};
     snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
     fixtures = next;
     render();
-  }, (err) => {
-    console.error('Fixtures sync error', err);
-    showConnectionWarning();
-  });
+  }, (err) => { console.error('Fixtures sync error', err); showConnectionWarning(); });
 }
 
 function watchTrainingInfo(){
-  const ref = collection(db, 'training_info');
-  onSnapshot(ref, (snap) => {
+  onSnapshot(collection(db, 'training_info'), (snap) => {
     const next = {};
     snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
     trainingInfo = next;
     render();
-  }, (err) => {
-    console.error('Training info sync error', err);
-    showConnectionWarning();
-  });
+  }, (err) => { console.error('Training info sync error', err); showConnectionWarning(); });
 }
 
-async function saveFixture(dateKey, data){
-  try{
-    await setDoc(doc(db, 'fixtures', dateKey), data);
-  }catch(e){
-    console.error('Failed to save fixture', e);
-    showConnectionWarning();
-  }
+function watchParentLinks(){
+  onSnapshot(collection(db, 'parent_links'), (snap) => {
+    const next = {};
+    snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
+    parentLinks = next;
+    render();
+  }, (err) => { console.error('Parent links sync error', err); showConnectionWarning(); });
 }
 
-async function saveTrainingInfo(dateKey, data){
-  try{
-    await setDoc(doc(db, 'training_info', dateKey), data);
-  }catch(e){
-    console.error('Failed to save training info', e);
-    showConnectionWarning();
-  }
+function watchAdmins(){
+  onSnapshot(collection(db, 'admins'), (snap) => {
+    const next = {};
+    snap.forEach(docSnap => { next[docSnap.id] = true; });
+    admins = next;
+    computeIsAdmin();
+    render();
+  }, (err) => { console.error('Admins sync error', err); showConnectionWarning(); });
 }
 
 async function saveSettings(){
-  try{
-    await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster });
-  }catch(e){
-    console.error('Failed to save settings', e);
-    showConnectionWarning();
-  }
+  try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster }); }
+  catch(e){ console.error('Failed to save settings', e); showConnectionWarning(); }
 }
-
+async function saveFixture(dateKey, data){
+  try{ await setDoc(doc(db, 'fixtures', dateKey), data); }
+  catch(e){ console.error('Failed to save fixture', e); showConnectionWarning(); }
+}
+async function saveTrainingInfo(dateKey, data){
+  try{ await setDoc(doc(db, 'training_info', dateKey), data); }
+  catch(e){ console.error('Failed to save training info', e); showConnectionWarning(); }
+}
 async function savePlayerAvailability(type, name){
   try{
     await setDoc(doc(db, 'availability', `${type}__${name}`), {
       dates: (availability[type] && availability[type][name]) || {}
     });
-  }catch(e){
-    console.error('Failed to save availability', e);
-    showConnectionWarning();
-  }
+  }catch(e){ console.error('Failed to save availability', e); showConnectionWarning(); }
+}
+async function saveParentLink(email, children){
+  try{ await setDoc(doc(db, 'parent_links', email), { children }); }
+  catch(e){ console.error('Failed to save parent link', e); showConnectionWarning(); }
+}
+async function removeParentLink(email){
+  try{ await deleteDoc(doc(db, 'parent_links', email)); }
+  catch(e){ console.error('Failed to remove parent link', e); showConnectionWarning(); }
+}
+async function saveAdminEmail(email){
+  try{ await setDoc(doc(db, 'admins', email), { addedAt: Date.now() }); }
+  catch(e){ console.error('Failed to add admin', e); showConnectionWarning(); }
+}
+async function removeAdminEmail(email){
+  try{ await deleteDoc(doc(db, 'admins', email)); }
+  catch(e){ console.error('Failed to remove admin', e); showConnectionWarning(); }
 }
 
 let warnTimer = null;
@@ -549,7 +597,7 @@ function toggleReason(type, name, dateKey, preset){
   if(slot.reason.preset === preset){
     slot.reason = {preset:'', note:''};
   } else {
-    slot.reason = {preset, note: slot.reason.note || ''};
+    slot.reason = {preset, note: preset === 'Other' ? (slot.reason.note || '') : ''};
   }
   savePlayerAvailability(type, name);
   render();
@@ -565,7 +613,7 @@ function reasonText(type, name, dateKey){
   const r = slot.reason;
   if(!r || !r.preset) return '';
   if(r.preset === 'Other') return r.note ? r.note : 'Other';
-  return r.note ? `${r.preset} – ${r.note}` : r.preset;
+  return r.preset;
 }
 
 async function addPlayer(){
@@ -577,25 +625,26 @@ async function addPlayer(){
   availability.match[name] = {};
   availability.training[name] = {};
   await saveSettings();
-  selectedPlayer = name;
   input.value = '';
+  render();
+}
+async function removePlayer(name){
+  roster = roster.filter(n => n !== name);
+  if(selectedPlayer === name) selectedPlayer = roster[0] || null;
+  await saveSettings();
   render();
 }
 
 function switchSheet(type){
   activeSheet = type;
-  document.querySelectorAll('.sheet-btn').forEach(el => {
-    el.classList.toggle('active', el.dataset.sheet === type);
-  });
   render();
 }
 function switchTab(t){
   activeTab = t;
-  document.querySelectorAll('.tab').forEach(el => {
-    el.classList.toggle('active', el.dataset.tab === t);
-  });
   render();
 }
+
+// ---- Fixture / training info rendering ----
 
 function fixtureDisplayText(dateKey){
   if(activeSheet === 'match'){
@@ -617,7 +666,7 @@ function fixtureDisplayText(dateKey){
 function renderFixtureLine(dateKey){
   if(activeSheet === 'match'){
     const f = fixtures[dateKey] || {};
-    if(editingFixture === dateKey){
+    if(isAdmin && editingFixture === dateKey){
       return `<div class="fixture-edit">
         <input class="fx-input" data-field="opponent" placeholder="Opponent" value="${escapeAttr(f.opponent||'')}"/>
         <input class="fx-input" data-field="koTime" placeholder="KO time e.g. 10:00am" value="${escapeAttr(f.koTime||'')}"/>
@@ -629,10 +678,13 @@ function renderFixtureLine(dateKey){
       </div>`;
     }
     const text = fixtureDisplayText(dateKey);
-    return `<div class="fixture-line ${text?'':'empty'}" data-editfixture="${dateKey}">${text || 'Add fixture details'} <span class="edit-ic">✎</span></div>`;
+    if(isAdmin){
+      return `<div class="fixture-line ${text?'':'empty'}" data-editfixture="${dateKey}">${text || 'Add fixture details'} <span class="edit-ic">✎</span></div>`;
+    }
+    return `<div class="fixture-readonly">${text || 'No fixture details yet'}</div>`;
   } else {
     const t = trainingInfo[dateKey] || {};
-    if(editingTrainingInfo === dateKey){
+    if(isAdmin && editingTrainingInfo === dateKey){
       return `<div class="fixture-edit">
         <input class="fx-input" data-field="time" placeholder="Time e.g. 6:00pm" value="${escapeAttr(t.time||'')}"/>
         <input class="fx-input" data-field="location" placeholder="Location" value="${escapeAttr(t.location||'')}"/>
@@ -643,7 +695,10 @@ function renderFixtureLine(dateKey){
       </div>`;
     }
     const text = fixtureDisplayText(dateKey);
-    return `<div class="fixture-line ${text?'':'empty'}" data-edittraining="${dateKey}">${text || 'Add session details'} <span class="edit-ic">✎</span></div>`;
+    if(isAdmin){
+      return `<div class="fixture-line ${text?'':'empty'}" data-edittraining="${dateKey}">${text || 'Add session details'} <span class="edit-ic">✎</span></div>`;
+    }
+    return `<div class="fixture-readonly">${text || 'No session details yet'}</div>`;
   }
 }
 
@@ -690,43 +745,52 @@ function wireFixtureEditing(panel){
 
 // ---- Rendering ----
 
+function renderLoginScreen(){
+  const panel = document.getElementById('panel');
+  panel.innerHTML = `<div class="login-screen">
+    <div class="login-title">Sign in to view the squad sheet</div>
+    <div class="login-sub">Use the Google account your team admin has linked to your account.</div>
+    <button class="btn btn-amber login-btn" id="googleSignInBtn">Sign in with Google</button>
+  </div>`;
+  document.getElementById('googleSignInBtn').addEventListener('click', doSignIn);
+}
+
 function renderMarkTab(){
   const panel = document.getElementById('panel');
   const cfg = SHEETS[activeSheet];
-  const dates = nextDatesForDay(cfg.dayOfWeek, cfg.weeksAhead);
+  const dates = getMonthWindowDates(cfg.dayOfWeek);
   const multiSlot = cfg.slots.length > 1;
+  const myChildren = getMyChildren();
 
   let html = '';
-  html += `<div class="section-label">Who are you?</div>`;
-  html += `<div class="player-picker">`;
-  roster.forEach(name => {
-    html += `<div class="player-chip ${name===selectedPlayer?'selected':''}" data-player="${escapeAttr(name)}">${escapeHtml(name)}</div>`;
-  });
-  html += `</div>`;
-  if(isAdmin){
-    html += `<div class="add-player-row">
-      <input id="newPlayerInput" placeholder="Add a player to the squad…" maxlength="40"/>
-      <button class="btn btn-amber" id="addPlayerBtn">Add</button>
-    </div>`;
-  } else if(showAdminPinInput){
-    html += `<div class="admin-pin-row">
-      <input id="adminPinInput" type="password" inputmode="numeric" placeholder="Admin PIN"/>
-      <button class="btn btn-amber" id="adminPinSubmit">Unlock</button>
-      <button class="btn btn-ghost" id="adminPinCancel">Cancel</button>
-    </div>`;
-    if(adminPinError){
-      html += `<div class="admin-pin-error">Incorrect PIN — try again.</div>`;
-    }
+  if(myChildren.length === 1){
+    if(!selectedPlayer || !myChildren.includes(selectedPlayer)) selectedPlayer = myChildren[0];
+    html += `<div class="section-label">Marking availability for</div>`;
+    html += `<div class="my-child-label">${escapeHtml(selectedPlayer)}</div>`;
+  } else if(myChildren.length > 1){
+    if(!selectedPlayer || !myChildren.includes(selectedPlayer)) selectedPlayer = myChildren[0];
+    html += `<div class="section-label">Which of your children?</div><div class="player-picker">`;
+    myChildren.forEach(name => {
+      html += `<div class="player-chip ${name===selectedPlayer?'selected':''}" data-player="${escapeAttr(name)}">${escapeHtml(name)}</div>`;
+    });
+    html += `</div>`;
   } else {
-    html += `<div class="admin-toggle" id="adminToggleBtn">🔒 Admin — add a player</div>`;
+    if(!selectedPlayer || !roster.includes(selectedPlayer)) selectedPlayer = roster[0] || null;
+    html += `<div class="section-label">Who are you?</div><div class="player-picker">`;
+    roster.forEach(name => {
+      html += `<div class="player-chip ${name===selectedPlayer?'selected':''}" data-player="${escapeAttr(name)}">${escapeHtml(name)}</div>`;
+    });
+    html += `</div>`;
+    html += `<div class="hint">Your login isn't linked to a player yet — ask an admin to link it${isAdmin?' in the Admin tab':''} so this defaults automatically next time.</div>`;
   }
-  html += `<div class="hint">Squad size: <b>${roster.length}</b> player${roster.length===1?'':'s'}. Tap your name above, then mark the ${cfg.label.toLowerCase()} you'll miss.</div>`;
+
+  html += `<div class="hint">Squad size: <b>${roster.length}</b> player${roster.length===1?'':'s'}. Mark the ${cfg.label.toLowerCase()} you'll miss.</div>`;
 
   if(!selectedPlayer){
-    html += `<div class="empty-state">Add yourself to the squad list above to get started.</div>`;
+    html += `<div class="empty-state">No players on the squad yet.</div>`;
   } else {
     let lastMonth = null;
-    dates.forEach((d, idx) => {
+    dates.forEach((d) => {
       const key = isoDate(d);
       const monthKey = d.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
       if(monthKey !== lastMonth){
@@ -763,7 +827,7 @@ function renderMarkTab(){
           <div class="reason-chips">
             ${['Holiday','Injured','Other'].map(p => `<button class="reason-chip ${reason.preset===p?'selected':''}" data-date="${key}" data-reason="${p}">${p}</button>`).join('')}
           </div>
-          ${reason.preset ? `<input class="reason-note-input" data-date="${key}" placeholder="Add detail (optional)" value="${escapeAttr(reason.note||'')}"/>` : ''}
+          ${reason.preset === 'Other' ? `<input class="reason-note-input" data-date="${key}" placeholder="Add detail" value="${escapeAttr(reason.note||'')}"/>` : ''}
         </div>`;
       }
       html += `</div>`;
@@ -775,32 +839,6 @@ function renderMarkTab(){
   panel.querySelectorAll('.player-chip').forEach(el => {
     el.addEventListener('click', () => { selectedPlayer = el.dataset.player; render(); });
   });
-  const addBtn = document.getElementById('addPlayerBtn');
-  if(addBtn) addBtn.addEventListener('click', addPlayer);
-  const newInput = document.getElementById('newPlayerInput');
-  if(newInput) newInput.addEventListener('keydown', e => { if(e.key==='Enter') addPlayer(); });
-
-  const adminToggleBtn = document.getElementById('adminToggleBtn');
-  if(adminToggleBtn) adminToggleBtn.addEventListener('click', () => {
-    showAdminPinInput = true; adminPinError = false; render();
-  });
-  const adminPinSubmit = document.getElementById('adminPinSubmit');
-  if(adminPinSubmit) adminPinSubmit.addEventListener('click', () => {
-    const val = document.getElementById('adminPinInput').value;
-    if(val === ADMIN_PIN){
-      isAdmin = true; showAdminPinInput = false; adminPinError = false;
-    } else {
-      adminPinError = true;
-    }
-    render();
-  });
-  const adminPinInput = document.getElementById('adminPinInput');
-  if(adminPinInput) adminPinInput.addEventListener('keydown', e => { if(e.key==='Enter') adminPinSubmit.click(); });
-  const adminPinCancel = document.getElementById('adminPinCancel');
-  if(adminPinCancel) adminPinCancel.addEventListener('click', () => {
-    showAdminPinInput = false; adminPinError = false; render();
-  });
-
   panel.querySelectorAll('.slot-btn, .single-toggle-btn').forEach(el => {
     el.addEventListener('click', () => toggleSlot(activeSheet, selectedPlayer, el.dataset.date, el.dataset.slot));
   });
@@ -819,7 +857,7 @@ function renderMarkTab(){
 function renderSummaryTab(){
   const panel = document.getElementById('panel');
   const cfg = SHEETS[activeSheet];
-  const dates = nextDatesForDay(cfg.dayOfWeek, cfg.weeksAhead);
+  const dates = getMonthWindowDates(cfg.dayOfWeek);
   const squadSize = roster.length;
   const multiSlot = cfg.slots.length > 1;
 
@@ -827,13 +865,13 @@ function renderSummaryTab(){
   html += `<div class="roster-count">Full squad: <b>${squadSize}</b> — ${roster.join(', ') || 'no players added yet'}</div>`;
 
   if(squadSize === 0){
-    html += `<div class="empty-state">No players added yet. Switch to "Mark yourself out" to add the squad.</div>`;
+    html += `<div class="empty-state">No players added yet.</div>`;
     panel.innerHTML = html;
     return;
   }
 
   let lastMonth = null;
-  dates.forEach((d, idx) => {
+  dates.forEach((d) => {
     const key = isoDate(d);
     const monthKey = d.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
     if(monthKey !== lastMonth){
@@ -894,40 +932,167 @@ function renderSummaryTab(){
   });
 }
 
-function render(){
-  if(activeTab === 'mark') renderMarkTab();
-  else renderSummaryTab();
+function renderAdminTab(){
+  const panel = document.getElementById('panel');
+  let html = `<div class="section-label">Admin</div>`;
+  html += `<div class="admin-subtabs">
+    <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
+    <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parent access</div>
+    <div class="admin-subtab ${adminSubTab==='admins'?'active':''}" data-subtab="admins">Admins</div>
+  </div>`;
+
+  if(adminSubTab === 'squad'){
+    html += `<div class="hint">Add or remove players. Removing a player here doesn't delete their past availability history.</div>`;
+    html += `<div class="admin-list">`;
+    roster.forEach(name => {
+      html += `<div class="admin-list-row"><span>${escapeHtml(name)}</span><button class="btn btn-ghost admin-remove" data-removeplayer="${escapeAttr(name)}">Remove</button></div>`;
+    });
+    html += `</div>`;
+    html += `<div class="add-player-row">
+      <input id="newPlayerInput" placeholder="Add a player to the squad…" maxlength="40"/>
+      <button class="btn btn-amber" id="addPlayerBtn">Add</button>
+    </div>`;
+  } else if(adminSubTab === 'parents'){
+    html += `<div class="hint">Link a parent's login email to their child so the app defaults to that child automatically.</div>`;
+    html += `<div class="admin-list">`;
+    Object.keys(parentLinks).forEach(email => {
+      const children = parentLinks[email].children || [];
+      html += `<div class="admin-list-row"><span><b>${escapeHtml(email)}</b><br>→ ${children.length ? children.map(escapeHtml).join(', ') : '(no child selected)'}</span><button class="btn btn-ghost admin-remove" data-removeparent="${escapeAttr(email)}">Remove</button></div>`;
+    });
+    html += `</div>`;
+    html += `<div class="admin-form">
+      <input id="parentEmailInput" placeholder="Parent's login email" type="email"/>
+      <div class="admin-child-picker">
+        ${roster.map(name => `<label class="admin-checkbox"><input type="checkbox" value="${escapeAttr(name)}" class="parentChildCheckbox"/> ${escapeHtml(name)}</label>`).join('')}
+      </div>
+      <button class="btn btn-amber" id="saveParentLinkBtn">Save link</button>
+    </div>`;
+  } else {
+    html += `<div class="hint">Admins can add/remove players, edit fixture and training details, and manage this page.</div>`;
+    html += `<div class="admin-list">`;
+    Object.keys(admins).forEach(email => {
+      html += `<div class="admin-list-row"><span>${escapeHtml(email)}</span><button class="btn btn-ghost admin-remove" data-removeadmin="${escapeAttr(email)}">Remove</button></div>`;
+    });
+    SEED_ADMIN_EMAILS.forEach(email => {
+      if(!admins[email]){
+        html += `<div class="admin-list-row"><span>${escapeHtml(email)} <i>(built-in)</i></span></div>`;
+      }
+    });
+    html += `</div>`;
+    html += `<div class="admin-form">
+      <input id="newAdminEmailInput" placeholder="Add admin's login email" type="email"/>
+      <button class="btn btn-amber" id="addAdminBtn">Add admin</button>
+    </div>`;
+  }
+
+  panel.innerHTML = html;
+
+  panel.querySelectorAll('.admin-subtab').forEach(el => {
+    el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
+  });
+  const addBtn = document.getElementById('addPlayerBtn');
+  if(addBtn) addBtn.addEventListener('click', addPlayer);
+  const newInput = document.getElementById('newPlayerInput');
+  if(newInput) newInput.addEventListener('keydown', e => { if(e.key==='Enter') addPlayer(); });
+  panel.querySelectorAll('[data-removeplayer]').forEach(el => {
+    el.addEventListener('click', () => removePlayer(el.dataset.removeplayer));
+  });
+  const saveParentBtn = document.getElementById('saveParentLinkBtn');
+  if(saveParentBtn) saveParentBtn.addEventListener('click', async () => {
+    const email = document.getElementById('parentEmailInput').value.trim().toLowerCase();
+    if(!email) return;
+    const checked = Array.from(panel.querySelectorAll('.parentChildCheckbox:checked')).map(c => c.value);
+    await saveParentLink(email, checked);
+    render();
+  });
+  panel.querySelectorAll('[data-removeparent]').forEach(el => {
+    el.addEventListener('click', async () => { await removeParentLink(el.dataset.removeparent); render(); });
+  });
+  const addAdminBtn = document.getElementById('addAdminBtn');
+  if(addAdminBtn) addAdminBtn.addEventListener('click', async () => {
+    const email = document.getElementById('newAdminEmailInput').value.trim().toLowerCase();
+    if(!email) return;
+    await saveAdminEmail(email);
+    render();
+  });
+  panel.querySelectorAll('[data-removeadmin]').forEach(el => {
+    el.addEventListener('click', async () => { await removeAdminEmail(el.dataset.removeadmin); render(); });
+  });
+}
+
+function renderTabsBar(){
+  const tabsEl = document.getElementById('tabsBar');
+  const tabsList = [
+    {id:'mark', label:'Mark yourself out'},
+    {id:'summary', label:'Squad view'}
+  ];
+  if(isAdmin) tabsList.push({id:'admin', label:'Admin'});
+  tabsEl.innerHTML = tabsList.map(t => `<div class="tab ${activeTab===t.id?'active':''}" data-tab="${t.id}">${t.label}</div>`).join('');
+  tabsEl.querySelectorAll('.tab').forEach(el => {
+    el.addEventListener('click', () => switchTab(el.dataset.tab));
+  });
+}
+
+function updateChromeVisibility(){
+  const show = !!currentUser;
+  document.querySelector('.sheet-switch').style.display = (show && activeTab !== 'admin') ? 'flex' : 'none';
+  document.getElementById('tabsBar').style.display = show ? 'flex' : 'none';
+}
+
+function updateUserBar(){
+  const bar = document.getElementById('userBar');
+  if(currentUser){
+    bar.style.display = 'flex';
+    bar.innerHTML = `<span>Signed in as ${escapeHtml(currentUser.name || currentUser.email)}</span><button id="signOutBtn" class="user-bar-signout">Sign out</button>`;
+    document.getElementById('signOutBtn').addEventListener('click', doSignOut);
+  } else {
+    bar.style.display = 'none';
+  }
 }
 
 document.querySelectorAll('.sheet-btn').forEach(el => {
   el.addEventListener('click', () => switchSheet(el.dataset.sheet));
 });
-document.querySelectorAll('.tab').forEach(el => {
-  el.addEventListener('click', () => switchTab(el.dataset.tab));
-});
+
+function render(){
+  updateChromeVisibility();
+  updateUserBar();
+  document.querySelectorAll('.sheet-btn').forEach(el => {
+    el.classList.toggle('active', el.dataset.sheet === activeSheet);
+  });
+  if(!currentUser){
+    renderLoginScreen();
+    return;
+  }
+  renderTabsBar();
+  if(activeTab === 'mark') renderMarkTab();
+  else if(activeTab === 'summary') renderSummaryTab();
+  else if(activeTab === 'admin') renderAdminTab();
+}
 
 // ---- Init ----
-render(); // instant paint with defaults; Firestore listeners refine it as data arrives
+render(); // instant paint (login screen or defaults) before Firebase responds
 
 let watchersStarted = false;
 onAuthStateChanged(auth, async (user) => {
-  if(!user || watchersStarted) return;
-  watchersStarted = true;
-  try{
-    await ensureSettingsSeeded();
-  }catch(e){
-    console.error('Seed failed', e);
-    showConnectionWarning();
+  currentUser = user ? { email: (user.email || '').toLowerCase(), name: user.displayName || user.email } : null;
+  computeIsAdmin();
+  if(user && !watchersStarted){
+    watchersStarted = true;
+    try{ await ensureSettingsSeeded(); }
+    catch(e){ console.error('Seed failed', e); showConnectionWarning(); }
+    watchSettings();
+    watchAvailability();
+    watchFixtures();
+    watchTrainingInfo();
+    watchParentLinks();
+    watchAdmins();
   }
-  watchSettings();
-  watchAvailability();
-  watchFixtures();
-  watchTrainingInfo();
+  render();
 });
 
-signInAnonymously(auth).catch((e) => {
-  console.error('Anonymous sign-in failed', e);
-  showConnectionWarning();
+getRedirectResult(auth).catch((e) => {
+  console.error('Redirect sign-in error', e);
 });
 </script>
 </body>
