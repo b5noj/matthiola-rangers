@@ -8,24 +8,24 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --turf-deep:#173C2A;
-    --turf:#1F5C3F;
-    --turf-light:#2E7A54;
-    --line:#EFEDE2;
+    --brand-deep:#3A1707;
+    --brand:#E2631B;
+    --brand-light:#F0854A;
+    --line:#FBF3EA;
     --card:#FFFFFF;
-    --ink:#122318;
-    --ink-soft:#4C5F52;
-    --amber:#F2A93B;
-    --amber-deep:#D98F1F;
-    --red:#C6432F;
-    --red-soft:#FBE5E0;
-    --green-soft:#E4F1E9;
-    --border:#D7E2DA;
+    --ink:#291508;
+    --ink-soft:#7A5A48;
+    --amber:#FFC93C;
+    --amber-deep:#E6A91E;
+    --red:#A62639;
+    --red-soft:#F7DEE0;
+    --ok-soft:#FBEEDD;
+    --border:#EAD9C8;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background:var(--turf-deep);
+    background:var(--brand-deep);
     background-image:
       repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 64px);
     color:var(--ink);
@@ -36,10 +36,13 @@
   .display{font-family:'Bebas Neue',sans-serif; letter-spacing:0.03em;}
 
   .header{
-    padding:28px 20px 18px;
+    padding:24px 20px 20px;
     color:var(--line);
     position:relative;
     overflow:hidden;
+    display:flex;
+    align-items:center;
+    gap:14px;
   }
   .header::before{
     content:"";
@@ -48,22 +51,15 @@
     border:2px solid rgba(255,255,255,0.08);
     border-radius:50%;
   }
-  .kicker{
-    font-size:11px; text-transform:uppercase; letter-spacing:0.18em;
-    color:var(--amber); font-weight:700; margin-bottom:6px;
+  .crest{ flex-shrink:0; width:54px; height:54px; position:relative; z-index:1; }
+  .title-block{ position:relative; z-index:1; min-width:0; }
+  .club-name{
+    font-size:32px; line-height:0.92; color:var(--amber); margin:0 0 3px;
   }
-  .title{
-    font-size:38px; line-height:0.95; color:#fff; margin:0 0 4px;
+  .tracker-label{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.14em;
+    color:rgba(251,243,234,0.7); font-weight:700; font-family:'Inter',sans-serif;
   }
-  .subtitle{font-size:13.5px; color:rgba(239,237,226,0.75); max-width:520px;}
-  .team-name-row{margin-top:14px; display:flex; align-items:center; gap:8px;}
-  .team-name-input{
-    background:rgba(255,255,255,0.08);
-    border:1px solid rgba(255,255,255,0.18);
-    color:#fff; font-family:'Inter'; font-weight:600; font-size:14px;
-    padding:8px 12px; border-radius:8px; width:220px;
-  }
-  .team-name-input::placeholder{color:rgba(239,237,226,0.5);}
 
   .sheet-switch{
     display:flex; gap:8px; padding:0 20px; margin-top:16px;
@@ -73,7 +69,7 @@
     background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.14);
     color:rgba(239,237,226,0.8); transition:all .15s ease;
   }
-  .sheet-btn.active{ background:var(--amber); border-color:var(--amber); color:var(--turf-deep); }
+  .sheet-btn.active{ background:var(--amber); border-color:var(--amber); color:var(--brand-deep); }
   .sheet-btn .sb-title{ font-family:'Bebas Neue'; font-size:19px; letter-spacing:0.03em; }
   .sheet-btn .sb-sub{ font-size:11px; font-weight:600; opacity:0.85; }
 
@@ -92,7 +88,7 @@
     transition:all .15s ease;
   }
   .tab.active{
-    color:var(--turf-deep);
+    color:var(--brand-deep);
     background:var(--line);
   }
 
@@ -107,7 +103,7 @@
 
   .section-label{
     font-family:'Bebas Neue'; font-size:15px; letter-spacing:0.06em;
-    color:var(--turf); margin:0 0 10px;
+    color:var(--brand); margin:0 0 10px;
     display:flex; align-items:center; gap:8px;
   }
   .section-label::before{content:""; width:8px; height:8px; background:var(--amber); border-radius:2px;}
@@ -121,7 +117,7 @@
     transition:all .12s ease;
   }
   .player-chip.selected{
-    background:var(--turf); border-color:var(--turf); color:#fff;
+    background:var(--brand); border-color:var(--brand); color:#fff;
   }
   .add-player-row{display:flex; gap:8px; margin-bottom:6px;}
   .add-player-row input{
@@ -132,10 +128,10 @@
     padding:9px 16px; border-radius:8px; border:none; font-weight:700; font-size:13px;
     cursor:pointer; font-family:'Inter'; white-space:nowrap;
   }
-  .btn-amber{background:var(--amber); color:var(--turf-deep);}
+  .btn-amber{background:var(--amber); color:var(--brand-deep);}
   .btn-amber:hover{background:var(--amber-deep);}
   .btn-ghost{background:transparent; color:var(--ink-soft); border:1.5px solid var(--border);}
-  .btn-turf{background:var(--turf); color:#fff;}
+  .btn-brand{background:var(--brand); color:#fff;}
 
   .hint{font-size:12.5px; color:var(--ink-soft); margin:2px 0 16px; line-height:1.5;}
   .hint b{color:var(--ink);}
@@ -148,7 +144,20 @@
     display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;
   }
   .sat-date{font-weight:800; font-size:14.5px;}
-  .sat-date .rel{font-weight:500; color:var(--ink-soft); font-size:12px; margin-left:6px;}
+  .fixture-line{
+    font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-bottom:10px;
+    cursor:pointer; display:flex; align-items:center; gap:6px;
+  }
+  .fixture-line.empty{ color:#B8A594; font-style:italic; font-weight:500; }
+  .fixture-line .edit-ic{ font-size:11px; opacity:0.6; }
+  .fixture-readonly{ font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-top:4px; }
+  .fixture-edit{ margin-bottom:10px; padding:10px; background:var(--ok-soft); border-radius:8px; }
+  .fx-input{
+    width:100%; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border);
+    font-size:13px; font-family:'Inter'; margin-bottom:6px;
+  }
+  .fx-actions{ display:flex; gap:8px; margin-top:4px; }
+  .fx-actions .btn{ flex:1; padding:7px; font-size:12px; }
   .slot-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
   .slot-btn{
     padding:10px 4px; text-align:center; border-radius:8px; border:1.5px solid var(--border);
@@ -181,17 +190,19 @@
   .summary-row.short{border-color:var(--red); background:var(--red-soft);}
   .summary-head{display:flex; justify-content:space-between; align-items:baseline;}
   .summary-date{font-weight:800; font-size:14.5px;}
-  .summary-date .rel{font-weight:500; color:var(--ink-soft); font-size:12px; margin-left:6px;}
   .slot-summary-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px;}
   .slot-summary-grid.single{grid-template-columns:1fr;}
   .slot-summary{
-    border-radius:8px; padding:8px 6px; text-align:center; background:var(--green-soft);
+    border-radius:8px; padding:8px 6px; text-align:center; background:var(--ok-soft);
     border:1.5px solid transparent;
   }
   .slot-summary.warn{background:var(--red-soft); border-color:var(--red);}
-  .slot-summary .count{font-family:'Bebas Neue'; font-size:26px; line-height:1; color:var(--turf);}
+  .slot-summary .slot-time{font-size:10.5px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:2px;}
+  .count-row{display:flex; align-items:baseline; justify-content:center; gap:4px;}
+  .slot-summary .count{font-family:'Bebas Neue'; font-size:26px; line-height:1; color:var(--brand);}
   .slot-summary.warn .count{color:var(--red);}
-  .slot-summary .label{font-size:10.5px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:0.03em;}
+  .avail-suffix{font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; color:var(--ink-soft);}
+  .slot-summary.warn .avail-suffix{color:var(--red);}
   .slot-summary .missing{font-size:10.5px; color:var(--ink-soft); margin-top:3px; line-height:1.3;}
   .slot-summary.warn .missing{color:var(--red);}
   .flag-pill{
@@ -204,7 +215,7 @@
   }
   .month-header{
     font-family:'Bebas Neue'; font-size:16px; letter-spacing:0.05em; color:#fff;
-    background:var(--turf); padding:7px 12px; border-radius:8px; margin:18px 0 10px;
+    background:var(--brand); padding:7px 12px; border-radius:8px; margin:18px 0 10px;
   }
   .month-header:first-of-type{margin-top:0;}
   .empty-state{
@@ -216,7 +227,15 @@
 <body>
 
 <div class="header">
-  <div class="title display" id="teamTitle">MATTHIOLA RANGERS SQUAD AVAILABILITY TRACKER</div>
+  <svg class="crest" viewBox="0 0 64 64" aria-hidden="true">
+    <path d="M32 3 L58 11 V29 C58 46 46 56 32 61 C18 56 6 46 6 29 V11 Z" fill="var(--brand)" stroke="#fff" stroke-width="2"/>
+    <path d="M32 3 L58 11 V29 C58 46 46 56 32 61 Z" fill="#000" opacity="0.15"/>
+    <text x="32" y="39" font-family="'Bebas Neue',sans-serif" font-size="24" fill="#fff" text-anchor="middle" letter-spacing="1">MR</text>
+  </svg>
+  <div class="title-block">
+    <div class="club-name display" id="teamTitle">MATTHIOLA RANGERS</div>
+    <div class="tracker-label">Squad Availability Tracker</div>
+  </div>
 </div>
 
 <div class="sheet-switch">
@@ -295,11 +314,15 @@ const SHEETS = {
 
 let roster = [];
 let availability = {match:{}, training:{}};
+let fixtures = {};        // dateKey -> {opponent, koTime, location}
+let trainingInfo = {};    // dateKey -> {details}
+let editingFixture = null;
+let editingTrainingInfo = null;
 let teamName = '';
 let selectedPlayer = null;
 let activeSheet = 'match';
 let activeTab = 'mark';
-let loaded = false;
+let loaded = true;
 
 function nextDatesForDay(dayOfWeek, n){
   const out = [];
@@ -317,20 +340,17 @@ function nextDatesForDay(dayOfWeek, n){
 }
 function isoDate(d){ return d.toISOString().slice(0,10); }
 function fmtDate(d){ return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}); }
-function relLabel(d, idx){
-  if(idx===0) return 'This week';
-  if(idx===1) return 'Next week';
-  return '';
-}
 function escapeHtml(s){
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function escapeAttr(s){ return escapeHtml(s); }
 
 // ---- Firestore wiring ----
-
-let settingsInitialized = false;
-let availabilityInitialized = false;
+// Show defaults immediately; Firestore listeners update state and re-render as data arrives.
+roster = DEFAULT_ROSTER.slice();
+teamName = DEFAULT_TEAM_NAME;
+roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
+selectedPlayer = roster[0];
 
 async function ensureSettingsSeeded(){
   const ref = doc(db, 'team_config', 'settings');
@@ -347,14 +367,9 @@ function watchSettings(){
       const data = snap.data();
       teamName = data.teamName || DEFAULT_TEAM_NAME;
       roster = Array.isArray(data.roster) && data.roster.length ? data.roster : DEFAULT_ROSTER.slice();
-    } else {
-      teamName = DEFAULT_TEAM_NAME;
-      roster = DEFAULT_ROSTER.slice();
     }
     if(roster.length && !selectedPlayer) selectedPlayer = roster[0];
     if(roster.length && !roster.includes(selectedPlayer)) selectedPlayer = roster[0];
-    settingsInitialized = true;
-    maybeFinishLoading();
     render();
   }, (err) => {
     console.error('Settings sync error', err);
@@ -376,8 +391,6 @@ function watchAvailability(){
       next[type][name] = docSnap.data().dates || {};
     });
     availability = next;
-    availabilityInitialized = true;
-    maybeFinishLoading();
     render();
   }, (err) => {
     console.error('Availability sync error', err);
@@ -385,12 +398,49 @@ function watchAvailability(){
   });
 }
 
-function maybeFinishLoading(){
-  if(settingsInitialized && availabilityInitialized){
-    loaded = true;
+function watchFixtures(){
+  const ref = collection(db, 'fixtures');
+  onSnapshot(ref, (snap) => {
+    const next = {};
+    snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
+    fixtures = next;
+    render();
+  }, (err) => {
+    console.error('Fixtures sync error', err);
+    showConnectionWarning();
+  });
+}
+
+function watchTrainingInfo(){
+  const ref = collection(db, 'training_info');
+  onSnapshot(ref, (snap) => {
+    const next = {};
+    snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
+    trainingInfo = next;
+    render();
+  }, (err) => {
+    console.error('Training info sync error', err);
+    showConnectionWarning();
+  });
+}
+
+async function saveFixture(dateKey, data){
+  try{
+    await setDoc(doc(db, 'fixtures', dateKey), data);
+  }catch(e){
+    console.error('Failed to save fixture', e);
+    showConnectionWarning();
   }
 }
 
+async function saveTrainingInfo(dateKey, details){
+  try{
+    await setDoc(doc(db, 'training_info', dateKey), { details });
+  }catch(e){
+    console.error('Failed to save training info', e);
+    showConnectionWarning();
+  }
+}
 
 async function saveSettings(){
   try{
@@ -418,7 +468,7 @@ function showConnectionWarning(){
   if(!el){
     el = document.createElement('div');
     el.id = 'connWarning';
-    el.style.cssText = 'position:fixed; left:12px; right:12px; bottom:12px; background:#C6432F; color:#fff; padding:10px 14px; border-radius:8px; font-family:Inter,sans-serif; font-size:12.5px; font-weight:600; z-index:999; box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+    el.style.cssText = 'position:fixed; left:12px; right:12px; bottom:12px; background:#A62639; color:#fff; padding:10px 14px; border-radius:8px; font-family:Inter,sans-serif; font-size:12.5px; font-weight:600; z-index:999; box-shadow:0 4px 12px rgba(0,0,0,0.3);';
     el.textContent = "Couldn't sync with the server — check your connection and try again.";
     document.body.appendChild(el);
   }
@@ -482,7 +532,91 @@ function switchTab(t){
   render();
 }
 
-// ---- Rendering (unchanged from the original design) ----
+function fixtureDisplayText(dateKey){
+  if(activeSheet === 'match'){
+    const f = fixtures[dateKey] || {};
+    const parts = [];
+    if(f.opponent) parts.push(`v ${escapeHtml(f.opponent)}`);
+    if(f.koTime) parts.push(`KO ${escapeHtml(f.koTime)}`);
+    if(f.location) parts.push(`@ ${escapeHtml(f.location)}`);
+    return parts.join(' · ');
+  } else {
+    const t = trainingInfo[dateKey] || {};
+    return t.details ? escapeHtml(t.details) : '';
+  }
+}
+
+function renderFixtureLine(dateKey){
+  if(activeSheet === 'match'){
+    const f = fixtures[dateKey] || {};
+    if(editingFixture === dateKey){
+      return `<div class="fixture-edit">
+        <input class="fx-input" data-field="opponent" placeholder="Opponent" value="${escapeAttr(f.opponent||'')}"/>
+        <input class="fx-input" data-field="koTime" placeholder="KO time e.g. 10:00am" value="${escapeAttr(f.koTime||'')}"/>
+        <input class="fx-input" data-field="location" placeholder="Location" value="${escapeAttr(f.location||'')}"/>
+        <div class="fx-actions">
+          <button class="btn btn-amber fx-save-match" data-datekey="${dateKey}">Save</button>
+          <button class="btn btn-ghost fx-cancel">Cancel</button>
+        </div>
+      </div>`;
+    }
+    const text = fixtureDisplayText(dateKey);
+    return `<div class="fixture-line ${text?'':'empty'}" data-editfixture="${dateKey}">${text || 'Add fixture details'} <span class="edit-ic">✎</span></div>`;
+  } else {
+    const t = trainingInfo[dateKey] || {};
+    if(editingTrainingInfo === dateKey){
+      return `<div class="fixture-edit">
+        <input class="fx-input" data-field="details" placeholder="e.g. 6pm @ Location A" value="${escapeAttr(t.details||'')}"/>
+        <div class="fx-actions">
+          <button class="btn btn-amber fx-save-training" data-datekey="${dateKey}">Save</button>
+          <button class="btn btn-ghost fx-cancel">Cancel</button>
+        </div>
+      </div>`;
+    }
+    const text = fixtureDisplayText(dateKey);
+    return `<div class="fixture-line ${text?'':'empty'}" data-edittraining="${dateKey}">${text || 'Add session details'} <span class="edit-ic">✎</span></div>`;
+  }
+}
+
+function wireFixtureEditing(panel){
+  panel.querySelectorAll('[data-editfixture]').forEach(el => {
+    el.addEventListener('click', () => { editingFixture = el.dataset.editfixture; editingTrainingInfo = null; render(); });
+  });
+  panel.querySelectorAll('[data-edittraining]').forEach(el => {
+    el.addEventListener('click', () => { editingTrainingInfo = el.dataset.edittraining; editingFixture = null; render(); });
+  });
+  panel.querySelectorAll('.fx-cancel').forEach(el => {
+    el.addEventListener('click', () => { editingFixture = null; editingTrainingInfo = null; render(); });
+  });
+  panel.querySelectorAll('.fx-save-match').forEach(el => {
+    el.addEventListener('click', async () => {
+      const dateKey = el.dataset.datekey;
+      const container = el.closest('.fixture-edit');
+      const data = {
+        opponent: container.querySelector('[data-field="opponent"]').value.trim(),
+        koTime: container.querySelector('[data-field="koTime"]').value.trim(),
+        location: container.querySelector('[data-field="location"]').value.trim()
+      };
+      fixtures[dateKey] = data;
+      editingFixture = null;
+      render();
+      await saveFixture(dateKey, data);
+    });
+  });
+  panel.querySelectorAll('.fx-save-training').forEach(el => {
+    el.addEventListener('click', async () => {
+      const dateKey = el.dataset.datekey;
+      const container = el.closest('.fixture-edit');
+      const details = container.querySelector('[data-field="details"]').value.trim();
+      trainingInfo[dateKey] = { details };
+      editingTrainingInfo = null;
+      render();
+      await saveTrainingInfo(dateKey, details);
+    });
+  });
+}
+
+// ---- Rendering ----
 
 function renderMarkTab(){
   const panel = document.getElementById('panel');
@@ -515,12 +649,12 @@ function renderMarkTab(){
         lastMonth = monthKey;
       }
       const slot = (availability[activeSheet][selectedPlayer] && availability[activeSheet][selectedPlayer][key]) || {};
-      const rel = relLabel(d, idx);
 
       html += `<div class="sat-row">
         <div class="sat-row-head">
-          <div class="sat-date">${fmtDate(d)}${rel ? `<span class="rel">${rel}</span>`:''}</div>
-        </div>`;
+          <div class="sat-date">${fmtDate(d)}</div>
+        </div>
+        ${renderFixtureLine(key)}`;
 
       if(multiSlot){
         html += `<div class="slot-grid">
@@ -555,6 +689,7 @@ function renderMarkTab(){
   panel.querySelectorAll('[data-fullout]').forEach(el => {
     el.addEventListener('click', () => toggleFullOut(activeSheet, selectedPlayer, el.dataset.fullout));
   });
+  wireFixtureEditing(panel);
 }
 
 function renderSummaryTab(){
@@ -581,7 +716,7 @@ function renderSummaryTab(){
       html += `<div class="month-header">${monthKey}</div>`;
       lastMonth = monthKey;
     }
-    const rel = relLabel(d, idx);
+    const fixtureText = fixtureDisplayText(key);
     let rowShort = false;
     let slotsHtml = '';
     cfg.slots.forEach(s => {
@@ -593,16 +728,17 @@ function renderSummaryTab(){
       const warn = cfg.threshold !== null && available < cfg.threshold;
       if(warn) rowShort = true;
       slotsHtml += `<div class="slot-summary ${warn?'warn':''}">
-        <div class="count">${available}</div>
-        <div class="label">${multiSlot ? s.label : 'Available'}</div>
+        ${multiSlot ? `<div class="slot-time">${s.label}</div>` : ''}
+        <div class="count-row"><span class="count">${available}</span><span class="avail-suffix">available</span></div>
         ${missing.length ? `<div class="missing">Out: ${missing.join(', ')}</div>` : ''}
       </div>`;
     });
     html += `<div class="summary-row ${rowShort?'short':''}">
       <div class="summary-head">
-        <div class="summary-date">${fmtDate(d)}${rel?`<span class="rel">${rel}</span>`:''}</div>
+        <div class="summary-date">${fmtDate(d)}</div>
         ${rowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
       </div>
+      ${fixtureText ? `<div class="fixture-readonly">${fixtureText}</div>` : ''}
       <div class="slot-summary-grid ${multiSlot?'':'single'}">${slotsHtml}</div>
     </div>`;
   });
@@ -611,10 +747,6 @@ function renderSummaryTab(){
 }
 
 function render(){
-  if(!loaded){
-    document.getElementById('panel').innerHTML = '<div class="loading">Connecting to squad sheet…</div>';
-    return;
-  }
   if(activeTab === 'mark') renderMarkTab();
   else renderSummaryTab();
 }
@@ -627,6 +759,8 @@ document.querySelectorAll('.tab').forEach(el => {
 });
 
 // ---- Init ----
+render(); // instant paint with defaults; Firestore listeners refine it as data arrives
+
 let watchersStarted = false;
 onAuthStateChanged(auth, async (user) => {
   if(!user || watchersStarted) return;
@@ -639,6 +773,8 @@ onAuthStateChanged(auth, async (user) => {
   }
   watchSettings();
   watchAvailability();
+  watchFixtures();
+  watchTrainingInfo();
 });
 
 signInAnonymously(auth).catch((e) => {
