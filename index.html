@@ -195,6 +195,18 @@
   .single-toggle-btn.out{
     background:var(--red-soft); border-color:var(--red); color:var(--red);
   }
+  .reason-row{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
+  .reason-label{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:6px; }
+  .reason-chips{ display:flex; gap:6px; margin-bottom:8px; }
+  .reason-chip{
+    padding:6px 12px; border-radius:20px; font-size:12px; font-weight:700;
+    background:#fafaf7; border:1.5px solid var(--border); color:var(--ink-soft); cursor:pointer;
+  }
+  .reason-chip.selected{ background:var(--brand); border-color:var(--brand); color:#fff; }
+  .reason-note-input{
+    width:100%; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border);
+    font-size:12.5px; font-family:'Inter';
+  }
 
   .summary-row{
     background:#fff; border:1.5px solid var(--border); border-radius:10px;
@@ -531,6 +543,30 @@ function toggleFullOut(type, name, dateKey){
   savePlayerAvailability(type, name);
   render();
 }
+function toggleReason(type, name, dateKey, preset){
+  const slot = ensurePlayerSlot(type, name, dateKey);
+  if(!slot.reason) slot.reason = {preset:'', note:''};
+  if(slot.reason.preset === preset){
+    slot.reason = {preset:'', note:''};
+  } else {
+    slot.reason = {preset, note: slot.reason.note || ''};
+  }
+  savePlayerAvailability(type, name);
+  render();
+}
+function updateReasonNote(type, name, dateKey, note){
+  const slot = ensurePlayerSlot(type, name, dateKey);
+  if(!slot.reason) slot.reason = {preset:'Other', note:''};
+  slot.reason.note = note;
+  savePlayerAvailability(type, name);
+}
+function reasonText(type, name, dateKey){
+  const slot = (availability[type][name] && availability[type][name][dateKey]) || {};
+  const r = slot.reason;
+  if(!r || !r.preset) return '';
+  if(r.preset === 'Other') return r.note ? r.note : 'Other';
+  return r.note ? `${r.preset} – ${r.note}` : r.preset;
+}
 
 async function addPlayer(){
   const input = document.getElementById('newPlayerInput');
@@ -718,6 +754,18 @@ function renderMarkTab(){
           ${out ? "Can't make it" : "Available"}
         </button>`;
       }
+
+      const isOut = multiSlot ? cfg.slots.some(s => slot[s.id]) : !!slot[cfg.slots[0].id];
+      if(isOut){
+        const reason = slot.reason || {preset:'', note:''};
+        html += `<div class="reason-row">
+          <div class="reason-label">Reason (optional):</div>
+          <div class="reason-chips">
+            ${['Holiday','Injured','Other'].map(p => `<button class="reason-chip ${reason.preset===p?'selected':''}" data-date="${key}" data-reason="${p}">${p}</button>`).join('')}
+          </div>
+          ${reason.preset ? `<input class="reason-note-input" data-date="${key}" placeholder="Add detail (optional)" value="${escapeAttr(reason.note||'')}"/>` : ''}
+        </div>`;
+      }
       html += `</div>`;
     });
   }
@@ -758,6 +806,12 @@ function renderMarkTab(){
   });
   panel.querySelectorAll('[data-fullout]').forEach(el => {
     el.addEventListener('click', () => toggleFullOut(activeSheet, selectedPlayer, el.dataset.fullout));
+  });
+  panel.querySelectorAll('.reason-chip').forEach(el => {
+    el.addEventListener('click', () => toggleReason(activeSheet, selectedPlayer, el.dataset.date, el.dataset.reason));
+  });
+  panel.querySelectorAll('.reason-note-input').forEach(el => {
+    el.addEventListener('change', (e) => updateReasonNote(activeSheet, selectedPlayer, el.dataset.date, e.target.value.trim()));
   });
   wireFixtureEditing(panel);
 }
@@ -807,9 +861,13 @@ function renderSummaryTab(){
         <div class="count-row"><span class="count">${available}</span><span class="avail-suffix">available</span></div>
       </div>`;
       if(isExpanded){
+        const missingDetailed = missing.map(name => {
+          const rt = reasonText(activeSheet, name, key);
+          return rt ? `${name} (${escapeHtml(rt)})` : name;
+        });
         detailHtml += `<div class="slot-detail">
           ${multiSlot ? `<div style="font-weight:800; margin-bottom:6px;">${s.label}</div>` : ''}
-          <div class="detail-block not-avail"><b>Not available (${missing.length})</b>: ${missing.length ? missing.join(', ') : 'None — full squad available'}</div>
+          <div class="detail-block not-avail"><b>Not available (${missing.length})</b>: ${missing.length ? missingDetailed.join(', ') : 'None — full squad available'}</div>
           <div class="detail-block avail"><b>Available (${availableNames.length})</b>: ${availableNames.length ? availableNames.join(', ') : 'None'}</div>
         </div>`;
       }
