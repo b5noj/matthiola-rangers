@@ -288,8 +288,8 @@
     width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border);
     font-size:13.5px; font-family:'Inter'; margin-bottom:10px;
   }
-  .admin-child-picker{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
-  .admin-checkbox{ font-size:13px; display:flex; align-items:center; gap:5px; }
+  .admin-child-picker{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .admin-label-sm{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:6px; }
 </style>
 </head>
 <body>
@@ -345,7 +345,7 @@ const googleProvider = new GoogleAuthProvider();
 // IMPORTANT: replace this with your real email address before deploying.
 // Anyone signed in with an email in this list is always an admin, even before
 // the Admins list below has been set up — this is how you bootstrap the first admin.
-const SEED_ADMIN_EMAILS = ['benoj@mail.com'];
+const SEED_ADMIN_EMAILS = ['change-me@example.com'];
 
 const DEFAULT_TEAM_NAME = 'Matthiola Rangers';
 const DEFAULT_ROSTER = ['Will','Teddy','Rex','Lennie','Brodie','Luca','Kayleb'];
@@ -390,6 +390,9 @@ let selectedPlayer = null;
 let activeSheet = 'match';
 let activeTab = 'mark';
 let adminSubTab = 'squad';
+let adminFormEmail = '';
+let adminFormChild = '';
+let adminFormIsAdmin = false;
 
 roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
 
@@ -937,12 +940,16 @@ function renderAdminTab(){
     });
     html += `</div>`;
     html += `<div class="admin-form">
-      <input id="parentEmailInput" placeholder="Parent's login email" type="email"/>
+      <input id="parentEmailInput" placeholder="Parent's login email" type="email" value="${escapeAttr(adminFormEmail)}"/>
+      <div class="admin-label-sm">Child:</div>
       <div class="admin-child-picker">
-        <label class="admin-checkbox"><input type="radio" name="parentChildRadio" value="" class="parentChildRadio" checked/> No child</label>
-        ${roster.map(name => `<label class="admin-checkbox"><input type="radio" name="parentChildRadio" value="${escapeAttr(name)}" class="parentChildRadio"/> ${escapeHtml(name)}</label>`).join('')}
+        <button type="button" class="reason-chip child-chip ${adminFormChild===''?'selected':''}" data-child="">No child</button>
+        ${roster.map(name => `<button type="button" class="reason-chip child-chip ${adminFormChild===name?'selected':''}" data-child="${escapeAttr(name)}">${escapeHtml(name)}</button>`).join('')}
       </div>
-      <label class="admin-checkbox" style="margin-bottom:12px;"><input type="checkbox" id="parentIsAdminCheckbox"/> Give this person admin rights</label>
+      <div class="admin-label-sm">Access:</div>
+      <div class="admin-child-picker" style="margin-bottom:14px;">
+        <button type="button" id="parentIsAdminToggle" class="reason-chip ${adminFormIsAdmin?'selected':''}">${adminFormIsAdmin ? '✓ Admin rights' : 'Give admin rights'}</button>
+      </div>
       <button class="btn btn-amber" id="saveParentBtn">Save</button>
     </div>`;
   }
@@ -959,14 +966,27 @@ function renderAdminTab(){
   panel.querySelectorAll('[data-removeplayer]').forEach(el => {
     el.addEventListener('click', () => removePlayer(el.dataset.removeplayer));
   });
+  panel.querySelectorAll('.child-chip').forEach(el => {
+    el.addEventListener('click', () => {
+      const emailEl = document.getElementById('parentEmailInput');
+      if(emailEl) adminFormEmail = emailEl.value;
+      adminFormChild = el.dataset.child;
+      render();
+    });
+  });
+  const adminToggleEl = document.getElementById('parentIsAdminToggle');
+  if(adminToggleEl) adminToggleEl.addEventListener('click', () => {
+    const emailEl = document.getElementById('parentEmailInput');
+    if(emailEl) adminFormEmail = emailEl.value;
+    adminFormIsAdmin = !adminFormIsAdmin;
+    render();
+  });
   const saveParentBtn = document.getElementById('saveParentBtn');
   if(saveParentBtn) saveParentBtn.addEventListener('click', async () => {
     const email = document.getElementById('parentEmailInput').value.trim().toLowerCase();
     if(!email) return;
-    const childRadio = panel.querySelector('.parentChildRadio:checked');
-    const child = childRadio ? childRadio.value : '';
-    const isAdminFlag = document.getElementById('parentIsAdminCheckbox').checked;
-    await saveParent(email, child, isAdminFlag);
+    await saveParent(email, adminFormChild, adminFormIsAdmin);
+    adminFormEmail = ''; adminFormChild = ''; adminFormIsAdmin = false;
     render();
   });
   panel.querySelectorAll('[data-removeparent]').forEach(el => {
