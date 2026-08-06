@@ -160,6 +160,10 @@
     display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;
   }
   .sat-date{font-weight:800; font-size:14.5px;}
+  .extra-badge{
+    font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em;
+    background:var(--amber); color:var(--brand-deep); padding:2px 7px; border-radius:10px; vertical-align:middle;
+  }
   .fixture-line{
     font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-bottom:10px;
     cursor:pointer; display:flex; align-items:center; gap:6px;
@@ -304,14 +308,7 @@
 
 <div class="user-bar" id="userBar"></div>
 
-<div class="sheet-switch">
-  <div class="sheet-btn active" data-sheet="match">
-    <div class="sb-title display">MATCHES</div>
-  </div>
-  <div class="sheet-btn" data-sheet="training">
-    <div class="sb-title display">TRAINING</div>
-  </div>
-</div>
+<div class="sheet-switch" id="sheetSwitchBar"></div>
 
 <div class="tabs" id="tabsBar"></div>
 
@@ -389,10 +386,15 @@ let expandedSlot = null;
 let selectedPlayer = null;
 let activeSheet = 'match';
 let activeTab = 'mark';
+let showAdminSection = false;
 let adminSubTab = 'squad';
 let adminFormEmail = '';
 let adminFormChild = '';
 let adminFormIsAdmin = false;
+let adminFormOriginalEmail = null; // set when editing an existing parent, null when adding new
+let editingPlayerName = null;
+let extraDates = {match:{}, training:{}}; // type -> dateKey -> true
+let adminExtraType = 'match';
 
 roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
 
@@ -415,6 +417,19 @@ function getMonthWindowDates(dayOfWeek){
 }
 function isoDate(d){ return d.toISOString().slice(0,10); }
 function fmtDate(d){ return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}); }
+function getDatesForSheet(type){
+  const cfg = SHEETS[type];
+  const regular = getMonthWindowDates(cfg.dayOfWeek);
+  const regularKeys = new Set(regular.map(isoDate));
+  const extraKeys = Object.keys(extraDates[type] || {}).filter(k => !regularKeys.has(k));
+  const extras = extraKeys.map(k => new Date(k + 'T00:00:00'));
+  const all = regular.concat(extras);
+  all.sort((a, b) => a - b);
+  return all;
+}
+function isExtraDate(type, dateKey){
+  return !!(extraDates[type] && extraDates[type][dateKey]);
+}
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -511,6 +526,18 @@ function watchParents(){
   }, (err) => { console.error('Parents sync error', err); showConnectionWarning(); });
 }
 
+function watchExtraDates(){
+  onSnapshot(collection(db, 'extra_dates'), (snap) => {
+    const next = {match:{}, training:{}};
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      if(next[data.type]) next[data.type][data.date] = true;
+    });
+    extraDates = next;
+    render();
+  }, (err) => { console.error('Extra dates sync error', err); showConnectionWarning(); });
+}
+
 async function saveSettings(){
   try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster }); }
   catch(e){ console.error('Failed to save settings', e); showConnectionWarning(); }
@@ -537,6 +564,14 @@ async function saveParent(email, child, isAdminFlag){
 async function removeParent(email){
   try{ await deleteDoc(doc(db, 'parents', email)); }
   catch(e){ console.error('Failed to remove parent', e); showConnectionWarning(); }
+}
+async function saveExtraDate(type, dateKey){
+  try{ await setDoc(doc(db, 'extra_dates', `${type}__${dateKey}`), { type, date: dateKey }); }
+  catch(e){ console.error('Failed to add extra date', e); showConnectionWarning(); }
+}
+async function removeExtraDate(type, dateKey){
+  try{ await deleteDoc(doc(db, 'extra_dates', `${type}__${dateKey}`)); }
+  catch(e){ console.error('Failed to remove extra date', e); showConnectionWarning(); }
 }
 
 let warnTimer = null;
@@ -622,9 +657,40 @@ async function removePlayer(name){
   await saveSettings();
   render();
 }
+async function renamePlayer(oldName, newName){
+  newName = newName.trim();
+  if(!newName || newName === oldName) return;
+  if(roster.includes(newName)) return; // name clash, silently ignore
 
-function switchSheet(type){
-  activeSheet = type;
+  roster = roster.map(n => n === oldName ? newName : n);
+  await saveSettings();
+
+  for(const type of ['match','training']){
+    const oldData = (availability[type] && availability[type][oldName]) || {};
+    availability[type][newName] = oldData;
+    delete availability[type][oldName];
+    try{ await setDoc(doc(db, 'availability', `${type}__${newName}`), { dates: oldData }); }
+    catch(e){ console.error('Failed to save renamed availability', e); showConnectionWarning(); }
+    try{ await deleteDoc(doc(db, 'availability', `${type}__${oldName}`)); }
+    catch(e){ /* old doc may not exist, ignore */ }
+  }
+
+  for(const email of Object.keys(parents)){
+    if(parents[email].child === oldName){
+      await saveParent(email, newName, !!parents[email].isAdmin);
+    }
+  }
+
+  render();
+}
+
+function selectSection(id){
+  if(id === 'admin'){
+    showAdminSection = true;
+  } else {
+    showAdminSection = false;
+    activeSheet = id;
+  }
   render();
 }
 function switchTab(t){
@@ -746,7 +812,7 @@ function renderLoginScreen(){
 function renderMarkTab(){
   const panel = document.getElementById('panel');
   const cfg = SHEETS[activeSheet];
-  const dates = getMonthWindowDates(cfg.dayOfWeek);
+  const dates = getDatesForSheet(activeSheet);
   const multiSlot = cfg.slots.length > 1;
   const myChild = getMyChild();
   selectedPlayer = myChild;
@@ -774,7 +840,7 @@ function renderMarkTab(){
 
       html += `<div class="sat-row">
         <div class="sat-row-head">
-          <div class="sat-date">${fmtDate(d)}</div>
+          <div class="sat-date">${fmtDate(d)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
         </div>
         ${renderFixtureLine(key)}`;
 
@@ -827,7 +893,7 @@ function renderMarkTab(){
 function renderSummaryTab(){
   const panel = document.getElementById('panel');
   const cfg = SHEETS[activeSheet];
-  const dates = getMonthWindowDates(cfg.dayOfWeek);
+  const dates = getDatesForSheet(activeSheet);
   const squadSize = roster.length;
   const multiSlot = cfg.slots.length > 1;
 
@@ -882,7 +948,7 @@ function renderSummaryTab(){
     });
     html += `<div class="summary-row ${rowShort?'short':''}">
       <div class="summary-head">
-        <div class="summary-date">${fmtDate(d)}</div>
+        <div class="summary-date">${fmtDate(d)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
         ${rowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
       </div>
       ${fixtureText ? `<div class="fixture-readonly">${fixtureText}</div>` : ''}
@@ -908,20 +974,37 @@ function renderAdminTab(){
   html += `<div class="admin-subtabs">
     <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
     <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
+    <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
   </div>`;
 
   if(adminSubTab === 'squad'){
-    html += `<div class="hint">Add or remove players. Removing a player here doesn't delete their past availability history.</div>`;
+    html += `<div class="hint">Add, rename, or remove players. Renaming carries their availability history across automatically; removing does not delete it.</div>`;
     html += `<div class="admin-list">`;
     roster.forEach(name => {
-      html += `<div class="admin-list-row"><span>${escapeHtml(name)}</span><button class="btn btn-ghost admin-remove" data-removeplayer="${escapeAttr(name)}">Remove</button></div>`;
+      if(editingPlayerName === name){
+        html += `<div class="admin-list-row">
+          <input class="fx-input" id="renamePlayerInput" style="margin:0; flex:1;" value="${escapeAttr(name)}" maxlength="40"/>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button class="btn btn-amber admin-remove" data-saverename="${escapeAttr(name)}">Save</button>
+            <button class="btn btn-ghost admin-remove" data-cancelrename="1">Cancel</button>
+          </div>
+        </div>`;
+      } else {
+        html += `<div class="admin-list-row">
+          <span>${escapeHtml(name)}</span>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button class="btn btn-ghost admin-remove" data-editplayer="${escapeAttr(name)}">Rename</button>
+            <button class="btn btn-ghost admin-remove" data-removeplayer="${escapeAttr(name)}">Remove</button>
+          </div>
+        </div>`;
+      }
     });
     html += `</div>`;
     html += `<div class="add-player-row">
       <input id="newPlayerInput" placeholder="Add a player to the squad…" maxlength="40"/>
       <button class="btn btn-amber" id="addPlayerBtn">Add</button>
     </div>`;
-  } else {
+  } else if(adminSubTab === 'parents'){
     html += `<div class="hint">Link each parent's login email to their child, and mark which parents are admins. A parent only ever sees and updates their own child's availability.</div>`;
     html += `<div class="admin-list">`;
     Object.keys(parents).forEach(email => {
@@ -929,7 +1012,10 @@ function renderAdminTab(){
       html += `<div class="admin-list-row">
         <span><b>${escapeHtml(email)}</b><br>
         Child: ${p.child ? escapeHtml(p.child) : '<i>none</i>'} &middot; Admin: ${p.isAdmin ? 'Yes' : 'No'}</span>
-        <button class="btn btn-ghost admin-remove" data-removeparent="${escapeAttr(email)}">Remove</button>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn btn-ghost admin-remove" data-editparent="${escapeAttr(email)}">Edit</button>
+          <button class="btn btn-ghost admin-remove" data-removeparent="${escapeAttr(email)}">Remove</button>
+        </div>
       </div>`;
     });
     SEED_ADMIN_EMAILS.forEach(email => {
@@ -940,6 +1026,7 @@ function renderAdminTab(){
     });
     html += `</div>`;
     html += `<div class="admin-form">
+      <div class="admin-label-sm">${adminFormOriginalEmail ? `Editing ${escapeHtml(adminFormOriginalEmail)}` : 'Add a new parent'}</div>
       <input id="parentEmailInput" placeholder="Parent's login email" type="email" value="${escapeAttr(adminFormEmail)}"/>
       <div class="admin-label-sm">Child:</div>
       <div class="admin-child-picker">
@@ -950,7 +1037,32 @@ function renderAdminTab(){
       <div class="admin-child-picker" style="margin-bottom:14px;">
         <button type="button" id="parentIsAdminToggle" class="reason-chip ${adminFormIsAdmin?'selected':''}">${adminFormIsAdmin ? '✓ Admin rights' : 'Give admin rights'}</button>
       </div>
-      <button class="btn btn-amber" id="saveParentBtn">Save</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-amber" id="saveParentBtn" style="flex:1;">Save</button>
+        ${adminFormOriginalEmail ? `<button class="btn btn-ghost" id="cancelParentEditBtn">Cancel</button>` : ''}
+      </div>
+    </div>`;
+  } else {
+    html += `<div class="hint">Add a one-off fixture or session that falls outside the usual Saturday/Thursday slot — it'll appear alongside the regular dates, marked "Extra".</div>`;
+    html += `<div class="admin-list">`;
+    ['match','training'].forEach(type => {
+      Object.keys(extraDates[type] || {}).sort().forEach(dateKey => {
+        html += `<div class="admin-list-row"><span>${SHEETS[type].label}: ${escapeHtml(dateKey)}</span><button class="btn btn-ghost admin-remove" data-removeextra="${type}__${dateKey}">Remove</button></div>`;
+      });
+    });
+    if(!Object.keys(extraDates.match||{}).length && !Object.keys(extraDates.training||{}).length){
+      html += `<div class="hint" style="margin:0;">No extra fixtures added yet.</div>`;
+    }
+    html += `</div>`;
+    html += `<div class="admin-form">
+      <div class="admin-label-sm">Sheet:</div>
+      <div class="admin-child-picker">
+        <button type="button" class="reason-chip extra-type-chip ${adminExtraType==='match'?'selected':''}" data-extratype="match">Match</button>
+        <button type="button" class="reason-chip extra-type-chip ${adminExtraType==='training'?'selected':''}" data-extratype="training">Training</button>
+      </div>
+      <div class="admin-label-sm">Date:</div>
+      <input type="date" id="extraDateInput" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
+      <button class="btn btn-amber" id="addExtraDateBtn">Add date</button>
     </div>`;
   }
 
@@ -959,6 +1071,8 @@ function renderAdminTab(){
   panel.querySelectorAll('.admin-subtab').forEach(el => {
     el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
   });
+
+  // Squad
   const addBtn = document.getElementById('addPlayerBtn');
   if(addBtn) addBtn.addEventListener('click', addPlayer);
   const newInput = document.getElementById('newPlayerInput');
@@ -966,6 +1080,22 @@ function renderAdminTab(){
   panel.querySelectorAll('[data-removeplayer]').forEach(el => {
     el.addEventListener('click', () => removePlayer(el.dataset.removeplayer));
   });
+  panel.querySelectorAll('[data-editplayer]').forEach(el => {
+    el.addEventListener('click', () => { editingPlayerName = el.dataset.editplayer; render(); });
+  });
+  panel.querySelectorAll('[data-cancelrename]').forEach(el => {
+    el.addEventListener('click', () => { editingPlayerName = null; render(); });
+  });
+  panel.querySelectorAll('[data-saverename]').forEach(el => {
+    el.addEventListener('click', async () => {
+      const oldName = el.dataset.saverename;
+      const newName = document.getElementById('renamePlayerInput').value;
+      editingPlayerName = null;
+      await renamePlayer(oldName, newName);
+    });
+  });
+
+  // Parents
   panel.querySelectorAll('.child-chip').forEach(el => {
     el.addEventListener('click', () => {
       const emailEl = document.getElementById('parentEmailInput');
@@ -985,12 +1115,50 @@ function renderAdminTab(){
   if(saveParentBtn) saveParentBtn.addEventListener('click', async () => {
     const email = document.getElementById('parentEmailInput').value.trim().toLowerCase();
     if(!email) return;
+    if(adminFormOriginalEmail && adminFormOriginalEmail !== email){
+      await removeParent(adminFormOriginalEmail);
+    }
     await saveParent(email, adminFormChild, adminFormIsAdmin);
-    adminFormEmail = ''; adminFormChild = ''; adminFormIsAdmin = false;
+    adminFormEmail = ''; adminFormChild = ''; adminFormIsAdmin = false; adminFormOriginalEmail = null;
     render();
+  });
+  const cancelParentEditBtn = document.getElementById('cancelParentEditBtn');
+  if(cancelParentEditBtn) cancelParentEditBtn.addEventListener('click', () => {
+    adminFormEmail = ''; adminFormChild = ''; adminFormIsAdmin = false; adminFormOriginalEmail = null;
+    render();
+  });
+  panel.querySelectorAll('[data-editparent]').forEach(el => {
+    el.addEventListener('click', () => {
+      const email = el.dataset.editparent;
+      const p = parents[email] || {};
+      adminFormEmail = email;
+      adminFormChild = p.child || '';
+      adminFormIsAdmin = !!p.isAdmin;
+      adminFormOriginalEmail = email;
+      render();
+    });
   });
   panel.querySelectorAll('[data-removeparent]').forEach(el => {
     el.addEventListener('click', async () => { await removeParent(el.dataset.removeparent); render(); });
+  });
+
+  // Extra fixtures
+  panel.querySelectorAll('.extra-type-chip').forEach(el => {
+    el.addEventListener('click', () => { adminExtraType = el.dataset.extratype; render(); });
+  });
+  const addExtraBtn = document.getElementById('addExtraDateBtn');
+  if(addExtraBtn) addExtraBtn.addEventListener('click', async () => {
+    const dateVal = document.getElementById('extraDateInput').value;
+    if(!dateVal) return;
+    await saveExtraDate(adminExtraType, dateVal);
+    render();
+  });
+  panel.querySelectorAll('[data-removeextra]').forEach(el => {
+    el.addEventListener('click', async () => {
+      const [type, dateKey] = el.dataset.removeextra.split('__');
+      await removeExtraDate(type, dateKey);
+      render();
+    });
   });
 }
 
@@ -1001,17 +1169,30 @@ function renderTabsBar(){
     {id:'mark', label: myChild || 'My availability'},
     {id:'summary', label:'Squad view'}
   ];
-  if(isAdmin) tabsList.push({id:'admin', label:'Admin'});
   tabsEl.innerHTML = tabsList.map(t => `<div class="tab ${activeTab===t.id?'active':''}" data-tab="${t.id}">${escapeHtml(t.label)}</div>`).join('');
   tabsEl.querySelectorAll('.tab').forEach(el => {
     el.addEventListener('click', () => switchTab(el.dataset.tab));
   });
 }
 
+function renderSheetSwitchBar(){
+  const el = document.getElementById('sheetSwitchBar');
+  const items = [
+    {id:'match', label:'MATCHES'},
+    {id:'training', label:'TRAINING'}
+  ];
+  if(isAdmin) items.push({id:'admin', label:'ADMIN'});
+  const activeId = showAdminSection ? 'admin' : activeSheet;
+  el.innerHTML = items.map(it => `<div class="sheet-btn ${activeId===it.id?'active':''}" data-sheet="${it.id}"><div class="sb-title display">${it.label}</div></div>`).join('');
+  el.querySelectorAll('.sheet-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectSection(btn.dataset.sheet));
+  });
+}
+
 function updateChromeVisibility(){
   const show = !!currentUser;
-  document.querySelector('.sheet-switch').style.display = (show && activeTab !== 'admin') ? 'flex' : 'none';
-  document.getElementById('tabsBar').style.display = show ? 'flex' : 'none';
+  document.getElementById('sheetSwitchBar').style.display = show ? 'flex' : 'none';
+  document.getElementById('tabsBar').style.display = (show && !showAdminSection) ? 'flex' : 'none';
 }
 
 function updateUserBar(){
@@ -1025,24 +1206,21 @@ function updateUserBar(){
   }
 }
 
-document.querySelectorAll('.sheet-btn').forEach(el => {
-  el.addEventListener('click', () => switchSheet(el.dataset.sheet));
-});
-
 function render(){
   updateChromeVisibility();
   updateUserBar();
-  document.querySelectorAll('.sheet-btn').forEach(el => {
-    el.classList.toggle('active', el.dataset.sheet === activeSheet);
-  });
+  renderSheetSwitchBar();
   if(!currentUser){
     renderLoginScreen();
     return;
   }
+  if(showAdminSection){
+    renderAdminTab();
+    return;
+  }
   renderTabsBar();
   if(activeTab === 'mark') renderMarkTab();
-  else if(activeTab === 'summary') renderSummaryTab();
-  else if(activeTab === 'admin') renderAdminTab();
+  else renderSummaryTab();
 }
 
 // ---- Init ----
@@ -1061,6 +1239,7 @@ onAuthStateChanged(auth, async (user) => {
     watchFixtures();
     watchTrainingInfo();
     watchParents();
+    watchExtraDates();
   }
   render();
 });
