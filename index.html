@@ -356,9 +356,7 @@ const SHEETS = {
       {id:'s2', label:'10–11am'},
       {id:'s3', label:'11–12am'}
     ],
-    threshold: 7,
-    fullOutLabel: 'Mark out all morning',
-    fullOutActiveLabel: 'Out all morning'
+    threshold: 7
   },
   training: {
     label: 'Training',
@@ -366,9 +364,7 @@ const SHEETS = {
     slots: [
       {id:'t1', label:'Session'}
     ],
-    threshold: 7,
-    fullOutLabel: '',
-    fullOutActiveLabel: ''
+    threshold: 7
   }
 };
 
@@ -393,8 +389,9 @@ let adminFormChild = '';
 let adminFormIsAdmin = false;
 let adminFormOriginalEmail = null; // set when editing an existing parent, null when adding new
 let editingPlayerName = null;
-let extraDates = {match:{}, training:{}}; // type -> dateKey -> true
+let extraDates = {match:{}, training:{}}; // type -> dateKey -> {slots:[...]}
 let adminExtraType = 'match';
+let squadViewFilter = 'all'; // 'all' | 'problem'
 
 roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
 
@@ -415,7 +412,12 @@ function getMonthWindowDates(dayOfWeek){
   }
   return out;
 }
-function isoDate(d){ return d.toISOString().slice(0,10); }
+function isoDate(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 function fmtDate(d){ return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}); }
 function getDatesForSheet(type){
   const cfg = SHEETS[type];
@@ -533,7 +535,7 @@ function watchExtraDates(){
     const next = {match:{}, training:{}};
     snap.forEach(docSnap => {
       const data = docSnap.data();
-      if(next[data.type]) next[data.type][data.date] = true;
+      if(next[data.type]) next[data.type][data.date] = data;
     });
     extraDates = next;
     render();
@@ -567,8 +569,8 @@ async function removeParent(email){
   try{ await deleteDoc(doc(db, 'parents', email)); }
   catch(e){ console.error('Failed to remove parent', e); showConnectionWarning(); }
 }
-async function saveExtraDate(type, dateKey){
-  try{ await setDoc(doc(db, 'extra_dates', `${type}__${dateKey}`), { type, date: dateKey }); }
+async function saveExtraDate(type, dateKey, slots){
+  try{ await setDoc(doc(db, 'extra_dates', `${type}__${dateKey}`), { type, date: dateKey, slots: slots || [] }); }
   catch(e){ console.error('Failed to add extra date', e); showConnectionWarning(); }
 }
 async function removeExtraDate(type, dateKey){
@@ -599,20 +601,27 @@ function ensurePlayerSlot(type, name, dateKey){
   if(!availability[type][name][dateKey]) availability[type][name][dateKey] = {};
   return availability[type][name][dateKey];
 }
+function slotsForDate(type, dateKey){
+  const extra = extraDates[type] && extraDates[type][dateKey];
+  if(extra && Array.isArray(extra.slots) && extra.slots.length){
+    return extra.slots;
+  }
+  return SHEETS[type].slots;
+}
 function toggleSlot(type, name, dateKey, slotId){
   const slot = ensurePlayerSlot(type, name, dateKey);
   slot[slotId] = !slot[slotId];
   savePlayerAvailability(type, name);
   render();
 }
-function isFullOut(type, name, dateKey){
+function isFullOut(type, name, dateKey, slots){
   const slot = (availability[type][name] && availability[type][name][dateKey]) || {};
-  return SHEETS[type].slots.every(s => slot[s.id]);
+  return slots.every(s => slot[s.id]);
 }
-function toggleFullOut(type, name, dateKey){
+function toggleFullOut(type, name, dateKey, slots){
   const slot = ensurePlayerSlot(type, name, dateKey);
-  const makeOut = !isFullOut(type, name, dateKey);
-  SHEETS[type].slots.forEach(s => slot[s.id] = makeOut);
+  const makeOut = !isFullOut(type, name, dateKey, slots);
+  slots.forEach(s => slot[s.id] = makeOut);
   savePlayerAvailability(type, name);
   render();
 }
@@ -709,6 +718,7 @@ function fixtureDisplayText(dateKey){
     if(f.opponent) parts.push(`v ${escapeHtml(f.opponent)}`);
     if(f.koTime) parts.push(`KO ${escapeHtml(f.koTime)}`);
     if(f.location) parts.push(`@ ${escapeHtml(f.location)}`);
+    if(f.locationDetail) parts.push(`(${escapeHtml(f.locationDetail)})`);
     return parts.join(' · ');
   } else {
     const t = trainingInfo[dateKey] || {};
@@ -727,6 +737,7 @@ function renderFixtureLine(dateKey){
         <input class="fx-input" data-field="opponent" placeholder="Opponent" value="${escapeAttr(f.opponent||'')}"/>
         <input class="fx-input" data-field="koTime" placeholder="KO time e.g. 10:00am" value="${escapeAttr(f.koTime||'')}"/>
         <input class="fx-input" data-field="location" placeholder="Location" value="${escapeAttr(f.location||'')}"/>
+        <input class="fx-input" data-field="locationDetail" placeholder="Location detail e.g. Pitch 3" value="${escapeAttr(f.locationDetail||'')}"/>
         <div class="fx-actions">
           <button class="btn btn-amber fx-save-match" data-datekey="${dateKey}">Save</button>
           <button class="btn btn-ghost fx-cancel">Cancel</button>
@@ -775,7 +786,8 @@ function wireFixtureEditing(panel){
       const data = {
         opponent: container.querySelector('[data-field="opponent"]').value.trim(),
         koTime: container.querySelector('[data-field="koTime"]').value.trim(),
-        location: container.querySelector('[data-field="location"]').value.trim()
+        location: container.querySelector('[data-field="location"]').value.trim(),
+        locationDetail: container.querySelector('[data-field="locationDetail"]').value.trim()
       };
       fixtures[dateKey] = data;
       editingFixture = null;
@@ -815,7 +827,6 @@ function renderMarkTab(){
   const panel = document.getElementById('panel');
   const cfg = SHEETS[activeSheet];
   const dates = getDatesForSheet(activeSheet);
-  const multiSlot = cfg.slots.length > 1;
   const myChild = getMyChild();
   selectedPlayer = myChild;
 
@@ -827,12 +838,14 @@ function renderMarkTab(){
     return;
   }
 
-  html += `<div class="hint">Mark the ${cfg.label.toLowerCase()} ${escapeHtml(myChild)} will miss.</div>`;
+  html += `<div class="hint">Mark the slots/days ${escapeHtml(myChild)} will miss.</div>`;
 
   {
     let lastMonth = null;
     dates.forEach((d) => {
       const key = isoDate(d);
+      const dateSlots = slotsForDate(activeSheet, key);
+      const multiSlot = dateSlots.length > 1;
       const monthKey = d.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
       if(monthKey !== lastMonth){
         html += `<div class="month-header">${monthKey}</div>`;
@@ -848,19 +861,19 @@ function renderMarkTab(){
 
       if(multiSlot){
         html += `<div class="slot-grid">
-          ${cfg.slots.map(s => `<div class="slot-btn ${slot[s.id]?'out':''}" data-date="${key}" data-slot="${s.id}">${s.label}${slot[s.id]?' · Out':''}</div>`).join('')}
+          ${dateSlots.map(s => `<div class="slot-btn ${slot[s.id]?'out':''}" data-date="${key}" data-slot="${s.id}">${s.label}${slot[s.id]?' · Out':''}</div>`).join('')}
         </div>
-        <button class="full-out-btn ${isFullOut(activeSheet,selectedPlayer,key)?'active':''}" data-fullout="${key}">
-          ${isFullOut(activeSheet,selectedPlayer,key) ? cfg.fullOutActiveLabel : cfg.fullOutLabel}
+        <button class="full-out-btn ${isFullOut(activeSheet,selectedPlayer,key,dateSlots)?'active':''}" data-fullout="${key}">
+          ${isFullOut(activeSheet,selectedPlayer,key,dateSlots) ? 'Out all slots' : 'Mark out all slots'}
         </button>`;
       } else {
-        const out = !!slot[cfg.slots[0].id];
-        html += `<button class="single-toggle-btn ${out?'out':''}" data-date="${key}" data-slot="${cfg.slots[0].id}">
+        const out = !!slot[dateSlots[0].id];
+        html += `<button class="single-toggle-btn ${out?'out':''}" data-date="${key}" data-slot="${dateSlots[0].id}">
           ${out ? "Can't make it" : "Available"}
         </button>`;
       }
 
-      const isOut = multiSlot ? cfg.slots.some(s => slot[s.id]) : !!slot[cfg.slots[0].id];
+      const isOut = multiSlot ? dateSlots.some(s => slot[s.id]) : !!slot[dateSlots[0].id];
       if(isOut){
         const reason = slot.reason || {preset:'', note:''};
         html += `<div class="reason-row">
@@ -881,7 +894,7 @@ function renderMarkTab(){
     el.addEventListener('click', () => toggleSlot(activeSheet, selectedPlayer, el.dataset.date, el.dataset.slot));
   });
   panel.querySelectorAll('[data-fullout]').forEach(el => {
-    el.addEventListener('click', () => toggleFullOut(activeSheet, selectedPlayer, el.dataset.fullout));
+    el.addEventListener('click', () => toggleFullOut(activeSheet, selectedPlayer, el.dataset.fullout, slotsForDate(activeSheet, el.dataset.fullout)));
   });
   panel.querySelectorAll('.reason-chip').forEach(el => {
     el.addEventListener('click', () => toggleReason(activeSheet, selectedPlayer, el.dataset.date, el.dataset.reason));
@@ -897,7 +910,6 @@ function renderSummaryTab(){
   const cfg = SHEETS[activeSheet];
   const dates = getDatesForSheet(activeSheet);
   const squadSize = roster.length;
-  const multiSlot = cfg.slots.length > 1;
 
   let html = `<div class="section-label">Squad availability — ${cfg.label}</div>`;
   html += `<div class="roster-count">Full squad: <b>${squadSize}</b> — ${roster.join(', ') || 'no players added yet'}</div>`;
@@ -908,19 +920,21 @@ function renderSummaryTab(){
     return;
   }
 
-  let lastMonth = null;
-  dates.forEach((d) => {
+  html += `<div class="admin-child-picker" style="margin-bottom:16px;">
+    <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='all'?'selected':''}" data-svfilter="all">All sessions</button>
+    <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='problem'?'selected':''}" data-svfilter="problem">Problem sessions (below ${cfg.threshold})</button>
+  </div>`;
+
+  // Pass 1: build a row entry per date
+  const entries = dates.map((d) => {
     const key = isoDate(d);
-    const monthKey = d.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
-    if(monthKey !== lastMonth){
-      html += `<div class="month-header">${monthKey}</div>`;
-      lastMonth = monthKey;
-    }
+    const dateSlots = slotsForDate(activeSheet, key);
+    const multiSlot = dateSlots.length > 1;
     const fixtureText = fixtureDisplayText(key);
     let rowShort = false;
     let slotsHtml = '';
     let detailHtml = '';
-    cfg.slots.forEach(s => {
+    dateSlots.forEach(s => {
       const missing = roster.filter(name => {
         const slot = (availability[activeSheet][name] && availability[activeSheet][name][key]) || {};
         return !!slot[s.id];
@@ -948,7 +962,7 @@ function renderSummaryTab(){
         </div>`;
       }
     });
-    html += `<div class="summary-row ${rowShort?'short':''}">
+    const rowHtml = `<div class="summary-row ${rowShort?'short':''}">
       <div class="summary-head">
         <div class="summary-date">${fmtDate(d)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
         ${rowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
@@ -957,10 +971,37 @@ function renderSummaryTab(){
       <div class="slot-summary-grid ${multiSlot?'':'single'}">${slotsHtml}</div>
       ${detailHtml}
     </div>`;
+    return { d, key, rowShort, rowHtml, monthKey: d.toLocaleDateString('en-GB', {month:'long', year:'numeric'}) };
+  });
+
+  // Pass 2: filter
+  const filtered = squadViewFilter === 'problem' ? entries.filter(e => e.rowShort) : entries;
+
+  if(!filtered.length){
+    html += `<div class="empty-state">${squadViewFilter==='problem' ? 'No problem sessions right now — squad is covered everywhere.' : 'No sessions to show.'}</div>`;
+    panel.innerHTML = html;
+    wireSummaryFilterAndExpand(panel);
+    return;
+  }
+
+  // Pass 3: render with month headers
+  let lastMonth = null;
+  filtered.forEach(e => {
+    if(e.monthKey !== lastMonth){
+      html += `<div class="month-header">${e.monthKey}</div>`;
+      lastMonth = e.monthKey;
+    }
+    html += e.rowHtml;
   });
 
   panel.innerHTML = html;
+  wireSummaryFilterAndExpand(panel);
+}
 
+function wireSummaryFilterAndExpand(panel){
+  panel.querySelectorAll('.svfilter-chip').forEach(el => {
+    el.addEventListener('click', () => { squadViewFilter = el.dataset.svfilter; render(); });
+  });
   panel.querySelectorAll('.slot-summary').forEach(el => {
     el.addEventListener('click', () => {
       const key = el.dataset.slotkey;
@@ -1045,11 +1086,12 @@ function renderAdminTab(){
       </div>
     </div>`;
   } else {
-    html += `<div class="hint">Add a one-off fixture or session that falls outside the usual Saturday/Thursday slot — it'll appear alongside the regular dates, marked "Extra".</div>`;
+    html += `<div class="hint">Add a one-off fixture or session that falls outside the usual Saturday/Thursday slot — it'll appear alongside the regular dates, marked "Extra". Specify the time slot(s) that apply — if you only give one, there's no "mark out all" button since there's nothing to group.</div>`;
     html += `<div class="admin-list">`;
     ['match','training'].forEach(type => {
       Object.keys(extraDates[type] || {}).sort().forEach(dateKey => {
-        html += `<div class="admin-list-row"><span>${SHEETS[type].label}: ${escapeHtml(dateKey)}</span><button class="btn btn-ghost admin-remove" data-removeextra="${type}__${dateKey}">Remove</button></div>`;
+        const slotLabels = (extraDates[type][dateKey].slots || []).map(s => s.label).join(', ');
+        html += `<div class="admin-list-row"><span>${SHEETS[type].label}: ${escapeHtml(dateKey)}${slotLabels ? ` (${escapeHtml(slotLabels)})` : ''}</span><button class="btn btn-ghost admin-remove" data-removeextra="${type}__${dateKey}">Remove</button></div>`;
       });
     });
     if(!Object.keys(extraDates.match||{}).length && !Object.keys(extraDates.training||{}).length){
@@ -1064,6 +1106,9 @@ function renderAdminTab(){
       </div>
       <div class="admin-label-sm">Date:</div>
       <input type="date" id="extraDateInput" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
+      <div class="admin-label-sm">Time slot(s):</div>
+      <input id="extraSlotsInput" placeholder="e.g. 6-7pm, or 5-6pm, 6-7pm for more than one" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
+      <div class="hint" style="margin:0 0 12px;">Separate with commas if there's more than one slot. Leave blank for a single unlabelled session.</div>
       <button class="btn btn-amber" id="addExtraDateBtn">Add date</button>
     </div>`;
   }
@@ -1152,7 +1197,12 @@ function renderAdminTab(){
   if(addExtraBtn) addExtraBtn.addEventListener('click', async () => {
     const dateVal = document.getElementById('extraDateInput').value;
     if(!dateVal) return;
-    await saveExtraDate(adminExtraType, dateVal);
+    const rawSlots = document.getElementById('extraSlotsInput').value;
+    const labels = rawSlots.split(',').map(s => s.trim()).filter(Boolean);
+    const slots = labels.length
+      ? labels.map((label, i) => ({ id: `e${i+1}`, label }))
+      : [{ id: 'e1', label: 'Session' }];
+    await saveExtraDate(adminExtraType, dateVal, slots);
     render();
   });
   panel.querySelectorAll('[data-removeextra]').forEach(el => {
@@ -1201,7 +1251,11 @@ function updateUserBar(){
   const bar = document.getElementById('userBar');
   if(currentUser){
     bar.style.display = 'flex';
-    bar.innerHTML = `<span>Signed in as ${escapeHtml(currentUser.name || currentUser.email)}</span><button id="signOutBtn" class="user-bar-signout">Sign out</button>`;
+    const myChild = getMyChild();
+    const greeting = myChild
+      ? `Welcome ${escapeHtml(currentUser.name || currentUser.email)} (Linked child: ${escapeHtml(myChild)})`
+      : `Welcome ${escapeHtml(currentUser.name || currentUser.email)}`;
+    bar.innerHTML = `<span>${greeting}</span><button id="signOutBtn" class="user-bar-signout">Sign out</button>`;
     document.getElementById('signOutBtn').addEventListener('click', doSignOut);
   } else {
     bar.style.display = 'none';
