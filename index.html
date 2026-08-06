@@ -402,10 +402,10 @@ roster.forEach(name => { availability.match[name] = {}; availability.training[na
 
 function getMonthWindowDates(dayOfWeek){
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const end = new Date(now.getFullYear(), now.getMonth() + 12, 0); // last day of month+11
   const out = [];
-  let d = new Date(start);
+  let d = new Date(today);
   const diff = (dayOfWeek - d.getDay() + 7) % 7;
   d.setDate(d.getDate() + diff);
   d.setHours(0,0,0,0);
@@ -421,7 +421,9 @@ function getDatesForSheet(type){
   const cfg = SHEETS[type];
   const regular = getMonthWindowDates(cfg.dayOfWeek);
   const regularKeys = new Set(regular.map(isoDate));
-  const extraKeys = Object.keys(extraDates[type] || {}).filter(k => !regularKeys.has(k));
+  const now = new Date();
+  const todayKey = isoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+  const extraKeys = Object.keys(extraDates[type] || {}).filter(k => !regularKeys.has(k) && k >= todayKey);
   const extras = extraKeys.map(k => new Date(k + 'T00:00:00'));
   const all = regular.concat(extras);
   all.sort((a, b) => a - b);
