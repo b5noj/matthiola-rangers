@@ -67,8 +67,14 @@
   }
 
   .user-bar{
-    display:none; align-items:center; justify-content:space-between;
+    display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
     padding:8px 20px 14px; color:rgba(251,243,234,0.75); font-size:12px; font-weight:600;
+  }
+  .user-bar-left{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .welcome-text{ color:rgba(251,243,234,0.75); }
+  .linked-child-pill{
+    background:rgba(255,201,60,0.15); border:1px solid rgba(255,201,60,0.4);
+    color:var(--amber); padding:3px 10px; border-radius:12px; font-size:11px; font-weight:700;
   }
   .user-bar-signout{
     background:transparent; border:1px solid rgba(255,255,255,0.25); color:rgba(251,243,234,0.85);
@@ -167,6 +173,12 @@
     font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em;
     background:var(--amber); color:var(--brand-deep); padding:2px 7px; border-radius:10px; vertical-align:middle;
   }
+  .cancelled-badge{
+    background:var(--red); color:#fff; font-weight:800; text-transform:uppercase; letter-spacing:0.05em;
+    font-size:11px; padding:5px 12px; border-radius:6px; display:inline-block; margin-bottom:10px;
+  }
+  .sat-row.cancelled, .summary-row.cancelled{ opacity:0.65; border-color:var(--red); border-style:dashed; }
+  .cancel-toggle-btn{ margin-top:8px; }
   .fixture-line{
     font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-bottom:10px;
     cursor:pointer; display:flex; align-items:center; gap:6px;
@@ -325,7 +337,7 @@ import {
   getFirestore, doc, setDoc, getDoc, deleteDoc, onSnapshot, collection
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
+  getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -341,6 +353,7 @@ const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
 const googleProvider = new GoogleAuthProvider();
+const appleProvider = new OAuthProvider('apple.com');
 
 // IMPORTANT: replace this with your real email address before deploying.
 // Anyone signed in with an email in this list is always an admin, even before
@@ -388,12 +401,21 @@ let activeTab = 'mark';
 let showAdminSection = false;
 let adminSubTab = 'squad';
 let adminFormEmail = '';
+let adminFormName = '';
 let adminFormChild = '';
 let adminFormIsAdmin = false;
 let adminFormOriginalEmail = null; // set when editing an existing parent, null when adding new
 let editingPlayerName = null;
 let extraDates = {match:{}, training:{}}; // type -> dateKey -> {slots:[...]}
+let cancelledDates = {match:{}, training:{}}; // type -> dateKey -> true
 let adminExtraType = 'match';
+let adminExtraDate = '';
+let adminExtraSlotsRaw = '';
+let adminExtraOpponent = '';
+let adminExtraKoTime = '';
+let adminExtraLocation = '';
+let adminExtraMatchType = '';
+let adminExtraW3W = '';
 let squadViewFilter = 'all'; // 'all' | 'problem'
 
 roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
@@ -421,7 +443,19 @@ function isoDate(d){
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-function fmtDate(d){ return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}); }
+function ordinalSuffix(n){
+  const j = n % 10, k = n % 100;
+  if(j === 1 && k !== 11) return 'st';
+  if(j === 2 && k !== 12) return 'nd';
+  if(j === 3 && k !== 13) return 'rd';
+  return 'th';
+}
+function fmtDate(d){
+  const weekday = d.toLocaleDateString('en-GB', {weekday:'short'});
+  const day = d.getDate();
+  const month = d.toLocaleDateString('en-GB', {month:'short'});
+  return `${weekday} ${day}${ordinalSuffix(day)} ${month}`;
+}
 function getDatesForSheet(type){
   const cfg = SHEETS[type];
   const regular = getMonthWindowDates(cfg.dayOfWeek);
@@ -444,12 +478,14 @@ function escapeAttr(s){ return escapeHtml(s); }
 
 // ---- Auth ----
 
-function doSignIn(){
-  signInWithPopup(auth, googleProvider).catch((e) => {
+function doSignIn(provider){
+  signInWithPopup(auth, provider).catch((e) => {
     console.error('Popup sign-in failed, falling back to redirect', e);
-    signInWithRedirect(auth, googleProvider);
+    signInWithRedirect(auth, provider);
   });
 }
+function doSignInGoogle(){ doSignIn(googleProvider); }
+function doSignInApple(){ doSignIn(appleProvider); }
 function doSignOut(){ signOut(auth); }
 
 function computeIsAdmin(){
@@ -529,6 +565,11 @@ function watchParents(){
     snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
     parents = next;
     computeIsAdmin();
+    // If this parent's record exists but has no name on file, backfill it from their Google profile.
+    if(currentUser && parents[currentUser.email] && !parents[currentUser.email].name && currentUser.name){
+      const p = parents[currentUser.email];
+      saveParent(currentUser.email, currentUser.name, p.child || '', !!p.isAdmin);
+    }
     render();
   }, (err) => { console.error('Parents sync error', err); showConnectionWarning(); });
 }
@@ -543,6 +584,29 @@ function watchExtraDates(){
     extraDates = next;
     render();
   }, (err) => { console.error('Extra dates sync error', err); showConnectionWarning(); });
+}
+
+function watchCancelledDates(){
+  onSnapshot(collection(db, 'cancelled_dates'), (snap) => {
+    const next = {match:{}, training:{}};
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      if(next[data.type]) next[data.type][data.date] = true;
+    });
+    cancelledDates = next;
+    render();
+  }, (err) => { console.error('Cancelled dates sync error', err); showConnectionWarning(); });
+}
+function isCancelled(type, dateKey){
+  return !!(cancelledDates[type] && cancelledDates[type][dateKey]);
+}
+async function saveCancelledDate(type, dateKey){
+  try{ await setDoc(doc(db, 'cancelled_dates', `${type}__${dateKey}`), { type, date: dateKey }); }
+  catch(e){ console.error('Failed to cancel date', e); showConnectionWarning(); }
+}
+async function removeCancelledDate(type, dateKey){
+  try{ await deleteDoc(doc(db, 'cancelled_dates', `${type}__${dateKey}`)); }
+  catch(e){ console.error('Failed to un-cancel date', e); showConnectionWarning(); }
 }
 
 async function saveSettings(){
@@ -564,8 +628,8 @@ async function savePlayerAvailability(type, name){
     });
   }catch(e){ console.error('Failed to save availability', e); showConnectionWarning(); }
 }
-async function saveParent(email, child, isAdminFlag){
-  try{ await setDoc(doc(db, 'parents', email), { child: child || '', isAdmin: !!isAdminFlag }); }
+async function saveParent(email, name, child, isAdminFlag){
+  try{ await setDoc(doc(db, 'parents', email), { name: name || '', child: child || '', isAdmin: !!isAdminFlag }); }
   catch(e){ console.error('Failed to save parent', e); showConnectionWarning(); }
 }
 async function removeParent(email){
@@ -691,7 +755,7 @@ async function renamePlayer(oldName, newName){
 
   for(const email of Object.keys(parents)){
     if(parents[email].child === oldName){
-      await saveParent(email, newName, !!parents[email].isAdmin);
+      await saveParent(email, parents[email].name || '', newName, !!parents[email].isAdmin);
     }
   }
 
@@ -721,7 +785,8 @@ function fixtureDisplayText(dateKey){
     if(f.opponent) parts.push(`v ${escapeHtml(f.opponent)}`);
     if(f.koTime) parts.push(`KO ${escapeHtml(f.koTime)}`);
     if(f.location) parts.push(`@ ${escapeHtml(f.location)}`);
-    if(f.locationDetail) parts.push(`(${escapeHtml(f.locationDetail)})`);
+    if(f.matchType) parts.push(escapeHtml(f.matchType));
+    if(f.what3words) parts.push(`what3words: ${escapeHtml(f.what3words)}`);
     return parts.join(' · ');
   } else {
     const t = trainingInfo[dateKey] || {};
@@ -740,7 +805,14 @@ function renderFixtureLine(dateKey){
         <input class="fx-input" data-field="opponent" placeholder="Opponent" value="${escapeAttr(f.opponent||'')}"/>
         <input class="fx-input" data-field="koTime" placeholder="KO time e.g. 10:00am" value="${escapeAttr(f.koTime||'')}"/>
         <input class="fx-input" data-field="location" placeholder="Location" value="${escapeAttr(f.location||'')}"/>
-        <input class="fx-input" data-field="locationDetail" placeholder="Location detail e.g. Pitch 3" value="${escapeAttr(f.locationDetail||'')}"/>
+        <select class="fx-input" data-field="matchType">
+          <option value="" ${!f.matchType?'selected':''}>Match type…</option>
+          <option value="League" ${f.matchType==='League'?'selected':''}>League</option>
+          <option value="Cup" ${f.matchType==='Cup'?'selected':''}>Cup</option>
+          <option value="Tournament" ${f.matchType==='Tournament'?'selected':''}>Tournament</option>
+          <option value="Friendly" ${f.matchType==='Friendly'?'selected':''}>Friendly</option>
+        </select>
+        <input class="fx-input" data-field="what3words" placeholder="what3words e.g. filled.count.soap" value="${escapeAttr(f.what3words||'')}"/>
         <div class="fx-actions">
           <button class="btn btn-amber fx-save-match" data-datekey="${dateKey}">Save</button>
           <button class="btn btn-ghost fx-cancel">Cancel</button>
@@ -790,7 +862,8 @@ function wireFixtureEditing(panel){
         opponent: container.querySelector('[data-field="opponent"]').value.trim(),
         koTime: container.querySelector('[data-field="koTime"]').value.trim(),
         location: container.querySelector('[data-field="location"]').value.trim(),
-        locationDetail: container.querySelector('[data-field="locationDetail"]').value.trim()
+        matchType: container.querySelector('[data-field="matchType"]').value,
+        what3words: container.querySelector('[data-field="what3words"]').value.trim()
       };
       fixtures[dateKey] = data;
       editingFixture = null;
@@ -820,10 +893,14 @@ function renderLoginScreen(){
   const panel = document.getElementById('panel');
   panel.innerHTML = `<div class="login-screen">
     <div class="login-title">Sign in to view the squad sheet</div>
-    <div class="login-sub">Use the Google account your team admin has linked to your account.</div>
-    <button class="btn btn-amber login-btn" id="googleSignInBtn">Sign in with Google</button>
+    <div class="login-sub">Use the account your team admin has linked to you.</div>
+    <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
+      <button class="btn btn-amber login-btn" id="googleSignInBtn" style="width:220px;">Sign in with Google</button>
+      <button class="btn login-btn" id="appleSignInBtn" style="width:220px; background:#000; color:#fff;">Sign in with Apple</button>
+    </div>
   </div>`;
-  document.getElementById('googleSignInBtn').addEventListener('click', doSignIn);
+  document.getElementById('googleSignInBtn').addEventListener('click', doSignInGoogle);
+  document.getElementById('appleSignInBtn').addEventListener('click', doSignInApple);
 }
 
 function renderMarkTab(){
@@ -855,8 +932,10 @@ function renderMarkTab(){
         lastMonth = monthKey;
       }
       const slot = (availability[activeSheet][selectedPlayer] && availability[activeSheet][selectedPlayer][key]) || {};
+      const cancelled = isCancelled(activeSheet, key);
 
-      html += `<div class="sat-row">
+      html += `<div class="sat-row ${cancelled?'cancelled':''}">
+        ${cancelled ? `<div class="cancelled-badge">🚫 Cancelled</div>` : ''}
         <div class="sat-row-head">
           <div class="sat-date">${fmtDate(d)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
         </div>
@@ -872,7 +951,7 @@ function renderMarkTab(){
       } else {
         const out = !!slot[dateSlots[0].id];
         html += `<button class="single-toggle-btn ${out?'out':''}" data-date="${key}" data-slot="${dateSlots[0].id}">
-          ${out ? "Can't make it" : "Available"}
+          ${dateSlots[0].label !== 'Session' ? `${dateSlots[0].label} — ` : ''}${out ? "Can't make it" : "Available"}
         </button>`;
       }
 
@@ -886,6 +965,9 @@ function renderMarkTab(){
           </div>
           ${reason.preset === 'Other' ? `<input class="reason-note-input" data-date="${key}" placeholder="Add detail" value="${escapeAttr(reason.note||'')}"/>` : ''}
         </div>`;
+      }
+      if(isAdmin){
+        html += `<button class="btn btn-ghost cancel-toggle-btn" data-canceltoggle="${key}" style="width:100%;">${cancelled ? 'Un-cancel this date' : 'Cancel this date'}</button>`;
       }
       html += `</div>`;
     });
@@ -904,6 +986,14 @@ function renderMarkTab(){
   });
   panel.querySelectorAll('.reason-note-input').forEach(el => {
     el.addEventListener('change', (e) => updateReasonNote(activeSheet, selectedPlayer, el.dataset.date, e.target.value.trim()));
+  });
+  panel.querySelectorAll('[data-canceltoggle]').forEach(el => {
+    el.addEventListener('click', async () => {
+      const key = el.dataset.canceltoggle;
+      if(isCancelled(activeSheet, key)){ await removeCancelledDate(activeSheet, key); }
+      else { await saveCancelledDate(activeSheet, key); }
+      render();
+    });
   });
   wireFixtureEditing(panel);
 }
@@ -950,7 +1040,7 @@ function renderSummaryTab(){
       const slotKey = `${key}__${s.id}`;
       const isExpanded = expandedSlot === slotKey;
       slotsHtml += `<div class="slot-summary ${warn?'warn':(good?'good':'')}" data-slotkey="${slotKey}">
-        ${multiSlot ? `<div class="slot-time">${s.label}</div>` : ''}
+        ${s.label !== 'Session' ? `<div class="slot-time">${s.label}</div>` : ''}
         <div class="count-row"><span class="count">${available}</span><span class="avail-suffix">available</span></div>
       </div>`;
       if(isExpanded){
@@ -965,16 +1055,19 @@ function renderSummaryTab(){
         </div>`;
       }
     });
-    const rowHtml = `<div class="summary-row ${rowShort?'short':''}">
+    const cancelled = isCancelled(activeSheet, key);
+    const effectiveRowShort = rowShort && !cancelled;
+    const rowHtml = `<div class="summary-row ${effectiveRowShort?'short':''} ${cancelled?'cancelled':''}">
+      ${cancelled ? `<div class="cancelled-badge">🚫 Cancelled</div>` : ''}
       <div class="summary-head">
         <div class="summary-date">${fmtDate(d)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
-        ${rowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
+        ${effectiveRowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
       </div>
       ${fixtureText ? `<div class="fixture-readonly">${fixtureText}</div>` : ''}
       <div class="slot-summary-grid ${multiSlot?'':'single'}">${slotsHtml}</div>
       ${detailHtml}
     </div>`;
-    return { d, key, rowShort, rowHtml, monthKey: d.toLocaleDateString('en-GB', {month:'long', year:'numeric'}) };
+    return { d, key, rowShort: effectiveRowShort, rowHtml, monthKey: d.toLocaleDateString('en-GB', {month:'long', year:'numeric'}) };
   });
 
   // Pass 2: filter
@@ -1056,7 +1149,7 @@ function renderAdminTab(){
     Object.keys(parents).forEach(email => {
       const p = parents[email];
       html += `<div class="admin-list-row">
-        <span><b>${escapeHtml(email)}</b><br>
+        <span><b>${p.name ? escapeHtml(p.name) : '<i>(name not set)</i>'}</b> — ${escapeHtml(email)}<br>
         Child: ${p.child ? escapeHtml(p.child) : '<i>none</i>'} &middot; Admin: ${p.isAdmin ? 'Yes' : 'No'}</span>
         <div style="display:flex; gap:6px; flex-shrink:0;">
           <button class="btn btn-ghost admin-remove" data-editparent="${escapeAttr(email)}">Edit</button>
@@ -1073,6 +1166,7 @@ function renderAdminTab(){
     html += `</div>`;
     html += `<div class="admin-form">
       <div class="admin-label-sm">${adminFormOriginalEmail ? `Editing ${escapeHtml(adminFormOriginalEmail)}` : 'Add a new parent'}</div>
+      <input id="parentNameInput" placeholder="Parent's name e.g. Ben Jones" value="${escapeAttr(adminFormName)}"/>
       <input id="parentEmailInput" placeholder="Parent's login email" type="email" value="${escapeAttr(adminFormEmail)}"/>
       <div class="admin-label-sm">Child:</div>
       <div class="admin-child-picker">
@@ -1108,10 +1202,24 @@ function renderAdminTab(){
         <button type="button" class="reason-chip extra-type-chip ${adminExtraType==='training'?'selected':''}" data-extratype="training">Training</button>
       </div>
       <div class="admin-label-sm">Date:</div>
-      <input type="date" id="extraDateInput" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
+      <input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
       <div class="admin-label-sm">Time slot(s):</div>
-      <input id="extraSlotsInput" placeholder="e.g. 6-7pm, or 5-6pm, 6-7pm for more than one" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
+      <input id="extraSlotsInput" placeholder="e.g. 6-7pm, or 5-6pm, 6-7pm for more than one" value="${escapeAttr(adminExtraSlotsRaw)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
       <div class="hint" style="margin:0 0 12px;">Separate with commas if there's more than one slot. Leave blank for a single unlabelled session.</div>
+      ${adminExtraType === 'match' ? `
+      <div class="admin-label-sm">Fixture details (optional, can add later too):</div>
+      <input id="extraOpponentInput" placeholder="Opponent" value="${escapeAttr(adminExtraOpponent)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
+      <input id="extraKoTimeInput" placeholder="KO time e.g. 6:00pm" value="${escapeAttr(adminExtraKoTime)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
+      <input id="extraLocationInput" placeholder="Location" value="${escapeAttr(adminExtraLocation)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
+      <select id="extraMatchTypeSelect" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;">
+        <option value="" ${!adminExtraMatchType?'selected':''}>Match type…</option>
+        <option value="League" ${adminExtraMatchType==='League'?'selected':''}>League</option>
+        <option value="Cup" ${adminExtraMatchType==='Cup'?'selected':''}>Cup</option>
+        <option value="Tournament" ${adminExtraMatchType==='Tournament'?'selected':''}>Tournament</option>
+        <option value="Friendly" ${adminExtraMatchType==='Friendly'?'selected':''}>Friendly</option>
+      </select>
+      <input id="extraW3WInput" placeholder="what3words e.g. filled.count.soap" value="${escapeAttr(adminExtraW3W)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
+      ` : ''}
       <button class="btn btn-amber" id="addExtraDateBtn">Add date</button>
     </div>`;
   }
@@ -1148,6 +1256,8 @@ function renderAdminTab(){
   // Parents
   panel.querySelectorAll('.child-chip').forEach(el => {
     el.addEventListener('click', () => {
+      const nameEl = document.getElementById('parentNameInput');
+      if(nameEl) adminFormName = nameEl.value;
       const emailEl = document.getElementById('parentEmailInput');
       if(emailEl) adminFormEmail = emailEl.value;
       adminFormChild = el.dataset.child;
@@ -1156,6 +1266,8 @@ function renderAdminTab(){
   });
   const adminToggleEl = document.getElementById('parentIsAdminToggle');
   if(adminToggleEl) adminToggleEl.addEventListener('click', () => {
+    const nameEl = document.getElementById('parentNameInput');
+    if(nameEl) adminFormName = nameEl.value;
     const emailEl = document.getElementById('parentEmailInput');
     if(emailEl) adminFormEmail = emailEl.value;
     adminFormIsAdmin = !adminFormIsAdmin;
@@ -1163,18 +1275,19 @@ function renderAdminTab(){
   });
   const saveParentBtn = document.getElementById('saveParentBtn');
   if(saveParentBtn) saveParentBtn.addEventListener('click', async () => {
+    const name = document.getElementById('parentNameInput').value.trim();
     const email = document.getElementById('parentEmailInput').value.trim().toLowerCase();
     if(!email) return;
     if(adminFormOriginalEmail && adminFormOriginalEmail !== email){
       await removeParent(adminFormOriginalEmail);
     }
-    await saveParent(email, adminFormChild, adminFormIsAdmin);
-    adminFormEmail = ''; adminFormChild = ''; adminFormIsAdmin = false; adminFormOriginalEmail = null;
+    await saveParent(email, name, adminFormChild, adminFormIsAdmin);
+    adminFormEmail = ''; adminFormName = ''; adminFormChild = ''; adminFormIsAdmin = false; adminFormOriginalEmail = null;
     render();
   });
   const cancelParentEditBtn = document.getElementById('cancelParentEditBtn');
   if(cancelParentEditBtn) cancelParentEditBtn.addEventListener('click', () => {
-    adminFormEmail = ''; adminFormChild = ''; adminFormIsAdmin = false; adminFormOriginalEmail = null;
+    adminFormEmail = ''; adminFormName = ''; adminFormChild = ''; adminFormIsAdmin = false; adminFormOriginalEmail = null;
     render();
   });
   panel.querySelectorAll('[data-editparent]').forEach(el => {
@@ -1182,6 +1295,7 @@ function renderAdminTab(){
       const email = el.dataset.editparent;
       const p = parents[email] || {};
       adminFormEmail = email;
+      adminFormName = p.name || '';
       adminFormChild = p.child || '';
       adminFormIsAdmin = !!p.isAdmin;
       adminFormOriginalEmail = email;
@@ -1193,19 +1307,43 @@ function renderAdminTab(){
   });
 
   // Extra fixtures
+  function captureExtraForm(){
+    const d = document.getElementById('extraDateInput'); if(d) adminExtraDate = d.value;
+    const s = document.getElementById('extraSlotsInput'); if(s) adminExtraSlotsRaw = s.value;
+    const o = document.getElementById('extraOpponentInput'); if(o) adminExtraOpponent = o.value;
+    const k = document.getElementById('extraKoTimeInput'); if(k) adminExtraKoTime = k.value;
+    const l = document.getElementById('extraLocationInput'); if(l) adminExtraLocation = l.value;
+    const m = document.getElementById('extraMatchTypeSelect'); if(m) adminExtraMatchType = m.value;
+    const w = document.getElementById('extraW3WInput'); if(w) adminExtraW3W = w.value;
+  }
   panel.querySelectorAll('.extra-type-chip').forEach(el => {
-    el.addEventListener('click', () => { adminExtraType = el.dataset.extratype; render(); });
+    el.addEventListener('click', () => { captureExtraForm(); adminExtraType = el.dataset.extratype; render(); });
   });
   const addExtraBtn = document.getElementById('addExtraDateBtn');
   if(addExtraBtn) addExtraBtn.addEventListener('click', async () => {
-    const dateVal = document.getElementById('extraDateInput').value;
+    captureExtraForm();
+    const dateVal = adminExtraDate;
     if(!dateVal) return;
-    const rawSlots = document.getElementById('extraSlotsInput').value;
-    const labels = rawSlots.split(',').map(s => s.trim()).filter(Boolean);
+    const labels = adminExtraSlotsRaw.split(',').map(s => s.trim()).filter(Boolean);
     const slots = labels.length
       ? labels.map((label, i) => ({ id: `e${i+1}`, label }))
       : [{ id: 'e1', label: 'Session' }];
     await saveExtraDate(adminExtraType, dateVal, slots);
+    if(adminExtraType === 'match'){
+      const fixtureData = {
+        opponent: adminExtraOpponent.trim(),
+        koTime: adminExtraKoTime.trim(),
+        location: adminExtraLocation.trim(),
+        matchType: adminExtraMatchType,
+        what3words: adminExtraW3W.trim()
+      };
+      if(fixtureData.opponent || fixtureData.koTime || fixtureData.location || fixtureData.matchType || fixtureData.what3words){
+        fixtures[dateVal] = fixtureData;
+        await saveFixture(dateVal, fixtureData);
+      }
+    }
+    adminExtraDate = ''; adminExtraSlotsRaw = ''; adminExtraOpponent = ''; adminExtraKoTime = '';
+    adminExtraLocation = ''; adminExtraMatchType = ''; adminExtraW3W = '';
     render();
   });
   panel.querySelectorAll('[data-removeextra]').forEach(el => {
@@ -1255,10 +1393,8 @@ function updateUserBar(){
   if(currentUser){
     bar.style.display = 'flex';
     const myChild = getMyChild();
-    const greeting = myChild
-      ? `Welcome ${escapeHtml(currentUser.name || currentUser.email)} (Linked child: ${escapeHtml(myChild)})`
-      : `Welcome ${escapeHtml(currentUser.name || currentUser.email)}`;
-    bar.innerHTML = `<span>${greeting}</span><button id="signOutBtn" class="user-bar-signout">Sign out</button>`;
+    const childPill = myChild ? `<span class="linked-child-pill">Linked child: ${escapeHtml(myChild)}</span>` : '';
+    bar.innerHTML = `<div class="user-bar-left"><span class="welcome-text">Welcome ${escapeHtml(currentUser.name || currentUser.email)}</span>${childPill}</div><button id="signOutBtn" class="user-bar-signout">Sign out</button>`;
     document.getElementById('signOutBtn').addEventListener('click', doSignOut);
   } else {
     bar.style.display = 'none';
@@ -1299,6 +1435,7 @@ onAuthStateChanged(auth, async (user) => {
     watchTrainingInfo();
     watchParents();
     watchExtraDates();
+    watchCancelledDates();
   }
   render();
 });
