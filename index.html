@@ -398,6 +398,7 @@ let trainingInfo = {};    // dateKey -> {time, location}
 let parents = {};         // email -> {child: 'Will'|'', isAdmin: bool}
 let currentUser = null;   // {email, name}
 let isAdmin = false;
+let parentsLoaded = false; // true once the first parents snapshot has arrived, to avoid flashing "not linked" before real data syncs
 let editingFixture = null;
 let editingTrainingInfo = null;
 let expandedSlot = null;
@@ -586,6 +587,7 @@ function watchParents(){
     const next = {};
     snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
     parents = next;
+    parentsLoaded = true;
     computeIsAdmin();
     // If this parent's record exists but has no name on file, backfill it from their Google profile.
     if(currentUser && parents[currentUser.email] && !parents[currentUser.email].name && currentUser.name){
@@ -948,6 +950,10 @@ function renderMarkTab(){
   selectedPlayer = myChild;
 
   let html = '';
+  if(!parentsLoaded){
+    panel.innerHTML = `<div class="loading" style="color:var(--ink-soft);">Loading your account…</div>`;
+    return;
+  }
   if(!myChild){
     html += `<div class="empty-state">Your login isn't linked to a player yet.${isAdmin ? ' Go to the Admin tab to link it.' : ' Ask your team admin to link it.'}</div>`;
     panel.innerHTML = html;
@@ -1447,8 +1453,9 @@ function renderAdminTab(){
 function renderTabsBar(){
   const tabsEl = document.getElementById('tabsBar');
   const myChild = getMyChild();
+  const markLabel = !parentsLoaded ? 'Loading…' : (myChild || 'My availability');
   const tabsList = [
-    {id:'mark', label: myChild || 'My availability'},
+    {id:'mark', label: markLabel},
     {id:'summary', label:'Squad view'}
   ];
   tabsEl.innerHTML = tabsList.map(t => `<div class="tab ${activeTab===t.id?'active':''}" data-tab="${t.id}">${escapeHtml(t.label)}</div>`).join('');
