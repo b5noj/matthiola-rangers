@@ -337,7 +337,7 @@ import {
   getFirestore, doc, setDoc, getDoc, deleteDoc, onSnapshot, collection
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
-  getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
+  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -353,7 +353,6 @@ const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
 const googleProvider = new GoogleAuthProvider();
-const appleProvider = new OAuthProvider('apple.com');
 
 // IMPORTANT: replace this with your real email address before deploying.
 // Anyone signed in with an email in this list is always an admin, even before
@@ -485,7 +484,6 @@ function doSignIn(provider){
   });
 }
 function doSignInGoogle(){ doSignIn(googleProvider); }
-function doSignInApple(){ doSignIn(appleProvider); }
 function doSignOut(){ signOut(auth); }
 
 function computeIsAdmin(){
@@ -893,14 +891,10 @@ function renderLoginScreen(){
   const panel = document.getElementById('panel');
   panel.innerHTML = `<div class="login-screen">
     <div class="login-title">Sign in to view the squad sheet</div>
-    <div class="login-sub">Use the account your team admin has linked to you.</div>
-    <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
-      <button class="btn btn-amber login-btn" id="googleSignInBtn" style="width:220px;">Sign in with Google</button>
-      <button class="btn login-btn" id="appleSignInBtn" style="width:220px; background:#000; color:#fff;">Sign in with Apple</button>
-    </div>
+    <div class="login-sub">Use the Google account your team admin has linked to you.</div>
+    <button class="btn btn-amber login-btn" id="googleSignInBtn">Sign in with Google</button>
   </div>`;
   document.getElementById('googleSignInBtn').addEventListener('click', doSignInGoogle);
-  document.getElementById('appleSignInBtn').addEventListener('click', doSignInApple);
 }
 
 function renderMarkTab(){
