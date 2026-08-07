@@ -173,6 +173,10 @@
     font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em;
     background:var(--amber); color:var(--brand-deep); padding:2px 7px; border-radius:10px; vertical-align:middle;
   }
+  .matchtype-badge{
+    font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em;
+    background:var(--brand); color:#fff; padding:2px 7px; border-radius:10px; vertical-align:middle;
+  }
   .cancelled-badge{
     background:var(--red); color:#fff; font-weight:800; text-transform:uppercase; letter-spacing:0.05em;
     font-size:11px; padding:5px 12px; border-radius:6px; display:inline-block; margin-bottom:10px;
@@ -180,12 +184,13 @@
   .sat-row.cancelled, .summary-row.cancelled{ opacity:0.65; border-color:var(--red); border-style:dashed; }
   .cancel-toggle-btn{ margin-top:8px; }
   .fixture-line{
-    font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-bottom:10px;
-    cursor:pointer; display:flex; align-items:center; gap:6px;
+    font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-bottom:10px; cursor:pointer;
   }
   .fixture-line.empty{ color:#B8A594; font-style:italic; font-weight:500; }
-  .fixture-line .edit-ic{ font-size:11px; opacity:0.6; }
+  .fixture-line .edit-ic{ font-size:11px; opacity:0.6; margin-left:4px; }
+  .fixture-row{ line-height:1.5; }
   .fixture-readonly{ font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-bottom:10px; }
+  .w3w-link{ color:var(--brand); text-decoration:underline; font-weight:700; }
   .fixture-edit{ margin-bottom:10px; padding:10px; background:var(--ok-soft); border-radius:8px; }
   .fx-input{
     width:100%; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border);
@@ -776,22 +781,36 @@ function switchTab(t){
 
 // ---- Fixture / training info rendering ----
 
-function fixtureDisplayText(dateKey){
+function matchTypeBadge(dateKey){
+  if(activeSheet !== 'match') return '';
+  const f = fixtures[dateKey] || {};
+  if(!f.matchType) return '';
+  return ` <span class="matchtype-badge">${escapeHtml(f.matchType)}</span>`;
+}
+
+function fixtureInfoRows(dateKey){
   if(activeSheet === 'match'){
     const f = fixtures[dateKey] || {};
-    const parts = [];
-    if(f.opponent) parts.push(`v ${escapeHtml(f.opponent)}`);
-    if(f.koTime) parts.push(`KO ${escapeHtml(f.koTime)}`);
-    if(f.location) parts.push(`@ ${escapeHtml(f.location)}`);
-    if(f.matchType) parts.push(escapeHtml(f.matchType));
-    if(f.what3words) parts.push(`what3words: ${escapeHtml(f.what3words)}`);
-    return parts.join(' · ');
+    const row1 = [];
+    if(f.opponent) row1.push(`v ${escapeHtml(f.opponent)}`);
+    if(f.koTime) row1.push(`KO ${escapeHtml(f.koTime)}`);
+    const row2 = [];
+    if(f.location) row2.push(`@ ${escapeHtml(f.location)}`);
+    if(f.what3words){
+      const w3wClean = f.what3words.replace(/^\/+/, '').trim();
+      const w3wUrl = `https://what3words.com/${encodeURIComponent(w3wClean)}`;
+      row2.push(`w3w: <a href="${w3wUrl}" target="_blank" rel="noopener" class="w3w-link" onclick="event.stopPropagation()">${escapeHtml(w3wClean)}</a>`);
+    }
+    const r1 = row1.join(' · ');
+    const r2 = row2.join(' · ');
+    return { row1: r1, row2: r2, hasContent: !!(r1 || r2) };
   } else {
     const t = trainingInfo[dateKey] || {};
     const parts = [];
     if(t.time) parts.push(escapeHtml(t.time));
     if(t.location) parts.push(`@ ${escapeHtml(t.location)}`);
-    return parts.join(' ');
+    const r1 = parts.join(' ');
+    return { row1: r1, row2: '', hasContent: !!r1 };
   }
 }
 
@@ -817,11 +836,14 @@ function renderFixtureLine(dateKey){
         </div>
       </div>`;
     }
-    const text = fixtureDisplayText(dateKey);
+    const info = fixtureInfoRows(dateKey);
+    const rowsHtml = info.hasContent
+      ? `${info.row1 ? `<div class="fixture-row">${info.row1}</div>` : ''}${info.row2 ? `<div class="fixture-row">${info.row2}</div>` : ''}`
+      : `Add fixture details`;
     if(isAdmin){
-      return `<div class="fixture-line ${text?'':'empty'}" data-editfixture="${dateKey}">${text || 'Add fixture details'} <span class="edit-ic">✎</span></div>`;
+      return `<div class="fixture-line ${info.hasContent?'':'empty'}" data-editfixture="${dateKey}">${rowsHtml} <span class="edit-ic">✎</span></div>`;
     }
-    return `<div class="fixture-readonly">${text || 'No fixture details yet'}</div>`;
+    return `<div class="fixture-readonly">${info.hasContent ? rowsHtml : 'No fixture details yet'}</div>`;
   } else {
     const t = trainingInfo[dateKey] || {};
     if(isAdmin && editingTrainingInfo === dateKey){
@@ -834,11 +856,11 @@ function renderFixtureLine(dateKey){
         </div>
       </div>`;
     }
-    const text = fixtureDisplayText(dateKey);
+    const info = fixtureInfoRows(dateKey);
     if(isAdmin){
-      return `<div class="fixture-line ${text?'':'empty'}" data-edittraining="${dateKey}">${text || 'Add session details'} <span class="edit-ic">✎</span></div>`;
+      return `<div class="fixture-line ${info.hasContent?'':'empty'}" data-edittraining="${dateKey}">${info.row1 || 'Add session details'} <span class="edit-ic">✎</span></div>`;
     }
-    return `<div class="fixture-readonly">${text || 'No session details yet'}</div>`;
+    return `<div class="fixture-readonly">${info.row1 || 'No session details yet'}</div>`;
   }
 }
 
@@ -931,7 +953,7 @@ function renderMarkTab(){
       html += `<div class="sat-row ${cancelled?'cancelled':''}">
         ${cancelled ? `<div class="cancelled-badge">🚫 Cancelled</div>` : ''}
         <div class="sat-row-head">
-          <div class="sat-date">${fmtDate(d)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
+          <div class="sat-date">${fmtDate(d)}${matchTypeBadge(key)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
         </div>
         ${renderFixtureLine(key)}`;
 
@@ -1017,7 +1039,7 @@ function renderSummaryTab(){
     const key = isoDate(d);
     const dateSlots = slotsForDate(activeSheet, key);
     const multiSlot = dateSlots.length > 1;
-    const fixtureText = fixtureDisplayText(key);
+    const info = fixtureInfoRows(key);
     let rowShort = false;
     let slotsHtml = '';
     let detailHtml = '';
@@ -1054,10 +1076,10 @@ function renderSummaryTab(){
     const rowHtml = `<div class="summary-row ${effectiveRowShort?'short':''} ${cancelled?'cancelled':''}">
       ${cancelled ? `<div class="cancelled-badge">🚫 Cancelled</div>` : ''}
       <div class="summary-head">
-        <div class="summary-date">${fmtDate(d)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
+        <div class="summary-date">${fmtDate(d)}${matchTypeBadge(key)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
         ${effectiveRowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
       </div>
-      ${fixtureText ? `<div class="fixture-readonly">${fixtureText}</div>` : ''}
+      ${info.hasContent ? `<div class="fixture-readonly">${info.row1 ? `<div class="fixture-row">${info.row1}</div>` : ''}${info.row2 ? `<div class="fixture-row">${info.row2}</div>` : ''}</div>` : ''}
       <div class="slot-summary-grid ${multiSlot?'':'single'}">${slotsHtml}</div>
       ${detailHtml}
     </div>`;
