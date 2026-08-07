@@ -396,6 +396,7 @@ let availabilityMeta = {match:{}, training:{}}; // type -> name -> {updatedAt, u
 let fixtures = {};        // dateKey -> {opponent, koTime, location}
 let trainingInfo = {};    // dateKey -> {time, location}
 let parents = {};         // email -> {child: 'Will'|'', isAdmin: bool}
+let parentAccess = {};    // email -> {lastSeen: timestamp}
 let currentUser = null;   // {email, name}
 let isAdmin = false;
 let parentsLoaded = false; // true once the first parents snapshot has arrived, to avoid flashing "not linked" before real data syncs
@@ -598,6 +599,15 @@ function watchParents(){
   }, (err) => { console.error('Parents sync error', err); showConnectionWarning(); });
 }
 
+function watchParentAccess(){
+  onSnapshot(collection(db, 'parent_access'), (snap) => {
+    const next = {};
+    snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
+    parentAccess = next;
+    render();
+  }, (err) => { console.error('Parent access sync error', err); showConnectionWarning(); });
+}
+
 function watchExtraDates(){
   onSnapshot(collection(db, 'extra_dates'), (snap) => {
     const next = {match:{}, training:{}};
@@ -657,6 +667,14 @@ async function savePlayerAvailability(type, name){
 async function saveParent(email, name, child, isAdminFlag){
   try{ await setDoc(doc(db, 'parents', email), { name: name || '', child: child || '', isAdmin: !!isAdminFlag }, { merge: true }); }
   catch(e){ console.error('Failed to save parent', e); showConnectionWarning(); }
+}
+
+async function recordParentAccess(email){
+  try{
+    await setDoc(doc(db, 'parent_access', email), { lastSeen: Date.now() }, { merge: true });
+  }catch(e){
+    console.error('Failed to record last-seen', e);
+  }
 }
 async function removeParent(email){
   try{ await deleteDoc(doc(db, 'parents', email)); }
@@ -1202,7 +1220,7 @@ function renderAdminTab(){
       html += `<div class="admin-list-row">
         <span><b>${p.name ? escapeHtml(p.name) : '<i>(name not set)</i>'}</b> — ${escapeHtml(email)}<br>
         Child: ${p.child ? escapeHtml(p.child) : '<i>none</i>'} &middot; Admin: ${p.isAdmin ? 'Yes' : 'No'}<br>
-        <span style="font-size:11px; color:var(--ink-soft);">Last seen: ${timeAgo(p.lastSeen)}</span></span>
+        <span style="font-size:11px; color:var(--ink-soft);">Last seen: ${timeAgo((parentAccess[email] && parentAccess[email].lastSeen) || p.lastSeen)}</span></span>
         <div style="display:flex; gap:6px; flex-shrink:0;">
           <button class="btn btn-ghost admin-remove" data-editparent="${escapeAttr(email)}">Edit</button>
           <button class="btn btn-ghost admin-remove" data-removeparent="${escapeAttr(email)}">Remove</button>
@@ -1522,8 +1540,10 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user ? { email: (user.email || '').toLowerCase(), name: user.displayName || user.email } : null;
   computeIsAdmin();
   if(user){
-    setDoc(doc(db, 'parents', currentUser.email), { lastSeen: Date.now() }, { merge: true })
-      .catch((e) => console.error('Failed to record last-seen', e));
+    // Access tracking is deliberately stored separately from the parent record.
+    // This means simply opening/refreshing the app can never alter the child's
+    // linkage or admin flag in parents/{email}.
+    recordParentAccess(currentUser.email);
   }
   if(user && !watchersStarted){
     watchersStarted = true;
@@ -1534,6 +1554,7 @@ onAuthStateChanged(auth, async (user) => {
     watchFixtures();
     watchTrainingInfo();
     watchParents();
+    watchParentAccess();
     watchExtraDates();
     watchCancelledDates();
   }
