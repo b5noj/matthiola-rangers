@@ -392,6 +392,7 @@ const SHEETS = {
 let roster = DEFAULT_ROSTER.slice();
 let teamName = DEFAULT_TEAM_NAME;
 let availability = {match:{}, training:{}};
+let availabilityMeta = {match:{}, training:{}}; // type -> name -> {updatedAt, updatedBy}
 let fixtures = {};        // dateKey -> {opponent, koTime, location}
 let trainingInfo = {};    // dateKey -> {time, location}
 let parents = {};         // email -> {child: 'Will'|'', isAdmin: bool}
@@ -448,6 +449,18 @@ function isoDate(d){
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+function timeAgo(ts){
+  if(!ts) return 'never';
+  const diffMs = Date.now() - ts;
+  const mins = Math.floor(diffMs / 60000);
+  if(mins < 1) return 'just now';
+  if(mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if(hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if(days < 30) return `${days}d ago`;
+  return new Date(ts).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
 }
 function ordinalSuffix(n){
   const j = n % 10, k = n % 100;
@@ -532,6 +545,7 @@ function watchSettings(){
 function watchAvailability(){
   onSnapshot(collection(db, 'availability'), (snap) => {
     const next = {match:{}, training:{}};
+    const metaNext = {match:{}, training:{}};
     snap.forEach(docSnap => {
       const id = docSnap.id;
       const sepIdx = id.indexOf('__');
@@ -539,9 +553,12 @@ function watchAvailability(){
       const type = id.slice(0, sepIdx);
       const name = id.slice(sepIdx + 2);
       if(!next[type]) return;
-      next[type][name] = docSnap.data().dates || {};
+      const data = docSnap.data();
+      next[type][name] = data.dates || {};
+      metaNext[type][name] = { updatedAt: data.updatedAt || null, updatedBy: data.updatedBy || '' };
     });
     availability = next;
+    availabilityMeta = metaNext;
     render();
   }, (err) => { console.error('Availability sync error', err); showConnectionWarning(); });
 }
@@ -629,12 +646,14 @@ async function saveTrainingInfo(dateKey, data){
 async function savePlayerAvailability(type, name){
   try{
     await setDoc(doc(db, 'availability', `${type}__${name}`), {
-      dates: (availability[type] && availability[type][name]) || {}
+      dates: (availability[type] && availability[type][name]) || {},
+      updatedAt: Date.now(),
+      updatedBy: currentUser ? currentUser.email : ''
     });
   }catch(e){ console.error('Failed to save availability', e); showConnectionWarning(); }
 }
 async function saveParent(email, name, child, isAdminFlag){
-  try{ await setDoc(doc(db, 'parents', email), { name: name || '', child: child || '', isAdmin: !!isAdminFlag }); }
+  try{ await setDoc(doc(db, 'parents', email), { name: name || '', child: child || '', isAdmin: !!isAdminFlag }, { merge: true }); }
   catch(e){ console.error('Failed to save parent', e); showConnectionWarning(); }
 }
 async function removeParent(email){
@@ -1147,8 +1166,16 @@ function renderAdminTab(){
           </div>
         </div>`;
       } else {
+        const matchMeta = availabilityMeta.match[name];
+        const trainingMeta = availabilityMeta.training[name];
+        const latest = [matchMeta, trainingMeta]
+          .filter(m => m && m.updatedAt)
+          .sort((a,b) => b.updatedAt - a.updatedAt)[0];
+        const lastUpdateText = latest
+          ? `Last updated ${timeAgo(latest.updatedAt)}${latest.updatedBy ? ` by ${escapeHtml(latest.updatedBy)}` : ''}`
+          : 'No availability marked yet';
         html += `<div class="admin-list-row">
-          <span>${escapeHtml(name)}</span>
+          <span>${escapeHtml(name)}<br><span style="font-size:11px; color:var(--ink-soft); font-weight:500;">${lastUpdateText}</span></span>
           <div style="display:flex; gap:6px; flex-shrink:0;">
             <button class="btn btn-ghost admin-remove" data-editplayer="${escapeAttr(name)}">Rename</button>
             <button class="btn btn-ghost admin-remove" data-removeplayer="${escapeAttr(name)}">Remove</button>
@@ -1168,7 +1195,8 @@ function renderAdminTab(){
       const p = parents[email];
       html += `<div class="admin-list-row">
         <span><b>${p.name ? escapeHtml(p.name) : '<i>(name not set)</i>'}</b> — ${escapeHtml(email)}<br>
-        Child: ${p.child ? escapeHtml(p.child) : '<i>none</i>'} &middot; Admin: ${p.isAdmin ? 'Yes' : 'No'}</span>
+        Child: ${p.child ? escapeHtml(p.child) : '<i>none</i>'} &middot; Admin: ${p.isAdmin ? 'Yes' : 'No'}<br>
+        <span style="font-size:11px; color:var(--ink-soft);">Last seen: ${timeAgo(p.lastSeen)}</span></span>
         <div style="display:flex; gap:6px; flex-shrink:0;">
           <button class="btn btn-ghost admin-remove" data-editparent="${escapeAttr(email)}">Edit</button>
           <button class="btn btn-ghost admin-remove" data-removeparent="${escapeAttr(email)}">Remove</button>
@@ -1486,6 +1514,10 @@ let watchersStarted = false;
 onAuthStateChanged(auth, async (user) => {
   currentUser = user ? { email: (user.email || '').toLowerCase(), name: user.displayName || user.email } : null;
   computeIsAdmin();
+  if(user){
+    setDoc(doc(db, 'parents', currentUser.email), { lastSeen: Date.now() }, { merge: true })
+      .catch((e) => console.error('Failed to record last-seen', e));
+  }
   if(user && !watchersStarted){
     watchersStarted = true;
     try{ await ensureSettingsSeeded(); }
