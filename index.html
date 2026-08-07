@@ -175,7 +175,8 @@
   }
   .matchtype-badge{
     font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.03em;
-    background:var(--brand); color:#fff; padding:2px 7px; border-radius:10px; vertical-align:middle;
+    background:transparent; border:1.5px solid var(--brand); color:var(--brand);
+    padding:1px 7px; border-radius:10px; vertical-align:middle;
   }
   .cancelled-badge{
     background:var(--red); color:#fff; font-weight:800; text-transform:uppercase; letter-spacing:0.05em;
@@ -413,6 +414,7 @@ let editingPlayerName = null;
 let extraDates = {match:{}, training:{}}; // type -> dateKey -> {slots:[...]}
 let cancelledDates = {match:{}, training:{}}; // type -> dateKey -> true
 let adminExtraType = 'match';
+let adminExtraOriginalKey = null; // `${type}__${dateKey}` when editing an existing extra fixture, null when adding new
 let adminExtraDate = '';
 let adminExtraSlotsRaw = '';
 let adminExtraOpponent = '';
@@ -1204,7 +1206,13 @@ function renderAdminTab(){
     ['match','training'].forEach(type => {
       Object.keys(extraDates[type] || {}).sort().forEach(dateKey => {
         const slotLabels = (extraDates[type][dateKey].slots || []).map(s => s.label).join(', ');
-        html += `<div class="admin-list-row"><span>${SHEETS[type].label}: ${escapeHtml(dateKey)}${slotLabels ? ` (${escapeHtml(slotLabels)})` : ''}</span><button class="btn btn-ghost admin-remove" data-removeextra="${type}__${dateKey}">Remove</button></div>`;
+        html += `<div class="admin-list-row">
+          <span>${SHEETS[type].label}: ${escapeHtml(dateKey)}${slotLabels ? ` (${escapeHtml(slotLabels)})` : ''}</span>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button class="btn btn-ghost admin-remove" data-editextra="${type}__${dateKey}">Edit</button>
+            <button class="btn btn-ghost admin-remove" data-removeextra="${type}__${dateKey}">Remove</button>
+          </div>
+        </div>`;
       });
     });
     if(!Object.keys(extraDates.match||{}).length && !Object.keys(extraDates.training||{}).length){
@@ -1212,6 +1220,7 @@ function renderAdminTab(){
     }
     html += `</div>`;
     html += `<div class="admin-form">
+      <div class="admin-label-sm">${adminExtraOriginalKey ? 'Editing extra fixture' : 'Add a new extra fixture'}</div>
       <div class="admin-label-sm">Sheet:</div>
       <div class="admin-child-picker">
         <button type="button" class="reason-chip extra-type-chip ${adminExtraType==='match'?'selected':''}" data-extratype="match">Match</button>
@@ -1236,7 +1245,10 @@ function renderAdminTab(){
       </select>
       <input id="extraW3WInput" placeholder="what3words e.g. filled.count.soap" value="${escapeAttr(adminExtraW3W)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
       ` : ''}
-      <button class="btn btn-amber" id="addExtraDateBtn">Add date</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-amber" id="addExtraDateBtn" style="flex:1;">${adminExtraOriginalKey ? 'Save changes' : 'Add date'}</button>
+        ${adminExtraOriginalKey ? `<button class="btn btn-ghost" id="cancelExtraEditBtn">Cancel</button>` : ''}
+      </div>
     </div>`;
   }
 
@@ -1332,9 +1344,32 @@ function renderAdminTab(){
     const m = document.getElementById('extraMatchTypeSelect'); if(m) adminExtraMatchType = m.value;
     const w = document.getElementById('extraW3WInput'); if(w) adminExtraW3W = w.value;
   }
+  function resetExtraForm(){
+    adminExtraDate = ''; adminExtraSlotsRaw = ''; adminExtraOpponent = ''; adminExtraKoTime = '';
+    adminExtraLocation = ''; adminExtraMatchType = ''; adminExtraW3W = ''; adminExtraOriginalKey = null;
+  }
   panel.querySelectorAll('.extra-type-chip').forEach(el => {
     el.addEventListener('click', () => { captureExtraForm(); adminExtraType = el.dataset.extratype; render(); });
   });
+  panel.querySelectorAll('[data-editextra]').forEach(el => {
+    el.addEventListener('click', () => {
+      const [type, dateKey] = el.dataset.editextra.split('__');
+      const extra = (extraDates[type] && extraDates[type][dateKey]) || {};
+      adminExtraOriginalKey = el.dataset.editextra;
+      adminExtraType = type;
+      adminExtraDate = dateKey;
+      adminExtraSlotsRaw = (extra.slots || []).map(s => s.label).join(', ');
+      const f = (type === 'match' ? (fixtures[dateKey] || {}) : {});
+      adminExtraOpponent = f.opponent || '';
+      adminExtraKoTime = f.koTime || '';
+      adminExtraLocation = f.location || '';
+      adminExtraMatchType = f.matchType || '';
+      adminExtraW3W = f.what3words || '';
+      render();
+    });
+  });
+  const cancelExtraEditBtn = document.getElementById('cancelExtraEditBtn');
+  if(cancelExtraEditBtn) cancelExtraEditBtn.addEventListener('click', () => { resetExtraForm(); render(); });
   const addExtraBtn = document.getElementById('addExtraDateBtn');
   if(addExtraBtn) addExtraBtn.addEventListener('click', async () => {
     captureExtraForm();
@@ -1344,6 +1379,17 @@ function renderAdminTab(){
     const slots = labels.length
       ? labels.map((label, i) => ({ id: `e${i+1}`, label }))
       : [{ id: 'e1', label: 'Session' }];
+
+    const newKey = `${adminExtraType}__${dateVal}`;
+    if(adminExtraOriginalKey && adminExtraOriginalKey !== newKey){
+      const [oldType, oldDateKey] = adminExtraOriginalKey.split('__');
+      await removeExtraDate(oldType, oldDateKey);
+      if(oldType === 'match' && oldDateKey !== dateVal){
+        try{ await deleteDoc(doc(db, 'fixtures', oldDateKey)); }catch(e){}
+        delete fixtures[oldDateKey];
+      }
+    }
+
     await saveExtraDate(adminExtraType, dateVal, slots);
     if(adminExtraType === 'match'){
       const fixtureData = {
@@ -1358,8 +1404,7 @@ function renderAdminTab(){
         await saveFixture(dateVal, fixtureData);
       }
     }
-    adminExtraDate = ''; adminExtraSlotsRaw = ''; adminExtraOpponent = ''; adminExtraKoTime = '';
-    adminExtraLocation = ''; adminExtraMatchType = ''; adminExtraW3W = '';
+    resetExtraForm();
     render();
   });
   panel.querySelectorAll('[data-removeextra]').forEach(el => {
