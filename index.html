@@ -399,7 +399,8 @@ let parents = {};         // email -> {child: 'Will'|'', isAdmin: bool}
 let parentAccess = {};    // email -> {lastSeen: timestamp}
 let currentUser = null;   // {email, name}
 let isAdmin = false;
-let parentsLoaded = false; // true once the first parents snapshot has arrived, to avoid flashing "not linked" before real data syncs
+let parentsLoaded = false; // true once the signed-in parent's record has been loaded
+let parentRecordLoaded = false; // prevents the UI from treating an unqueried parent as unlinked
 let editingFixture = null;
 let editingTrainingInfo = null;
 let expandedSlot = null;
@@ -516,9 +517,31 @@ function computeIsAdmin(){
 }
 
 function getMyChild(){
-  if(!currentUser) return null;
-  const p = parents[currentUser.email];
+  if(!currentUser || !parentRecordLoaded) return null;
+  const email = currentUser.email.trim().toLowerCase();
+  const p = parents[email];
   return (p && p.child && roster.includes(p.child)) ? p.child : null;
+}
+
+async function loadCurrentParent(){
+  if(!currentUser) return;
+  const email = currentUser.email.trim().toLowerCase();
+  parentRecordLoaded = false;
+  parentsLoaded = false;
+  try{
+    const snap = await getDoc(doc(db, 'parents', email));
+    if(snap.exists()) parents[email] = snap.data();
+    else delete parents[email];
+    parentRecordLoaded = true;
+    parentRecordLoaded = true;
+    parentsLoaded = true;
+    computeIsAdmin();
+  }catch(e){
+    console.error('Failed to load signed-in parent record', e);
+    showConnectionWarning();
+    parentRecordLoaded = false;
+    parentsLoaded = false;
+  }
 }
 
 // ---- Firestore wiring ----
@@ -586,8 +609,13 @@ function watchTrainingInfo(){
 function watchParents(){
   onSnapshot(collection(db, 'parents'), (snap) => {
     const next = {};
-    snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
-    parents = next;
+    snap.forEach(docSnap => {
+      const email = docSnap.id.trim().toLowerCase();
+      next[email] = docSnap.data();
+    });
+    // Merge rather than replace, so the already-loaded signed-in parent
+    // record cannot disappear if a collection listener is delayed or restricted.
+    parents = { ...parents, ...next };
     parentsLoaded = true;
     computeIsAdmin();
     // If this parent's record exists but has no name on file, backfill it from their Google profile.
@@ -1537,15 +1565,29 @@ render(); // instant paint (login screen or defaults) before Firebase responds
 
 let watchersStarted = false;
 onAuthStateChanged(auth, async (user) => {
-  currentUser = user ? { email: (user.email || '').toLowerCase(), name: user.displayName || user.email } : null;
-  computeIsAdmin();
-  if(user){
-    // Access tracking is deliberately stored separately from the parent record.
-    // This means simply opening/refreshing the app can never alter the child's
-    // linkage or admin flag in parents/{email}.
-    recordParentAccess(currentUser.email);
+  currentUser = user ? { email: (user.email || '').trim().toLowerCase(), name: user.displayName || user.email } : null;
+
+  if(!user){
+    parentRecordLoaded = false;
+    parentsLoaded = false;
+    parents = {};
+    isAdmin = false;
+    render();
+    return;
   }
-  if(user && !watchersStarted){
+
+  // Determine the signed-in user's own parent record BEFORE rendering the
+  // main app. This removes the device/browser-dependent race where a fresh
+  // iPhone session could render with an empty parents object and temporarily
+  // conclude that the account was not linked to a child.
+  await loadCurrentParent();
+
+  // Access tracking is deliberately stored separately from the parent record.
+  // Simply opening/refreshing the app can therefore never alter child linkage
+  // or admin rights in parents/{email}.
+  recordParentAccess(currentUser.email);
+
+  if(!watchersStarted){
     watchersStarted = true;
     try{ await ensureSettingsSeeded(); }
     catch(e){ console.error('Seed failed', e); showConnectionWarning(); }
@@ -1553,8 +1595,12 @@ onAuthStateChanged(auth, async (user) => {
     watchAvailability();
     watchFixtures();
     watchTrainingInfo();
-    watchParents();
-    watchParentAccess();
+    // Only admins need the full parents collection. Normal parents only load
+    // their own document above, reducing reads and avoiding unnecessary exposure.
+    if(isAdmin){
+      watchParents();
+      watchParentAccess();
+    }
     watchExtraDates();
     watchCancelledDates();
   }
