@@ -315,6 +315,11 @@
   }
   .admin-child-picker{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
   .admin-label-sm{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:6px; }
+
+  .weekly-comms-card{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .weekly-comms-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .weekly-comms-preview{width:100%;min-height:360px;padding:12px;border:1.5px solid var(--border);border-radius:8px;background:#fafaf7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;resize:vertical;}
+  .weekly-comms-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:6px 0 0;}
 </style>
 </head>
 <body>
@@ -421,6 +426,7 @@ let adminExtraKoTime = '';
 let adminExtraLocation = '';
 let adminExtraMatchType = '';
 let adminExtraW3W = '';
+let weeklyCommsWeek = '';
 let squadViewFilter = 'all'; // 'all' | 'problem'
 
 roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
@@ -1189,6 +1195,179 @@ function wireSummaryFilterAndExpand(panel){
   });
 }
 
+function getNextMondayDate(){
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = today.getDay();
+  const daysUntilMonday = day === 0 ? 1 : 8 - day;
+  const monday = new Date(today);
+  monday.setDate(monday.getDate() + daysUntilMonday);
+  return monday;
+}
+function mondayForDateInput(value){
+  if(!value) return getNextMondayDate();
+  const d = new Date(value + 'T00:00:00');
+  if(Number.isNaN(d.getTime())) return getNextMondayDate();
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+function formatLongDateKey(key){
+  const d = new Date(key + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long'});
+}
+function parseTimeToMinutes(value){
+  if(!value) return null;
+  const m = String(value).trim().match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if(!m) return null;
+  let h = Number(m[1]);
+  const mins = Number(m[2] || 0);
+  const ap = (m[3] || '').toLowerCase();
+  if(ap === 'pm' && h < 12) h += 12;
+  if(ap === 'am' && h === 12) h = 0;
+  if(!ap && h <= 23) return h * 60 + mins;
+  if(h >= 1 && h <= 12) return h * 60 + mins;
+  return null;
+}
+function slotStartMinutes(label){
+  const m = String(label || '').match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if(!m) return null;
+  let h = Number(m[1]);
+  const mins = Number(m[2] || 0);
+  const ap = (m[3] || '').toLowerCase();
+  if(ap === 'pm' && h < 12) h += 12;
+  if(ap === 'am' && h === 12) h = 0;
+  return h * 60 + mins;
+}
+function getRelevantMatchSlot(dateKey){
+  const f = fixtures[dateKey] || {};
+  const slots = slotsForDate('match', dateKey);
+  if(slots.length === 1) return slots[0];
+  const ko = parseTimeToMinutes(f.koTime);
+  if(ko === null) return null;
+  let best = null;
+  let bestStart = -Infinity;
+  slots.forEach(slot => {
+    const start = slotStartMinutes(slot.label);
+    if(start !== null && start <= ko && start >= bestStart){ best = slot; bestStart = start; }
+  });
+  return best || slots[0];
+}
+function namesForSlot(type, dateKey, slotId){
+  const availableNames = [];
+  const unavailableNames = [];
+  roster.forEach(name => {
+    const slot = (availability[type][name] && availability[type][name][dateKey]) || {};
+    if(slot[slotId]) unavailableNames.push(name);
+    else availableNames.push(name);
+  });
+  return {availableNames, unavailableNames};
+}
+function weeklyMatchSection(dateKey){
+  const f = fixtures[dateKey] || {};
+  const cancelled = isCancelled('match', dateKey);
+  const lines = ['⚽ MATCH', '', formatLongDateKey(dateKey)];
+  if(f.matchType) lines.push(`Type: ${f.matchType}`);
+  if(f.opponent) lines.push(`Opponent: ${f.opponent}`);
+  if(f.koTime) lines.push(`Kick-off: ${f.koTime}`);
+  if(f.location) lines.push(`Location: ${f.location}`);
+  if(f.what3words){
+    const clean = String(f.what3words).replace(/^\/+/, '').trim();
+    lines.push(`What3Words: https://what3words.com/${encodeURIComponent(clean)}`);
+  }
+  if(cancelled){
+    lines.push('', '🚫 CANCELLED');
+    return lines.join('\n');
+  }
+  const slot = getRelevantMatchSlot(dateKey);
+  if(slot){
+    const names = namesForSlot('match', dateKey, slot.id);
+    lines.push('', slot.label !== 'Session' ? `Availability (${slot.label}):` : 'Availability:');
+    lines.push(`✅ Available (${names.availableNames.length}): ${names.availableNames.length ? names.availableNames.join(', ') : 'None'}`);
+    lines.push(`❌ Unavailable (${names.unavailableNames.length}): ${names.unavailableNames.length ? names.unavailableNames.join(', ') : 'None'}`);
+  }
+  return lines.join('\n');
+}
+function weeklyTrainingSection(dateKey){
+  const t = trainingInfo[dateKey] || {};
+  const cancelled = isCancelled('training', dateKey);
+  const lines = ['🏃 TRAINING', '', formatLongDateKey(dateKey)];
+  if(t.time) lines.push(`Time: ${t.time}`);
+  if(t.location) lines.push(`Location: ${t.location}`);
+  if(cancelled){
+    lines.push('', '🚫 CANCELLED');
+    return lines.join('\n');
+  }
+  const slots = slotsForDate('training', dateKey);
+  if(slots.length){
+    const names = namesForSlot('training', dateKey, slots[0].id);
+    lines.push('', 'Availability:');
+    lines.push(`✅ Available (${names.availableNames.length}): ${names.availableNames.length ? names.availableNames.join(', ') : 'None'}`);
+    lines.push(`❌ Unavailable (${names.unavailableNames.length}): ${names.unavailableNames.length ? names.unavailableNames.join(', ') : 'None'}`);
+  }
+  return lines.join('\n');
+}
+function getWeekSessionKeys(monday){
+  const keys=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(monday); d.setDate(d.getDate()+i); keys.push(isoDate(d));
+  }
+  return keys;
+}
+function generateWeeklyCommsMessage(){
+  const monday=mondayForDateInput(weeklyCommsWeek);
+  weeklyCommsWeek=isoDate(monday);
+  const keys=getWeekSessionKeys(monday);
+  const matchKeys=keys.filter(k=>{
+    const regularDay=new Date(k+'T00:00:00').getDay()===SHEETS.match.dayOfWeek;
+    return regularDay || !!(extraDates.match&&extraDates.match[k]) || !!fixtures[k] || isCancelled('match',k);
+  });
+  const trainingKeys=keys.filter(k=>{
+    const regularDay=new Date(k+'T00:00:00').getDay()===SHEETS.training.dayOfWeek;
+    return regularDay || !!(extraDates.training&&extraDates.training[k]) || !!trainingInfo[k] || isCancelled('training',k);
+  });
+  const sections=[`📅 ${teamName.toUpperCase()} — WEEK COMMENCING ${formatLongDateKey(isoDate(monday))}`,''];
+  if(matchKeys.length) matchKeys.forEach(k=>sections.push(weeklyMatchSection(k)));
+  else sections.push('⚽ MATCH','', 'No match scheduled this week.');
+  sections.push('');
+  if(trainingKeys.length) trainingKeys.forEach(k=>sections.push(weeklyTrainingSection(k)));
+  else sections.push('🏃 TRAINING','', 'No training scheduled this week.');
+  return sections.join('\n');
+}
+function renderWeeklyCommsTab(){
+  const panel=document.getElementById('panel');
+  if(!weeklyCommsWeek) weeklyCommsWeek=isoDate(getNextMondayDate());
+  const message=generateWeeklyCommsMessage();
+  panel.innerHTML=`<div class="section-label">Weekly Comms</div>
+    <div class="weekly-comms-card">
+      <div class="admin-label-sm">Week commencing</div>
+      <input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter';"/>
+      <p class="weekly-comms-note">The message uses the existing match/training details and squad availability. Everyone is treated as available unless they have marked themselves unavailable.</p>
+    </div>
+    <div class="weekly-comms-card">
+      <div class="admin-label-sm">WhatsApp message preview</div>
+      <textarea id="weeklyCommsPreview" class="weekly-comms-preview" readonly>${escapeHtml(message)}</textarea>
+      <div class="weekly-comms-actions">
+        <button class="btn btn-amber" id="copyWeeklyCommsBtn">Copy message</button>
+        <button class="btn btn-brand" id="openWeeklyWhatsAppBtn">Open WhatsApp</button>
+      </div>
+    </div>`;
+  document.getElementById('weeklyCommsWeekInput').addEventListener('change',e=>{
+    weeklyCommsWeek=isoDate(mondayForDateInput(e.target.value)); render();
+  });
+  document.getElementById('copyWeeklyCommsBtn').addEventListener('click',async()=>{
+    const text=generateWeeklyCommsMessage();
+    try{ await navigator.clipboard.writeText(text); }
+    catch(e){ const ta=document.getElementById('weeklyCommsPreview'); ta.focus(); ta.select(); document.execCommand('copy'); }
+    const b=document.getElementById('copyWeeklyCommsBtn'); b.textContent='Copied ✓';
+    setTimeout(()=>{const x=document.getElementById('copyWeeklyCommsBtn'); if(x)x.textContent='Copy message';},1600);
+  });
+  document.getElementById('openWeeklyWhatsAppBtn').addEventListener('click',()=>{
+    window.open(`https://wa.me/?text=${encodeURIComponent(generateWeeklyCommsMessage())}`,'_blank');
+  });
+}
+
 function renderAdminTab(){
   const panel = document.getElementById('panel');
   let html = `<div class="section-label">Admin</div>`;
@@ -1196,6 +1375,7 @@ function renderAdminTab(){
     <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
     <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
     <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
+    <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
   </div>`;
 
   if(adminSubTab === 'squad'){
@@ -1267,7 +1447,7 @@ function renderAdminTab(){
         ${adminFormOriginalEmail ? `<button class="btn btn-ghost" id="cancelParentEditBtn">Cancel</button>` : ''}
       </div>
     </div>`;
-  } else {
+  } else if(adminSubTab === 'extra') {
     html += `<div class="hint">Add a one-off fixture or session that falls outside the usual Saturday/Thursday slot — it'll appear alongside the regular dates, marked "Extra". Specify the time slot(s) that apply — if you only give one, there's no "mark out all" button since there's nothing to group.</div>`;
     html += `<div class="admin-list">`;
     ['match','training'].forEach(type => {
@@ -1317,6 +1497,11 @@ function renderAdminTab(){
         ${adminExtraOriginalKey ? `<button class="btn btn-ghost" id="cancelExtraEditBtn">Cancel</button>` : ''}
       </div>
     </div>`;
+  }
+
+  if(adminSubTab === 'weekly') {
+    renderWeeklyCommsTab();
+    return;
   }
 
   panel.innerHTML = html;
