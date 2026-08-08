@@ -403,7 +403,8 @@ let trainingInfo = {};    // dateKey -> {time, location}
 let parents = {};         // email -> {child: 'Will'|'', isAdmin: bool}
 let currentUser = null;   // {email, name}
 let isAdmin = false;
-let parentsLoaded = false; // true once the first parents snapshot has arrived, to avoid flashing "not linked" before real data syncs
+let parentsLoaded = false; // true once the first parents snapshot has arrived
+let parentRecordLoaded = false; // true once the signed-in parent's own record has been read
 let editingFixture = null;
 let editingTrainingInfo = null;
 let expandedSlot = null;
@@ -521,10 +522,30 @@ function computeIsAdmin(){
 }
 
 function getMyChild(){
-  if(!currentUser) return null;
+  if(!currentUser || !parentRecordLoaded) return null;
   const email = currentUser.email.trim().toLowerCase();
   const p = parents[email];
   return (p && p.child && roster.includes(p.child)) ? p.child : null;
+}
+
+async function loadCurrentParent(){
+  if(!currentUser) return;
+  const email = currentUser.email.trim().toLowerCase();
+  parentRecordLoaded = false;
+  parentsLoaded = false;
+  try{
+    const snap = await getDoc(doc(db, 'parents', email));
+    if(snap.exists()) parents[email] = snap.data();
+    else delete parents[email];
+    parentRecordLoaded = true;
+    parentsLoaded = true;
+    computeIsAdmin();
+  }catch(e){
+    console.error('Failed to load signed-in parent record', e);
+    showConnectionWarning();
+    parentRecordLoaded = false;
+    parentsLoaded = false;
+  }
 }
 
 // ---- Firestore wiring ----
@@ -590,20 +611,21 @@ function watchTrainingInfo(){
 }
 
 function watchParents(){
+  // Firestore rules only allow a non-admin to get their own parent document,
+  // not list the whole parents collection. Their own record is loaded separately.
+  if(!isAdmin) return;
   onSnapshot(collection(db, 'parents'), (snap) => {
     const next = {};
     snap.forEach(docSnap => {
-      // Firebase Auth emails are treated case-insensitively. Normalise the
-      // local lookup key so child/admin linkage survives refresh/login on
-      // different devices even if the Firestore document ID casing differs.
-      next[docSnap.id.trim().toLowerCase()] = docSnap.data();
+      const email = docSnap.id.trim().toLowerCase();
+      next[email] = docSnap.data();
     });
-    parents = next;
+    // Preserve the signed-in parent's record while the admin collection listener syncs.
+    parents = { ...parents, ...next };
     parentsLoaded = true;
     computeIsAdmin();
-    // If this parent's record exists but has no name on file, backfill it from their Google profile.
     if(currentUser && parents[currentUser.email] && !parents[currentUser.email].name && currentUser.name){
-      const p = parents[currentUser.email.trim().toLowerCase()];
+      const p = parents[currentUser.email];
       saveParent(currentUser.email, currentUser.name, p.child || '', !!p.isAdmin);
     }
     render();
@@ -679,8 +701,16 @@ async function saveExtraDate(type, dateKey, slots){
   catch(e){ console.error('Failed to add extra date', e); showConnectionWarning(); }
 }
 async function removeExtraDate(type, dateKey){
-  try{ await deleteDoc(doc(db, 'extra_dates', `${type}__${dateKey}`)); }
-  catch(e){ console.error('Failed to remove extra date', e); showConnectionWarning(); }
+  try{
+    await deleteDoc(doc(db, 'extra_dates', `${type}__${dateKey}`));
+    // Extra match fixtures are stored in the normal fixtures collection too.
+    // Remove that companion document so a deleted test/extra fixture cannot
+    // reappear in Weekly Comms.
+    if(type === 'match'){
+      await deleteDoc(doc(db, 'fixtures', dateKey));
+      delete fixtures[dateKey];
+    }
+  }catch(e){ console.error('Failed to remove extra date', e); showConnectionWarning(); }
 }
 
 let warnTimer = null;
@@ -1740,12 +1770,21 @@ render(); // instant paint (login screen or defaults) before Firebase responds
 
 let watchersStarted = false;
 onAuthStateChanged(auth, async (user) => {
-  currentUser = user ? { email: (user.email || '').toLowerCase(), name: user.displayName || user.email } : null;
+  currentUser = user ? { email: (user.email || '').trim().toLowerCase(), name: user.displayName || user.email } : null;
+  parentRecordLoaded = false;
+  parentsLoaded = false;
   computeIsAdmin();
+
   if(user){
+    // Read this parent's own record first. Non-admin users are not allowed to list
+    // the parents collection under the Firestore rules.
+    await loadCurrentParent();
+
+    // lastSeen is merged, so it cannot overwrite child or isAdmin.
     setDoc(doc(db, 'parents', currentUser.email), { lastSeen: Date.now() }, { merge: true })
       .catch((e) => console.error('Failed to record last-seen', e));
   }
+
   if(user && !watchersStarted){
     watchersStarted = true;
     try{ await ensureSettingsSeeded(); }
