@@ -1097,7 +1097,7 @@ function renderSummaryTab(){
 
   html += `<div class="admin-child-picker" style="margin-bottom:16px;">
     <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='all'?'selected':''}" data-svfilter="all">All sessions</button>
-    <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='problem'?'selected':''}" data-svfilter="problem">Problem sessions (below ${cfg.threshold})</button>
+    <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='problem'?'selected':''}" data-svfilter="problem">Problem sessions (below ${cfg.threshold} or cancelled)</button>
   </div>`;
 
   // Pass 1: build a row entry per date
@@ -1138,12 +1138,12 @@ function renderSummaryTab(){
       }
     });
     const cancelled = isCancelled(activeSheet, key);
-    const effectiveRowShort = rowShort && !cancelled;
+    const effectiveRowShort = rowShort || cancelled;
     const rowHtml = `<div class="summary-row ${effectiveRowShort?'short':''} ${cancelled?'cancelled':''}">
       ${cancelled ? `<div class="cancelled-badge">🚫 Cancelled</div>` : ''}
       <div class="summary-head">
         <div class="summary-date">${fmtDate(d)}${matchTypeBadge(key)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
-        ${effectiveRowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
+        ${!cancelled && rowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
       </div>
       ${info.hasContent ? `<div class="fixture-readonly">${info.row1 ? `<div class="fixture-row">${info.row1}</div>` : ''}${info.row2 ? `<div class="fixture-row">${info.row2}</div>` : ''}</div>` : ''}
       <div class="slot-summary-grid ${multiSlot?'':'single'}">${slotsHtml}</div>
@@ -1156,7 +1156,7 @@ function renderSummaryTab(){
   const filtered = squadViewFilter === 'problem' ? entries.filter(e => e.rowShort) : entries;
 
   if(!filtered.length){
-    html += `<div class="empty-state">${squadViewFilter==='problem' ? 'No problem sessions right now — squad is covered everywhere.' : 'No sessions to show.'}</div>`;
+    html += `<div class="empty-state">${squadViewFilter==='problem' ? 'No problem sessions right now — no sessions are below the threshold or cancelled.' : 'No sessions to show.'}</div>`;
     panel.innerHTML = html;
     wireSummaryFilterAndExpand(panel);
     return;
@@ -1576,8 +1576,10 @@ onAuthStateChanged(auth, async (user) => {
 
   if(!watchersStarted){
     watchersStarted = true;
-    try{ await ensureSettingsSeeded(); }
-    catch(e){ console.error('Seed failed', e); showConnectionWarning(); }
+    if(isAdmin){
+      try{ await ensureSettingsSeeded(); }
+      catch(e){ console.error('Seed failed', e); showConnectionWarning(); }
+    }
     watchSettings();
     watchAvailability();
     watchFixtures();
