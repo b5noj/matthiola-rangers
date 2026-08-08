@@ -360,11 +360,6 @@ const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
 const googleProvider = new GoogleAuthProvider();
 
-// IMPORTANT: replace this with your real email address before deploying.
-// Anyone signed in with an email in this list is always an admin, even before
-// the Admins list below has been set up — this is how you bootstrap the first admin.
-const SEED_ADMIN_EMAILS = ['benoj@mail.com'];
-
 const DEFAULT_TEAM_NAME = 'Matthiola Rangers';
 const DEFAULT_ROSTER = ['Will','Teddy','Rex','Lennie','Brodie','Luca','Kayleb'];
 
@@ -510,10 +505,9 @@ function doSignInGoogle(){ doSignIn(googleProvider); }
 function doSignOut(){ signOut(auth); }
 
 function computeIsAdmin(){
-  if(!currentUser){ isAdmin = false; return; }
+  if(!currentUser || !parentRecordLoaded){ isAdmin = false; return; }
   const email = currentUser.email.trim().toLowerCase();
-  const seedMatch = SEED_ADMIN_EMAILS.some(e => e.trim().toLowerCase() === email);
-  isAdmin = seedMatch || !!(parents[email] && parents[email].isAdmin);
+  isAdmin = !!(parents[email] && parents[email].isAdmin);
 }
 
 function getMyChild(){
@@ -532,7 +526,6 @@ async function loadCurrentParent(){
     const snap = await getDoc(doc(db, 'parents', email));
     if(snap.exists()) parents[email] = snap.data();
     else delete parents[email];
-    parentRecordLoaded = true;
     parentRecordLoaded = true;
     parentsLoaded = true;
     computeIsAdmin();
@@ -1254,12 +1247,6 @@ function renderAdminTab(){
           <button class="btn btn-ghost admin-remove" data-removeparent="${escapeAttr(email)}">Remove</button>
         </div>
       </div>`;
-    });
-    SEED_ADMIN_EMAILS.forEach(email => {
-      const lower = email.trim().toLowerCase();
-      if(!parents[lower]){
-        html += `<div class="admin-list-row"><span>${escapeHtml(lower)} <i>(built-in admin)</i></span></div>`;
-      }
     });
     html += `</div>`;
     html += `<div class="admin-form">
