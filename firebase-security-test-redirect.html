@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Matthiola Rangers — Firebase Security Test</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:900px;margin:0 auto;padding:20px;background:#f5f6f8;color:#222}
+h1{font-size:24px}.card{background:#fff;border-radius:12px;padding:16px;margin:14px 0;box-shadow:0 1px 4px #0001}
+label{display:block;font-weight:600;margin:10px 0 5px}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{padding:11px 16px;border:0;border-radius:8px;background:#222;color:#fff;font-weight:600;margin:8px 6px 0 0}
+button.secondary{background:#666}.status{padding:9px;border-radius:8px;margin:6px 0;font-family:ui-monospace,monospace;font-size:13px}
+.pass{background:#e7f7e9}.fail{background:#ffe9e9}.info{background:#eef4ff}.warn{background:#fff5d6}
+.small{font-size:13px;color:#555}.user{font-weight:700}
+</style>
+</head>
+<body>
+<h1>Firebase Security Test</h1>
+<div class="card">
+  <p><strong>Use this page while signed in as a NORMAL parent.</strong></p>
+  <p class="small">It does not change your normal app. It attempts harmless reads/writes designed to test the Firestore rules. Do not use an admin account for this test.</p>
+  <div id="auth" class="status info">Not signed in.</div>
+  <button id="signIn">Sign in with Google</button>
+  <button id="signOut" class="secondary" style="display:none">Sign out</button>
+</div>
+
+<div class="card">
+  <label>Another parent's email (for cross-parent tests)</label>
+  <input id="otherEmail" type="email" placeholder="e.g. another.parent@gmail.com">
+  <label>Another child's name (for cross-child availability test)</label>
+  <input id="otherChild" placeholder="e.g. Teddy">
+  <button id="run">Run all tests</button>
+  <button id="clear" class="secondary">Clear results</button>
+</div>
+
+<div class="card">
+  <h2>Results</h2>
+  <div id="results"><div class="small">No tests run yet.</div></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult,
+  signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
+  collection, getDocs
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDXXl6SdeB7QF6s_Nhzw1BHAshab0AFUN8",
+  authDomain: "matthiola-rangers.firebaseapp.com",
+  projectId: "matthiola-rangers",
+  storageBucket: "matthiola-rangers.firebasestorage.app",
+  messagingSenderId: "763341402144",
+  appId: "1:763341402144:web:694113fd11bd65b37f0c45"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let currentUser = null;
+let ownChild = null;
+
+const $ = id => document.getElementById(id);
+const results = $("results");
+
+function add(name, outcome, detail=""){
+  const div = document.createElement("div");
+  div.className = "status " + (outcome === "PASS" ? "pass" : outcome === "FAIL" ? "fail" : "warn");
+  div.textContent = `${outcome} — ${name}${detail ? " — " + detail : ""}`;
+  results.appendChild(div);
+}
+
+function clearResults(){ results.innerHTML = ""; }
+
+async function expectDenied(name, operation){
+  try {
+    await operation();
+    add(name, "FAIL", "Operation was ALLOWED — this is a security-rule failure.");
+  } catch(e) {
+    if (e?.code === "permission-denied") add(name, "PASS", "Permission denied as expected.");
+    else add(name, "WARN", `${e?.code || "error"}: ${e?.message || e}`);
+  }
+}
+
+async function expectAllowed(name, operation){
+  try {
+    await operation();
+    add(name, "PASS", "Operation allowed as expected.");
+  } catch(e) {
+    add(name, "FAIL", `${e?.code || "error"}: ${e?.message || e}`);
+  }
+}
+
+let authStateReady = false;
+
+(async () => {
+  try {
+    await getRedirectResult(auth);
+  } catch (e) {
+    if (e?.code) {
+      $("auth").textContent = `Sign-in failed: ${e.code} — ${e.message || ""}`;
+      $("auth").className = "status fail";
+    }
+  }
+})();
+
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+  authStateReady = true;
+
+  if (!user) {
+    ownChild = null;
+    $("auth").textContent = "Not signed in. Tap “Sign in with Google” to choose the test account.";
+    $("auth").className = "status warn";
+    $("signIn").style.display = "";
+    $("signOut").style.display = "none";
+    return;
+  }
+
+  const email = (user.email || "").toLowerCase();
+  try {
+    const snap = await getDoc(doc(db, "parents", email));
+    ownChild = snap.exists() ? (snap.data().child || "") : "";
+  } catch(e) {
+    ownChild = null;
+  }
+
+  $("auth").innerHTML = `Signed in as <span class="user">${email}</span>${ownChild ? ` — linked child: <span class="user">${ownChild}</span>` : ""}`;
+  $("auth").className = "status info";
+  $("signIn").style.display = "none";
+  $("signOut").style.display = "";
+});
+
+$("signIn").onclick = async () => {
+  try {
+    await signOut(auth);
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    await signInWithRedirect(auth, provider);
+  } catch(e) {
+    $("auth").textContent = `Sign-in failed: ${e?.message || e}`;
+    $("auth").className = "status fail";
+  }
+};
+
+$("signOut").onclick = async () => {
+  try {
+    await signOut(auth);
+  } catch(e) {
+    $("auth").textContent = `Sign-out failed: ${e?.message || e}`;
+    $("auth").className = "status fail";
+  }
+};
+
+$("clear").onclick = clearResults;
+
+$("run").onclick = async () => {
+  clearResults();
+
+  if (!currentUser) {
+    add("Authentication", "FAIL", "No signed-in Firebase user.");
+    return;
+  }
+
+  const me = (currentUser.email || "").toLowerCase();
+  const otherEmail = $("otherEmail").value.trim().toLowerCase();
+  const otherChild = $("otherChild").value.trim();
+
+  if (!otherEmail || !otherChild) {
+    add("Inputs", "WARN", "Enter another parent's email and another child's name first.");
+    return;
+  }
+
+  if (otherEmail === me) {
+    add("Inputs", "WARN", "The other parent's email must be different from the signed-in account.");
+    return;
+  }
+
+  // 1. Cross-parent read
+  await expectDenied("Read another parent's record", async () => {
+    await getDoc(doc(db, "parents", otherEmail));
+  });
+
+  // 2. Cross-parent write
+  await expectDenied("Change another parent's child", async () => {
+    await updateDoc(doc(db, "parents", otherEmail), { child: otherChild });
+  });
+
+  // 3. Self-promotion
+  await expectDenied("Make own account admin", async () => {
+    await updateDoc(doc(db, "parents", me), { isAdmin: true });
+  });
+
+  // 4. Change own child
+  await expectDenied("Change own linked child", async () => {
+    await updateDoc(doc(db, "parents", me), { child: otherChild });
+  });
+
+  // 5. Cross-child availability write (both match and training)
+  await expectDenied("Change another child's match availability", async () => {
+    await updateDoc(doc(db, "availability", `match__${otherChild}`), { status: "available" });
+  });
+
+  await expectDenied("Change another child's training availability", async () => {
+    await updateDoc(doc(db, "availability", `training__${otherChild}`), { status: "available" });
+  });
+
+  // 6. Admin-only collections: use harmless, unique IDs.
+  const suffix = `__SECURITY_TEST_${Date.now()}`;
+
+  await expectDenied("Create a fixture", async () => {
+    await setDoc(doc(db, "fixtures", suffix), { securityTest: true });
+  });
+
+  await expectDenied("Create training information", async () => {
+    await setDoc(doc(db, "training_info", suffix), { securityTest: true });
+  });
+
+  await expectDenied("Create an extra date", async () => {
+    await setDoc(doc(db, "extra_dates", suffix), { securityTest: true });
+  });
+
+  await expectDenied("Create a cancellation", async () => {
+    await setDoc(doc(db, "cancelled_dates", suffix), { securityTest: true });
+  });
+
+  await expectDenied("Change team settings", async () => {
+    await setDoc(doc(db, "team_config", "settings"), { securityTest: true }, { merge: true });
+  });
+
+  // 7. Cross-parent access tracking
+  await expectDenied("Read another parent's access record", async () => {
+    await getDoc(doc(db, "parent_access", otherEmail));
+  });
+
+  await expectDenied("Change another parent's access record", async () => {
+    await updateDoc(doc(db, "parent_access", otherEmail), { securityTest: true });
+  });
+
+  // 8. Expected allowed reads
+  await expectAllowed("Read squad availability", async () => {
+    await getDocs(collection(db, "availability"));
+  });
+
+  await expectAllowed("Read fixtures", async () => {
+    await getDocs(collection(db, "fixtures"));
+  });
+
+  await expectAllowed("Read training information", async () => {
+    await getDocs(collection(db, "training_info"));
+  });
+
+  await expectAllowed("Read own parent record", async () => {
+    await getDoc(doc(db, "parents", me));
+  });
+
+  await expectAllowed("Read own access record", async () => {
+    await getDoc(doc(db, "parent_access", me));
+  });
+
+  add("Test run complete", "PASS", "Any FAIL above indicates a rule that needs investigating. WARN means the test could not conclusively classify the result.");
+};
+</script>
+</body>
+</html>
