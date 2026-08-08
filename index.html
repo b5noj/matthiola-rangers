@@ -1572,7 +1572,7 @@ onAuthStateChanged(auth, async (user) => {
   // Access tracking is deliberately stored separately from the parent record.
   // Simply opening/refreshing the app can therefore never alter child linkage
   // or admin rights in parents/{email}.
-  recordParentAccess(currentUser.email);
+  await recordParentAccess(currentUser.email);
 
   if(!watchersStarted){
     watchersStarted = true;
