@@ -19,7 +19,9 @@ button.secondary{background:#666}.status{padding:9px;border-radius:8px;margin:6p
 <div class="card">
   <p><strong>Use this page while signed in as a NORMAL parent.</strong></p>
   <p class="small">It does not change your normal app. It attempts harmless reads/writes designed to test the Firestore rules. Do not use an admin account for this test.</p>
-  <div id="auth" class="status info">Checking sign-in…</div>
+  <div id="auth" class="status info">Not signed in.</div>
+  <button id="signIn">Sign in with Google</button>
+  <button id="signOut" class="secondary" style="display:none">Sign out</button>
 </div>
 
 <div class="card">
@@ -39,7 +41,7 @@ button.secondary{background:#666}.status{padding:9px;border-radius:8px;margin:6p
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
@@ -93,11 +95,18 @@ async function expectAllowed(name, operation){
   }
 }
 
+let authStateReady = false;
+
 onAuthStateChanged(auth, async user => {
   currentUser = user;
+  authStateReady = true;
+
   if (!user) {
-    $("auth").textContent = "Not signed in. Open the normal app first and sign in, then open this page in the same browser.";
+    ownChild = null;
+    $("auth").textContent = "Not signed in. Tap “Sign in with Google” to choose the test account.";
     $("auth").className = "status warn";
+    $("signIn").style.display = "";
+    $("signOut").style.display = "none";
     return;
   }
 
@@ -105,11 +114,36 @@ onAuthStateChanged(auth, async user => {
   try {
     const snap = await getDoc(doc(db, "parents", email));
     ownChild = snap.exists() ? (snap.data().child || "") : "";
-  } catch(e) {}
+  } catch(e) {
+    ownChild = null;
+  }
 
   $("auth").innerHTML = `Signed in as <span class="user">${email}</span>${ownChild ? ` — linked child: <span class="user">${ownChild}</span>` : ""}`;
   $("auth").className = "status info";
+  $("signIn").style.display = "none";
+  $("signOut").style.display = "";
 });
+
+$("signIn").onclick = async () => {
+  try {
+    await signOut(auth);
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    $("auth").textContent = `Sign-in failed: ${e?.message || e}`;
+    $("auth").className = "status fail";
+  }
+};
+
+$("signOut").onclick = async () => {
+  try {
+    await signOut(auth);
+  } catch(e) {
+    $("auth").textContent = `Sign-out failed: ${e?.message || e}`;
+    $("auth").className = "status fail";
+  }
+};
 
 $("clear").onclick = clearResults;
 
