@@ -49,13 +49,6 @@
     align-items:center;
     gap:14px;
   }
-  .header::before{
-    content:"";
-    position:absolute; top:-40%; right:-10%;
-    width:260px; height:260px;
-    border:2px solid rgba(255,255,255,0.08);
-    border-radius:50%;
-  }
   .crest{ flex-shrink:0; width:50px; height:auto; max-height:56px; object-fit:contain; position:relative; z-index:1; }
   .title-block{ position:relative; z-index:1; min-width:0; }
   .club-name{
@@ -331,6 +324,11 @@
     .bulk-training-date-row{
       grid-template-columns:1fr !important;
       gap:10px !important;
+    }
+    input[type="date"]{
+      width:calc(100% - 10px) !important;
+      max-width:calc(100% - 10px) !important;
+      margin-right:10px !important;
     }
   }
 </style>
