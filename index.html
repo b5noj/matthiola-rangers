@@ -1290,7 +1290,7 @@ function weeklyAvailabilitySummary(type, dateKey, slotId){
 function weeklyMatchSection(dateKey){
   const f = fixtures[dateKey] || {};
   const cancelled = isCancelled('match', dateKey);
-  const lines = [`⚽ *MATCH${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
+  const lines = [`*⚽ MATCH${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
   if(f.matchType) lines.push(`Type: ${f.matchType}`);
   if(f.opponent) lines.push(`🆚 ${f.opponent}`);
   if(f.koTime) lines.push(`🕐 ${f.koTime}`);
@@ -1305,14 +1305,14 @@ function weeklyMatchSection(dateKey){
   if(slot){
     const summary = weeklyAvailabilitySummary('match', dateKey, slot.id);
     lines.push('', `👥 *${summary.available}/${summary.total} AVAILABLE* ${summary.traffic}`);
-    lines.push('', weeklyPlayerGrid('match', dateKey, slot.id));
+    lines.push(weeklyPlayerGrid('match', dateKey, slot.id));
   }
   return lines.join('\n');
 }
 function weeklyTrainingSection(dateKey){
   const t = trainingInfo[dateKey] || {};
   const cancelled = isCancelled('training', dateKey);
-  const lines = [`🏃 *TRAINING${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
+  const lines = [`*🏃 TRAINING${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
   if(t.time) lines.push(`🕐 ${t.time}`);
   if(t.location) lines.push(`📍 ${t.location}`);
   if(t.what3words){
@@ -1325,7 +1325,7 @@ function weeklyTrainingSection(dateKey){
   if(slots.length){
     const summary = weeklyAvailabilitySummary('training', dateKey, slots[0].id);
     lines.push('', `👥 *${summary.available}/${summary.total} AVAILABLE* ${summary.traffic}`);
-    lines.push('', weeklyPlayerGrid('training', dateKey, slots[0].id));
+    lines.push(weeklyPlayerGrid('training', dateKey, slots[0].id));
   }
   return lines.join('\n');
 }
@@ -1347,26 +1347,35 @@ function generateWeeklyCommsMessage(){
   // from appearing in WhatsApp after it has been removed from Extra Fixtures.
   const matchKeys=keys.filter(k=>{
     const regularDay=new Date(k+'T00:00:00').getDay()===SHEETS.match.dayOfWeek;
-    return regularDay || !!(extraDates.match&&extraDates.match[k]) || isCancelled('match',k);
+    const hasFixture=!!(fixtures[k] && Object.keys(fixtures[k]).length);
+    return (regularDay && hasFixture) || !!(extraDates.match&&extraDates.match[k]) || isCancelled('match',k);
   });
   const trainingKeys=keys.filter(k=>{
     const regularDay=new Date(k+'T00:00:00').getDay()===SHEETS.training.dayOfWeek;
-    return regularDay || !!(extraDates.training&&extraDates.training[k]) || isCancelled('training',k);
+    const hasTraining=!!(trainingInfo[k] && Object.keys(trainingInfo[k]).length);
+    return (regularDay && hasTraining) || !!(extraDates.training&&extraDates.training[k]) || isCancelled('training',k);
   });
 
   const sections=[`📅 ${teamName.toUpperCase()} — WEEK COMMENCING ${formatLongDateKey(isoDate(monday))}`,''];
   if(matchKeys.length) matchKeys.forEach(k=>sections.push(weeklyMatchSection(k)));
-  else sections.push('⚽ *MATCH*','', 'No match scheduled this week.');
+  else sections.push('*⚽ MATCH*','', 'No match scheduled this week.');
   sections.push('');
   if(trainingKeys.length) trainingKeys.forEach(k=>sections.push(weeklyTrainingSection(k)));
-  else sections.push('🏃 *TRAINING*','', 'No training scheduled this week.');
+  else sections.push('*🏃 TRAINING*','', 'No training scheduled this week.');
   return sections.join('\n');
 }
 function renderWeeklyCommsTab(){
   const panel=document.getElementById('panel');
   if(!weeklyCommsWeek) weeklyCommsWeek=isoDate(getNextMondayDate());
   const message=generateWeeklyCommsMessage();
-  panel.innerHTML=`<div class="section-label">Weekly Comms</div>
+  panel.innerHTML=`<div class="section-label">Admin</div>
+    <div class="admin-subtabs">
+      <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
+      <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
+      <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
+      <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
+    </div>
+    <div class="section-label">Weekly Comms</div>
     <div class="weekly-comms-card">
       <div class="admin-label-sm">Week commencing</div>
       <input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter';"/>
@@ -1380,6 +1389,9 @@ function renderWeeklyCommsTab(){
         <button class="btn btn-brand" id="openWeeklyWhatsAppBtn">Open WhatsApp</button>
       </div>
     </div>`;
+  panel.querySelectorAll('.admin-subtab').forEach(el => {
+    el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
+  });
   document.getElementById('weeklyCommsWeekInput').addEventListener('change',e=>{
     weeklyCommsWeek=isoDate(mondayForDateInput(e.target.value)); render();
   });
