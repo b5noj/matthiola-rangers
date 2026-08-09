@@ -1420,11 +1420,19 @@ function renderWeeklyCommsTab(){
 
 function renderBulkTrainingTab(){
   const panel=document.getElementById('panel');
-  panel.innerHTML=`<div class="section-label">Bulk Training Schedule</div>
+  panel.innerHTML=`<div class="section-label">Admin</div>
+    <div class="admin-subtabs">
+      <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
+      <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
+      <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
+      <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
+      <div class="admin-subtab ${adminSubTab==='bulkTraining'?'active':''}" data-subtab="bulkTraining">Bulk Training</div>
+    </div>
+    <div class="section-label">Bulk Training Schedule</div>
     <div class="weekly-comms-card">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div><div class="admin-label-sm">From</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" style="width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
-        <div><div class="admin-label-sm">To</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" style="width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;">
+        <div><div class="admin-label-sm">From</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" style="box-sizing:border-box;width:100%;max-width:100%;min-width:0;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+        <div><div class="admin-label-sm">To</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" style="box-sizing:border-box;width:100%;max-width:100%;min-width:0;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
       </div>
       <div class="admin-label-sm" style="margin-top:10px;">Training day</div>
       <select class="fx-input" id="bulkTrainingDay">
@@ -1436,6 +1444,10 @@ function renderBulkTrainingTab(){
       <div class="admin-label-sm">What3Words</div><input class="fx-input" id="bulkTrainingW3W" placeholder="e.g. filled.count.soap" value="${escapeAttr(bulkTrainingW3W)}"/>
       <button class="btn btn-amber" id="applyBulkTrainingBtn">Update Training</button>
     </div>`;
+
+  panel.querySelectorAll('.admin-subtab').forEach(el => {
+    el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
+  });
 
   const ids=['bulkTrainingFrom','bulkTrainingTo','bulkTrainingDay','bulkTrainingTime','bulkTrainingLocation','bulkTrainingW3W'];
   ids.forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{
