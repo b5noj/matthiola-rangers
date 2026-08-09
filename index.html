@@ -315,11 +315,11 @@
   }
   .admin-child-picker{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
   .admin-label-sm{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:6px; }
-  .weekly-comms-card{ background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:14px; margin-bottom:14px; }
-  .weekly-comms-preview{ width:100%; min-height:430px; resize:vertical; border:1.5px solid var(--border); border-radius:8px; padding:12px; font:13px/1.45 Inter,sans-serif; color:var(--ink); background:#fafaf7; }
-  .weekly-comms-actions{ display:flex; gap:8px; margin-top:10px; }
-  .weekly-comms-actions .btn{ flex:1; }
-  .weekly-comms-note{ font-size:11.5px; color:var(--ink-soft); line-height:1.45; margin-top:8px; }
+
+  .weekly-comms-card{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .weekly-comms-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .weekly-comms-preview{width:100%;min-height:360px;padding:12px;border:1.5px solid var(--border);border-radius:8px;background:#fafaf7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;resize:vertical;}
+  .weekly-comms-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:6px 0 0;}
 </style>
 </head>
 <body>
@@ -365,11 +365,6 @@ const db = getFirestore(fbApp);
 const auth = getAuth(fbApp);
 const googleProvider = new GoogleAuthProvider();
 
-// IMPORTANT: replace this with your real email address before deploying.
-// Anyone signed in with an email in this list is always an admin, even before
-// the Admins list below has been set up — this is how you bootstrap the first admin.
-const SEED_ADMIN_EMAILS = ['benoj@mail.com'];
-
 const DEFAULT_TEAM_NAME = 'Matthiola Rangers';
 const DEFAULT_ROSTER = ['Will','Teddy','Rex','Lennie','Brodie','Luca','Kayleb'];
 
@@ -401,10 +396,11 @@ let availabilityMeta = {match:{}, training:{}}; // type -> name -> {updatedAt, u
 let fixtures = {};        // dateKey -> {opponent, koTime, location}
 let trainingInfo = {};    // dateKey -> {time, location}
 let parents = {};         // email -> {child: 'Will'|'', isAdmin: bool}
+let parentAccess = {};    // email -> {lastSeen: timestamp}
 let currentUser = null;   // {email, name}
 let isAdmin = false;
-let parentsLoaded = false; // true once the first parents snapshot has arrived
-let parentRecordLoaded = false; // true once the signed-in parent's own record has been read
+let parentsLoaded = false; // true once the signed-in parent's record has been loaded
+let parentRecordLoaded = false; // prevents the UI from treating an unqueried parent as unlinked
 let editingFixture = null;
 let editingTrainingInfo = null;
 let expandedSlot = null;
@@ -430,8 +426,8 @@ let adminExtraKoTime = '';
 let adminExtraLocation = '';
 let adminExtraMatchType = '';
 let adminExtraW3W = '';
-let squadViewFilter = 'all'; // 'all' | 'problem'
 let weeklyCommsWeek = '';
+let squadViewFilter = 'all'; // 'all' | 'problem'
 
 roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
 
@@ -515,10 +511,9 @@ function doSignInGoogle(){ doSignIn(googleProvider); }
 function doSignOut(){ signOut(auth); }
 
 function computeIsAdmin(){
-  if(!currentUser){ isAdmin = false; return; }
+  if(!currentUser || !parentRecordLoaded){ isAdmin = false; return; }
   const email = currentUser.email.trim().toLowerCase();
-  const seedMatch = SEED_ADMIN_EMAILS.some(e => e.trim().toLowerCase() === email);
-  isAdmin = seedMatch || !!(parents[email] && parents[email].isAdmin);
+  isAdmin = !!(parents[email] && parents[email].isAdmin);
 }
 
 function getMyChild(){
@@ -611,25 +606,33 @@ function watchTrainingInfo(){
 }
 
 function watchParents(){
-  // Firestore rules only allow a non-admin to get their own parent document,
-  // not list the whole parents collection. Their own record is loaded separately.
-  if(!isAdmin) return;
   onSnapshot(collection(db, 'parents'), (snap) => {
     const next = {};
     snap.forEach(docSnap => {
       const email = docSnap.id.trim().toLowerCase();
       next[email] = docSnap.data();
     });
-    // Preserve the signed-in parent's record while the admin collection listener syncs.
+    // Merge rather than replace, so the already-loaded signed-in parent
+    // record cannot disappear if a collection listener is delayed or restricted.
     parents = { ...parents, ...next };
     parentsLoaded = true;
     computeIsAdmin();
+    // If this parent's record exists but has no name on file, backfill it from their Google profile.
     if(currentUser && parents[currentUser.email] && !parents[currentUser.email].name && currentUser.name){
       const p = parents[currentUser.email];
       saveParent(currentUser.email, currentUser.name, p.child || '', !!p.isAdmin);
     }
     render();
   }, (err) => { console.error('Parents sync error', err); showConnectionWarning(); });
+}
+
+function watchParentAccess(){
+  onSnapshot(collection(db, 'parent_access'), (snap) => {
+    const next = {};
+    snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
+    parentAccess = next;
+    render();
+  }, (err) => { console.error('Parent access sync error', err); showConnectionWarning(); });
 }
 
 function watchExtraDates(){
@@ -692,6 +695,14 @@ async function saveParent(email, name, child, isAdminFlag){
   try{ await setDoc(doc(db, 'parents', email), { name: name || '', child: child || '', isAdmin: !!isAdminFlag }, { merge: true }); }
   catch(e){ console.error('Failed to save parent', e); showConnectionWarning(); }
 }
+
+async function recordParentAccess(email){
+  try{
+    await setDoc(doc(db, 'parent_access', email), { lastSeen: Date.now() }, { merge: true });
+  }catch(e){
+    console.error('Failed to record last-seen', e);
+  }
+}
 async function removeParent(email){
   try{ await deleteDoc(doc(db, 'parents', email)); }
   catch(e){ console.error('Failed to remove parent', e); showConnectionWarning(); }
@@ -701,16 +712,8 @@ async function saveExtraDate(type, dateKey, slots){
   catch(e){ console.error('Failed to add extra date', e); showConnectionWarning(); }
 }
 async function removeExtraDate(type, dateKey){
-  try{
-    await deleteDoc(doc(db, 'extra_dates', `${type}__${dateKey}`));
-    // Extra match fixtures are stored in the normal fixtures collection too.
-    // Remove that companion document so a deleted test/extra fixture cannot
-    // reappear in Weekly Comms.
-    if(type === 'match'){
-      await deleteDoc(doc(db, 'fixtures', dateKey));
-      delete fixtures[dateKey];
-    }
-  }catch(e){ console.error('Failed to remove extra date', e); showConnectionWarning(); }
+  try{ await deleteDoc(doc(db, 'extra_dates', `${type}__${dateKey}`)); }
+  catch(e){ console.error('Failed to remove extra date', e); showConnectionWarning(); }
 }
 
 let warnTimer = null;
@@ -1100,7 +1103,7 @@ function renderSummaryTab(){
 
   html += `<div class="admin-child-picker" style="margin-bottom:16px;">
     <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='all'?'selected':''}" data-svfilter="all">All sessions</button>
-    <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='problem'?'selected':''}" data-svfilter="problem">Problem sessions (below ${cfg.threshold})</button>
+    <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='problem'?'selected':''}" data-svfilter="problem">Problem sessions (below ${cfg.threshold} or cancelled)</button>
   </div>`;
 
   // Pass 1: build a row entry per date
@@ -1141,12 +1144,12 @@ function renderSummaryTab(){
       }
     });
     const cancelled = isCancelled(activeSheet, key);
-    const effectiveRowShort = rowShort && !cancelled;
+    const effectiveRowShort = rowShort || cancelled;
     const rowHtml = `<div class="summary-row ${effectiveRowShort?'short':''} ${cancelled?'cancelled':''}">
       ${cancelled ? `<div class="cancelled-badge">🚫 Cancelled</div>` : ''}
       <div class="summary-head">
         <div class="summary-date">${fmtDate(d)}${matchTypeBadge(key)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
-        ${effectiveRowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
+        ${!cancelled && rowShort ? `<div class="flag-pill">Below ${cfg.threshold}</div>` : ''}
       </div>
       ${info.hasContent ? `<div class="fixture-readonly">${info.row1 ? `<div class="fixture-row">${info.row1}</div>` : ''}${info.row2 ? `<div class="fixture-row">${info.row2}</div>` : ''}</div>` : ''}
       <div class="slot-summary-grid ${multiSlot?'':'single'}">${slotsHtml}</div>
@@ -1159,7 +1162,7 @@ function renderSummaryTab(){
   const filtered = squadViewFilter === 'problem' ? entries.filter(e => e.rowShort) : entries;
 
   if(!filtered.length){
-    html += `<div class="empty-state">${squadViewFilter==='problem' ? 'No problem sessions right now — squad is covered everywhere.' : 'No sessions to show.'}</div>`;
+    html += `<div class="empty-state">${squadViewFilter==='problem' ? 'No problem sessions right now — no sessions are below the threshold or cancelled.' : 'No sessions to show.'}</div>`;
     panel.innerHTML = html;
     wireSummaryFilterAndExpand(panel);
     return;
@@ -1192,201 +1195,203 @@ function wireSummaryFilterAndExpand(panel){
   });
 }
 
-function getNextMonday(){
+function getNextMondayDate(){
   const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const diff = (1 - d.getDay() + 7) % 7;
-  d.setDate(d.getDate() + (diff === 0 ? 7 : diff));
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = today.getDay();
+  const daysUntilMonday = day === 0 ? 1 : 8 - day;
+  const monday = new Date(today);
+  monday.setDate(monday.getDate() + daysUntilMonday);
+  return monday;
+}
+function mondayForDateInput(value){
+  if(!value) return getNextMondayDate();
+  const d = new Date(value + 'T00:00:00');
+  if(Number.isNaN(d.getTime())) return getNextMondayDate();
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
   return d;
 }
-
-function parseHourFromTime(value){
+function formatLongDateKey(key){
+  const d = new Date(key + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long'});
+}
+function parseTimeToMinutes(value){
   if(!value) return null;
-  const m = String(value).trim().match(/(\d{1,2})(?::\d{2})?\s*(am|pm)?/i);
+  const m = String(value).trim().match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
   if(!m) return null;
   let h = Number(m[1]);
-  const ap = (m[2] || '').toLowerCase();
+  const mins = Number(m[2] || 0);
+  const ap = (m[3] || '').toLowerCase();
   if(ap === 'pm' && h < 12) h += 12;
   if(ap === 'am' && h === 12) h = 0;
-  return h;
+  if(!ap && h <= 23) return h * 60 + mins;
+  if(h >= 1 && h <= 12) return h * 60 + mins;
+  return null;
 }
-
-function getCommsSlotId(type, dateKey, timeValue){
-  const slots = slotsForDate(type, dateKey);
-  if(slots.length === 1) return slots[0].id;
-  const targetHour = parseHourFromTime(timeValue);
-  if(targetHour !== null){
-    const match = slots.find(s => {
-      const h = parseHourFromTime(s.label);
-      return h === targetHour;
-    });
-    if(match) return match.id;
-  }
-  return slots[0] ? slots[0].id : null;
+function slotStartMinutes(label){
+  const m = String(label || '').match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if(!m) return null;
+  let h = Number(m[1]);
+  const mins = Number(m[2] || 0);
+  const ap = (m[3] || '').toLowerCase();
+  if(ap === 'pm' && h < 12) h += 12;
+  if(ap === 'am' && h === 12) h = 0;
+  return h * 60 + mins;
 }
-
-function playerUnavailableForComms(type, dateKey, name, timeValue){
-  const slot = (availability[type] && availability[type][name] && availability[type][name][dateKey]) || {};
-  const slotId = getCommsSlotId(type, dateKey, timeValue);
-  return !!(slotId && slot[slotId]);
-}
-
-function commsPlayerGrid(type, dateKey, timeValue){
-  const cells = roster.map(name => `${playerUnavailableForComms(type,dateKey,name,timeValue) ? '❌' : '✅'} ${name}`);
-  const available = cells.filter((_, i) => !playerUnavailableForComms(type,dateKey,roster[i],timeValue)).length;
-  const total = roster.length;
-  const light = available >= SHEETS[type].threshold ? '🟢' : '🔴';
-
-  // Three columns, padded for a compact WhatsApp layout. WhatsApp's normal font
-  // is proportional, so this is intentionally simple rather than relying on a
-  // rigid ASCII table that can look broken on different phones.
-  const rows = [];
-  for(let i=0;i<cells.length;i+=3){
-    rows.push(cells.slice(i,i+3).map((cell, idx) => {
-      if(i + idx >= cells.length) return '';
-      return cell;
-    }).join('    '));
-  }
-  return {available,total,light,grid:rows.join('\n')};
-}
-
-function weeklyCommsEvents(weekStartKey){
-  const start = new Date(weekStartKey + 'T00:00:00');
-  const end = new Date(start);
-  end.setDate(end.getDate() + 7);
-  const events = [];
-  const seen = new Set();
-
-  const add = (type, dateKey) => {
-    const d = new Date(dateKey + 'T00:00:00');
-    if(d < start || d >= end) return;
-    const id = `${type}__${dateKey}`;
-    if(seen.has(id)) return;
-    seen.add(id);
-    events.push({type, dateKey, date:d});
-  };
-
-  // Include the normal weekly match/training day even if no details have been
-  // entered yet, so an admin can still see that the session is in the week.
-  for(let i=0;i<7;i++){
-    const d = new Date(start);
-    d.setDate(d.getDate()+i);
-    if(d.getDay() === SHEETS.match.dayOfWeek) add('match', isoDate(d));
-    if(d.getDay() === SHEETS.training.dayOfWeek) add('training', isoDate(d));
-  }
-
-  Object.keys(fixtures).forEach(k => add('match', k));
-  Object.keys(trainingInfo).forEach(k => add('training', k));
-  Object.keys(extraDates.match || {}).forEach(k => add('match', k));
-  Object.keys(extraDates.training || {}).forEach(k => add('training', k));
-  Object.keys(cancelledDates.match || {}).forEach(k => add('match', k));
-  Object.keys(cancelledDates.training || {}).forEach(k => add('training', k));
-
-  // WhatsApp comms are deliberately grouped: all matches first, then training.
-  events.sort((a,b) => {
-    const group = (e) => e.type === 'match' ? 0 : 1;
-    return group(a) - group(b) || a.date - b.date;
+function getRelevantMatchSlot(dateKey){
+  const f = fixtures[dateKey] || {};
+  const slots = slotsForDate('match', dateKey);
+  if(slots.length === 1) return slots[0];
+  const ko = parseTimeToMinutes(f.koTime);
+  if(ko === null) return null;
+  let best = null;
+  let bestStart = -Infinity;
+  slots.forEach(slot => {
+    const start = slotStartMinutes(slot.label);
+    if(start !== null && start <= ko && start >= bestStart){ best = slot; bestStart = start; }
   });
-  return events;
+  return best || slots[0];
 }
-
-function buildWeeklyCommsMessage(weekStartKey){
-  const start = new Date(weekStartKey + 'T00:00:00');
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  const events = weeklyCommsEvents(weekStartKey);
-  const lines = [];
-
-  const addEvent = (event) => {
-    const cancelled = isCancelled(event.type, event.dateKey);
-    const f = event.type === 'match' ? (fixtures[event.dateKey] || {}) : (trainingInfo[event.dateKey] || {});
-
-    if(event.type === 'match'){
-      lines.push(`⚽ *MATCH${cancelled ? ' — CANCELLED' : ''}*`);
-      const datePart = fmtDate(event.date);
-      const timePart = f.koTime || '';
-      lines.push(timePart ? `${datePart} | ${timePart}` : datePart);
-      if(f.matchType) lines.push(`🏷️ ${f.matchType}`);
-      if(f.opponent) lines.push(`🆚 ${f.opponent}`);
-      if(f.location) lines.push(`📍 ${f.location}`);
-      if(f.what3words){
-        const clean = String(f.what3words).replace(/^\/+/, '').trim();
-        if(clean) lines.push(`🗺️ ///${clean}`);
-      }
-    } else {
-      lines.push(`🏃 *TRAINING${cancelled ? ' — CANCELLED' : ''}*`);
-      const timePart = f.time || '';
-      lines.push(timePart ? `${fmtDate(event.date)} | ${timePart}` : fmtDate(event.date));
-      if(f.location) lines.push(`📍 ${f.location}`);
-      if(f.what3words){
-        const clean = String(f.what3words).replace(/^\/+/, '').trim();
-        if(clean) lines.push(`🗺️ ///${clean}`);
-      }
-    }
-
-    if(!cancelled && roster.length){
-      const info = commsPlayerGrid(event.type, event.dateKey, event.type === 'match' ? f.koTime : f.time);
-      lines.push('');
-      lines.push(`👥 *${info.available}/${info.total} AVAILABLE* ${info.light}`);
-      lines.push('');
-      lines.push(info.grid);
-    }
-    lines.push('', '');
-  };
-
-  const matches = events.filter(e => e.type === 'match');
-  const training = events.filter(e => e.type === 'training');
-  if(matches.length) matches.forEach(addEvent);
-  if(training.length) training.forEach(addEvent);
-
-  if(!events.length){
-    return `📅 *WEEKLY COMMS*\n${fmtDate(start)} – ${fmtDate(end)}\n\nNo match or training scheduled this week.`;
+function namesForSlot(type, dateKey, slotId){
+  const availableNames = [];
+  const unavailableNames = [];
+  roster.forEach(name => {
+    const slot = (availability[type][name] && availability[type][name][dateKey]) || {};
+    if(slot[slotId]) unavailableNames.push(name);
+    else availableNames.push(name);
+  });
+  return {availableNames, unavailableNames};
+}
+function weeklyPlayerGrid(type, dateKey, slotId){
+  const names = roster.map(name => {
+    const slot = (availability[type][name] && availability[type][name][dateKey]) || {};
+    const unavailable = !!slot[slotId];
+    return `${unavailable ? '❌' : '✅'} ${name}`;
+  });
+  const cols = 3;
+  const rows = [];
+  for(let i=0;i<names.length;i+=cols){
+    rows.push(names.slice(i,i+cols).join('    '));
   }
-  return lines.join('\n').trim();
+  return rows.join('\n');
 }
+function weeklyAvailabilitySummary(type, dateKey, slotId){
+  let available = 0;
+  roster.forEach(name => {
+    const slot = (availability[type][name] && availability[type][name][dateKey]) || {};
+    if(!slot[slotId]) available++;
+  });
+  const total = roster.length;
+  const traffic = available >= 7 ? '🟢' : '🔴';
+  return {available, total, traffic};
+}
+function weeklyMatchSection(dateKey){
+  const f = fixtures[dateKey] || {};
+  const cancelled = isCancelled('match', dateKey);
+  const lines = [`⚽ *MATCH${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
+  if(f.matchType) lines.push(`Type: ${f.matchType}`);
+  if(f.opponent) lines.push(`🆚 ${f.opponent}`);
+  if(f.koTime) lines.push(`🕐 ${f.koTime}`);
+  if(f.location) lines.push(`📍 ${f.location}`);
+  if(f.what3words){
+    const clean = String(f.what3words).replace(/^\/+/, '').trim();
+    if(clean) lines.push(`🗺️ https://what3words.com/${encodeURIComponent(clean)}`);
+  }
+  if(cancelled) return lines.join('\n') + '\n🚫 *CANCELLED*';
 
-function renderWeeklyCommsContent(){
-  if(!weeklyCommsWeek) weeklyCommsWeek = isoDate(getNextMonday());
-  const message = buildWeeklyCommsMessage(weeklyCommsWeek);
-  return `<div class="weekly-comms-card">
+  const slot = getRelevantMatchSlot(dateKey);
+  if(slot){
+    const summary = weeklyAvailabilitySummary('match', dateKey, slot.id);
+    lines.push('', `👥 *${summary.available}/${summary.total} AVAILABLE* ${summary.traffic}`);
+    lines.push('', weeklyPlayerGrid('match', dateKey, slot.id));
+  }
+  return lines.join('\n');
+}
+function weeklyTrainingSection(dateKey){
+  const t = trainingInfo[dateKey] || {};
+  const cancelled = isCancelled('training', dateKey);
+  const lines = [`🏃 *TRAINING${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
+  if(t.time) lines.push(`🕐 ${t.time}`);
+  if(t.location) lines.push(`📍 ${t.location}`);
+  if(t.what3words){
+    const clean = String(t.what3words).replace(/^\/+/, '').trim();
+    if(clean) lines.push(`🗺️ https://what3words.com/${encodeURIComponent(clean)}`);
+  }
+  if(cancelled) return lines.join('\n') + '\n🚫 *CANCELLED*';
+
+  const slots = slotsForDate('training', dateKey);
+  if(slots.length){
+    const summary = weeklyAvailabilitySummary('training', dateKey, slots[0].id);
+    lines.push('', `👥 *${summary.available}/${summary.total} AVAILABLE* ${summary.traffic}`);
+    lines.push('', weeklyPlayerGrid('training', dateKey, slots[0].id));
+  }
+  return lines.join('\n');
+}
+function getWeekSessionKeys(monday){
+  const keys=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(monday); d.setDate(d.getDate()+i); keys.push(isoDate(d));
+  }
+  return keys;
+}
+function generateWeeklyCommsMessage(){
+  const monday=mondayForDateInput(weeklyCommsWeek);
+  weeklyCommsWeek=isoDate(monday);
+  const keys=getWeekSessionKeys(monday);
+
+  // A fixture/training document alone is not enough to make an event part of
+  // the weekly message. It must be a normal scheduled day, an active extra
+  // date, or explicitly cancelled. This prevents an old orphaned test fixture
+  // from appearing in WhatsApp after it has been removed from Extra Fixtures.
+  const matchKeys=keys.filter(k=>{
+    const regularDay=new Date(k+'T00:00:00').getDay()===SHEETS.match.dayOfWeek;
+    return regularDay || !!(extraDates.match&&extraDates.match[k]) || isCancelled('match',k);
+  });
+  const trainingKeys=keys.filter(k=>{
+    const regularDay=new Date(k+'T00:00:00').getDay()===SHEETS.training.dayOfWeek;
+    return regularDay || !!(extraDates.training&&extraDates.training[k]) || isCancelled('training',k);
+  });
+
+  const sections=[`📅 ${teamName.toUpperCase()} — WEEK COMMENCING ${formatLongDateKey(isoDate(monday))}`,''];
+  if(matchKeys.length) matchKeys.forEach(k=>sections.push(weeklyMatchSection(k)));
+  else sections.push('⚽ *MATCH*','', 'No match scheduled this week.');
+  sections.push('');
+  if(trainingKeys.length) trainingKeys.forEach(k=>sections.push(weeklyTrainingSection(k)));
+  else sections.push('🏃 *TRAINING*','', 'No training scheduled this week.');
+  return sections.join('\n');
+}
+function renderWeeklyCommsTab(){
+  const panel=document.getElementById('panel');
+  if(!weeklyCommsWeek) weeklyCommsWeek=isoDate(getNextMondayDate());
+  const message=generateWeeklyCommsMessage();
+  panel.innerHTML=`<div class="section-label">Weekly Comms</div>
+    <div class="weekly-comms-card">
       <div class="admin-label-sm">Week commencing</div>
-      <input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
-      <textarea id="weeklyCommsMessage" class="weekly-comms-preview" readonly>${escapeHtml(message)}</textarea>
+      <input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter';"/>
+      <p class="weekly-comms-note">The message uses the existing match/training details and squad availability. Everyone is treated as available unless they have marked themselves unavailable.</p>
+    </div>
+    <div class="weekly-comms-card">
+      <div class="admin-label-sm">WhatsApp message preview</div>
+      <textarea id="weeklyCommsPreview" class="weekly-comms-preview" readonly>${escapeHtml(message)}</textarea>
       <div class="weekly-comms-actions">
         <button class="btn btn-amber" id="copyWeeklyCommsBtn">Copy message</button>
         <button class="btn btn-brand" id="openWeeklyWhatsAppBtn">Open WhatsApp</button>
       </div>
-      <div id="weeklyCommsCopyStatus" class="weekly-comms-note"></div>
-      <div class="weekly-comms-note">The message uses the 7-player threshold for the traffic light: 🟢 7+ available, 🔴 fewer than 7. Cancelled sessions don't include an availability list.</div>
     </div>`;
-}
-
-function wireWeeklyComms(panel){
-  const input = document.getElementById('weeklyCommsWeekInput');
-  if(input) input.addEventListener('change', () => {
-    if(input.value) weeklyCommsWeek = input.value;
-    render();
+  document.getElementById('weeklyCommsWeekInput').addEventListener('change',e=>{
+    weeklyCommsWeek=isoDate(mondayForDateInput(e.target.value)); render();
   });
-
-  const copyBtn = document.getElementById('copyWeeklyCommsBtn');
-  if(copyBtn) copyBtn.addEventListener('click', async () => {
-    const value = document.getElementById('weeklyCommsMessage').value;
-    const status = document.getElementById('weeklyCommsCopyStatus');
-    try{
-      await navigator.clipboard.writeText(value);
-      status.textContent = 'Message copied — ready to paste into WhatsApp.';
-    }catch(e){
-      const ta = document.getElementById('weeklyCommsMessage');
-      ta.focus(); ta.select();
-      try{ document.execCommand('copy'); status.textContent = 'Message copied — ready to paste into WhatsApp.'; }
-      catch(err){ status.textContent = 'Select the message above and copy it manually.'; }
-    }
+  document.getElementById('copyWeeklyCommsBtn').addEventListener('click',async()=>{
+    const text=generateWeeklyCommsMessage();
+    try{ await navigator.clipboard.writeText(text); }
+    catch(e){ const ta=document.getElementById('weeklyCommsPreview'); ta.focus(); ta.select(); document.execCommand('copy'); }
+    const b=document.getElementById('copyWeeklyCommsBtn'); b.textContent='Copied ✓';
+    setTimeout(()=>{const x=document.getElementById('copyWeeklyCommsBtn'); if(x)x.textContent='Copy message';},1600);
   });
-
-  const waBtn = document.getElementById('openWeeklyWhatsAppBtn');
-  if(waBtn) waBtn.addEventListener('click', () => {
-    const value = document.getElementById('weeklyCommsMessage').value;
-    window.location.href = `https://wa.me/?text=${encodeURIComponent(value)}`;
+  document.getElementById('openWeeklyWhatsAppBtn').addEventListener('click',()=>{
+    window.open(`https://wa.me/?text=${encodeURIComponent(generateWeeklyCommsMessage())}`,'_blank');
   });
 }
 
@@ -1443,18 +1448,12 @@ function renderAdminTab(){
       html += `<div class="admin-list-row">
         <span><b>${p.name ? escapeHtml(p.name) : '<i>(name not set)</i>'}</b> — ${escapeHtml(email)}<br>
         Child: ${p.child ? escapeHtml(p.child) : '<i>none</i>'} &middot; Admin: ${p.isAdmin ? 'Yes' : 'No'}<br>
-        <span style="font-size:11px; color:var(--ink-soft);">Last seen: ${timeAgo(p.lastSeen)}</span></span>
+        <span style="font-size:11px; color:var(--ink-soft);">Last seen: ${timeAgo((parentAccess[email] && parentAccess[email].lastSeen) || p.lastSeen)}</span></span>
         <div style="display:flex; gap:6px; flex-shrink:0;">
           <button class="btn btn-ghost admin-remove" data-editparent="${escapeAttr(email)}">Edit</button>
           <button class="btn btn-ghost admin-remove" data-removeparent="${escapeAttr(email)}">Remove</button>
         </div>
       </div>`;
-    });
-    SEED_ADMIN_EMAILS.forEach(email => {
-      const lower = email.trim().toLowerCase();
-      if(!parents[lower]){
-        html += `<div class="admin-list-row"><span>${escapeHtml(lower)} <i>(built-in admin)</i></span></div>`;
-      }
     });
     html += `</div>`;
     html += `<div class="admin-form">
@@ -1475,10 +1474,7 @@ function renderAdminTab(){
         ${adminFormOriginalEmail ? `<button class="btn btn-ghost" id="cancelParentEditBtn">Cancel</button>` : ''}
       </div>
     </div>`;
-  } else if(adminSubTab === 'weekly'){
-    // Weekly Comms is rendered separately below so the existing admin tools remain unchanged.
-    html += `<div class="hint">Use the Weekly Comms page to generate the WhatsApp message. Choose the Monday of the week you want to send.</div>`;
-  } else {
+  } else if(adminSubTab === 'extra') {
     html += `<div class="hint">Add a one-off fixture or session that falls outside the usual Saturday/Thursday slot — it'll appear alongside the regular dates, marked "Extra". Specify the time slot(s) that apply — if you only give one, there's no "mark out all" button since there's nothing to group.</div>`;
     html += `<div class="admin-list">`;
     ['match','training'].forEach(type => {
@@ -1530,14 +1526,12 @@ function renderAdminTab(){
     </div>`;
   }
 
-  panel.innerHTML = html;
-
-  if(adminSubTab === 'weekly'){
-    panel.innerHTML = html + `<div class="section-label">Weekly Comms</div>
-      <div class="hint">Generate a WhatsApp-ready summary for the selected Monday–Sunday week. Everyone is assumed available unless they have explicitly marked themselves unavailable.</div>
-      ${renderWeeklyCommsContent()}`;
-    wireWeeklyComms(panel);
+  if(adminSubTab === 'weekly') {
+    renderWeeklyCommsTab();
+    return;
   }
+
+  panel.innerHTML = html;
 
   panel.querySelectorAll('.admin-subtab').forEach(el => {
     el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
@@ -1771,29 +1765,43 @@ render(); // instant paint (login screen or defaults) before Firebase responds
 let watchersStarted = false;
 onAuthStateChanged(auth, async (user) => {
   currentUser = user ? { email: (user.email || '').trim().toLowerCase(), name: user.displayName || user.email } : null;
-  parentRecordLoaded = false;
-  parentsLoaded = false;
-  computeIsAdmin();
 
-  if(user){
-    // Read this parent's own record first. Non-admin users are not allowed to list
-    // the parents collection under the Firestore rules.
-    await loadCurrentParent();
-
-    // lastSeen is merged, so it cannot overwrite child or isAdmin.
-    setDoc(doc(db, 'parents', currentUser.email), { lastSeen: Date.now() }, { merge: true })
-      .catch((e) => console.error('Failed to record last-seen', e));
+  if(!user){
+    parentRecordLoaded = false;
+    parentsLoaded = false;
+    parents = {};
+    isAdmin = false;
+    render();
+    return;
   }
 
-  if(user && !watchersStarted){
+  // Determine the signed-in user's own parent record BEFORE rendering the
+  // main app. This removes the device/browser-dependent race where a fresh
+  // iPhone session could render with an empty parents object and temporarily
+  // conclude that the account was not linked to a child.
+  await loadCurrentParent();
+
+  // Access tracking is deliberately stored separately from the parent record.
+  // Simply opening/refreshing the app can therefore never alter child linkage
+  // or admin rights in parents/{email}.
+  await recordParentAccess(currentUser.email);
+
+  if(!watchersStarted){
     watchersStarted = true;
-    try{ await ensureSettingsSeeded(); }
-    catch(e){ console.error('Seed failed', e); showConnectionWarning(); }
+    if(isAdmin){
+      try{ await ensureSettingsSeeded(); }
+      catch(e){ console.error('Seed failed', e); showConnectionWarning(); }
+    }
     watchSettings();
     watchAvailability();
     watchFixtures();
     watchTrainingInfo();
-    watchParents();
+    // Only admins need the full parents collection. Normal parents only load
+    // their own document above, reducing reads and avoiding unnecessary exposure.
+    if(isAdmin){
+      watchParents();
+      watchParentAccess();
+    }
     watchExtraDates();
     watchCancelledDates();
   }
