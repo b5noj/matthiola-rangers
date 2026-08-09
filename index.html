@@ -320,6 +320,19 @@
   .weekly-comms-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
   .weekly-comms-preview{width:100%;min-height:360px;padding:12px;border:1.5px solid var(--border);border-radius:8px;background:#fafaf7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;resize:vertical;}
   .weekly-comms-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:6px 0 0;}
+
+  /* Keep native iOS/Safari date controls inside their cards */
+  input[type="date"]{
+    box-sizing:border-box !important;
+    max-width:100% !important;
+  }
+
+  @media(max-width:519px){
+    .bulk-training-date-row{
+      grid-template-columns:1fr !important;
+      gap:10px !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -1389,7 +1402,7 @@ function renderWeeklyCommsTab(){
     <div class="section-label">Weekly Comms</div>
     <div class="weekly-comms-card">
       <div class="admin-label-sm">Week commencing</div>
-      <input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter';"/>
+      <input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="box-sizing:border-box;width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter';"/>
       <p class="weekly-comms-note">The message uses the existing match/training details and squad availability. Everyone is treated as available unless they have marked themselves unavailable.</p>
     </div>
     <div class="weekly-comms-card">
@@ -1430,9 +1443,9 @@ function renderBulkTrainingTab(){
     </div>
     <div class="section-label">Bulk Training Schedule</div>
     <div class="weekly-comms-card">
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;">
-        <div><div class="admin-label-sm">From</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" style="box-sizing:border-box;width:100%;max-width:100%;min-width:0;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
-        <div><div class="admin-label-sm">To</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" style="box-sizing:border-box;width:100%;max-width:100%;min-width:0;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+      <div class="bulk-training-date-row" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;width:100%;">
+        <div style="min-width:0;width:100%;"><div class="admin-label-sm">From</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+        <div style="min-width:0;width:100%;"><div class="admin-label-sm">To</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
       </div>
       <div class="admin-label-sm" style="margin-top:10px;">Training day</div>
       <select class="fx-input" id="bulkTrainingDay">
@@ -1601,7 +1614,7 @@ function renderAdminTab(){
         <button type="button" class="reason-chip extra-type-chip ${adminExtraType==='training'?'selected':''}" data-extratype="training">Training</button>
       </div>
       <div class="admin-label-sm">Date:</div>
-      <input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
+      <input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="box-sizing:border-box;width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
       <div class="admin-label-sm">Time slot(s):</div>
       <input id="extraSlotsInput" placeholder="e.g. 6-7pm, or 5-6pm, 6-7pm for more than one" value="${escapeAttr(adminExtraSlotsRaw)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
       <div class="hint" style="margin:0 0 12px;">Separate with commas if there's more than one slot. Leave blank for a single unlabelled session.</div>
