@@ -403,7 +403,7 @@ let parentsLoaded = false; // true once the signed-in parent's record has been l
 let parentRecordLoaded = false; // prevents the UI from treating an unqueried parent as unlinked
 let editingFixture = null;
 let editingTrainingInfo = null;
-let bulkTrainingFrom = ''; let bulkTrainingTo = ''; let bulkTrainingDay = ''; let bulkTrainingTime = ''; let bulkTrainingLocation = ''; let bulkTrainingW3W = ''; let bulkTrainingOverwrite = false;
+let bulkTrainingFrom = ''; let bulkTrainingTo = ''; let bulkTrainingDay = ''; let bulkTrainingTime = ''; let bulkTrainingLocation = ''; let bulkTrainingW3W = '';
 let expandedSlot = null;
 let selectedPlayer = null;
 let activeSheet = 'match';
@@ -1416,39 +1416,63 @@ function renderBulkTrainingTab(){
   const panel=document.getElementById('panel');
   panel.innerHTML=`<div class="section-label">Bulk Training Schedule</div>
     <div class="weekly-comms-card">
-      <div class="admin-label-sm">Apply the same training details to a date range</div>
-      <p class="weekly-comms-note">This fills every selected training day between the dates. Existing entries are protected by default.</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div><div class="admin-label-sm">From</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" style="width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
         <div><div class="admin-label-sm">To</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" style="width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
       </div>
-      <div class="admin-label-sm" style="margin-top:12px;">Training day</div>
-      <select id="bulkTrainingDay" class="fx-input">
+      <div class="admin-label-sm" style="margin-top:10px;">Training day</div>
+      <select class="fx-input" id="bulkTrainingDay">
+        <option value="">Select day</option>
         ${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d,i)=>`<option value="${i}" ${bulkTrainingDay===String(i)?'selected':''}>${d}</option>`).join('')}
       </select>
-      <div class="admin-label-sm">Time</div><input class="fx-input" id="bulkTrainingTime" placeholder="e.g. 6:00pm" value="${escapeAttr(bulkTrainingTime)}"/>
+      <div class="admin-label-sm" style="margin-top:10px;">Time</div><input class="fx-input" id="bulkTrainingTime" placeholder="e.g. 6:00pm" value="${escapeAttr(bulkTrainingTime)}"/>
       <div class="admin-label-sm">Location</div><input class="fx-input" id="bulkTrainingLocation" placeholder="e.g. Walton Hall Astro" value="${escapeAttr(bulkTrainingLocation)}"/>
       <div class="admin-label-sm">What3Words</div><input class="fx-input" id="bulkTrainingW3W" placeholder="e.g. filled.count.soap" value="${escapeAttr(bulkTrainingW3W)}"/>
-      <label style="display:flex;align-items:center;gap:8px;margin:12px 0;font-size:13px;"><input type="checkbox" id="bulkTrainingOverwrite" ${bulkTrainingOverwrite?'checked':''}/> Overwrite existing training entries</label>
-      <button class="btn btn-amber" id="applyBulkTrainingBtn">Apply to dates</button>
+      <button class="btn btn-amber" id="applyBulkTrainingBtn">Update Training</button>
     </div>`;
-  const ids=['bulkTrainingFrom','bulkTrainingTo','bulkTrainingDay','bulkTrainingTime','bulkTrainingLocation','bulkTrainingW3W','bulkTrainingOverwrite'];
+
+  const ids=['bulkTrainingFrom','bulkTrainingTo','bulkTrainingDay','bulkTrainingTime','bulkTrainingLocation','bulkTrainingW3W'];
   ids.forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{
-    bulkTrainingFrom=document.getElementById('bulkTrainingFrom').value; bulkTrainingTo=document.getElementById('bulkTrainingTo').value; bulkTrainingDay=document.getElementById('bulkTrainingDay').value; bulkTrainingTime=document.getElementById('bulkTrainingTime').value; bulkTrainingLocation=document.getElementById('bulkTrainingLocation').value; bulkTrainingW3W=document.getElementById('bulkTrainingW3W').value; bulkTrainingOverwrite=document.getElementById('bulkTrainingOverwrite').checked;
+    bulkTrainingFrom=document.getElementById('bulkTrainingFrom').value;
+    bulkTrainingTo=document.getElementById('bulkTrainingTo').value;
+    bulkTrainingDay=document.getElementById('bulkTrainingDay').value;
+    bulkTrainingTime=document.getElementById('bulkTrainingTime').value;
+    bulkTrainingLocation=document.getElementById('bulkTrainingLocation').value;
+    bulkTrainingW3W=document.getElementById('bulkTrainingW3W').value;
   }));
+
   document.getElementById('applyBulkTrainingBtn').addEventListener('click',async()=>{
-    bulkTrainingFrom=document.getElementById('bulkTrainingFrom').value; bulkTrainingTo=document.getElementById('bulkTrainingTo').value; bulkTrainingDay=document.getElementById('bulkTrainingDay').value; bulkTrainingTime=document.getElementById('bulkTrainingTime').value.trim(); bulkTrainingLocation=document.getElementById('bulkTrainingLocation').value.trim(); bulkTrainingW3W=document.getElementById('bulkTrainingW3W').value.trim().replace(/^\/+/, ''); bulkTrainingOverwrite=document.getElementById('bulkTrainingOverwrite').checked;
-    if(!bulkTrainingFrom || !bulkTrainingTo || bulkTrainingDay===''){ alert('Please enter the date range and training day.'); return; }
-    if(new Date(bulkTrainingFrom+'T00:00:00') > new Date(bulkTrainingTo+'T00:00:00')){ alert('The From date must be before the To date.'); return; }
-    const data={time:bulkTrainingTime,location:bulkTrainingLocation,what3words:bulkTrainingW3W}; let count=0, skipped=0;
-    const start=new Date(bulkTrainingFrom+'T00:00:00'), end=new Date(bulkTrainingTo+'T00:00:00');
+    bulkTrainingFrom=document.getElementById('bulkTrainingFrom').value;
+    bulkTrainingTo=document.getElementById('bulkTrainingTo').value;
+    bulkTrainingDay=document.getElementById('bulkTrainingDay').value;
+    bulkTrainingTime=document.getElementById('bulkTrainingTime').value.trim();
+    bulkTrainingLocation=document.getElementById('bulkTrainingLocation').value.trim();
+    bulkTrainingW3W=document.getElementById('bulkTrainingW3W').value.trim().replace(/^\/+/, '');
+
+    if(!bulkTrainingFrom || !bulkTrainingTo || bulkTrainingDay===''){
+      alert('Please enter the date range and training day.');
+      return;
+    }
+    if(new Date(bulkTrainingFrom+'T00:00:00') > new Date(bulkTrainingTo+'T00:00:00')){
+      alert('The From date must be before the To date.');
+      return;
+    }
+
+    const data={time:bulkTrainingTime,location:bulkTrainingLocation,what3words:bulkTrainingW3W};
+    let count=0;
+    const start=new Date(bulkTrainingFrom+'T00:00:00');
+    const end=new Date(bulkTrainingTo+'T00:00:00');
+
     for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
       if(d.getDay()!==Number(bulkTrainingDay)) continue;
       const key=isoDate(d);
-      if(!bulkTrainingOverwrite && trainingInfo[key] && Object.keys(trainingInfo[key]).some(k=>trainingInfo[key][k])){ skipped++; continue; }
-      await saveTrainingInfo(key,data); trainingInfo[key]=data; count++;
+      await saveTrainingInfo(key,data);
+      trainingInfo[key]=data;
+      count++;
     }
-    render(); alert(`${count} training date${count===1?'':'s'} updated${skipped?`; ${skipped} existing date${skipped===1?'':'s'} skipped`:''}.`);
+
+    render();
+    alert(`${count} training date${count===1?'':'s'} updated.`);
   });
 }
 
