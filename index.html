@@ -878,7 +878,13 @@ function fixtureInfoRows(dateKey){
     const parts = [];
     if(t.time) parts.push(escapeHtml(t.time));
     if(t.location) parts.push(`@ ${escapeHtml(t.location)}`);
-    if(t.what3words) parts.push(`///${escapeHtml(String(t.what3words).replace(/^\/+/, '').trim())}`);
+    if(t.what3words){
+      const w3wClean = String(t.what3words).replace(/^\/+/, '').trim();
+      if(w3wClean){
+        const w3wUrl = `https://what3words.com/${encodeURIComponent(w3wClean)}`;
+        parts.push(`w3w: <a href="${w3wUrl}" target="_blank" rel="noopener" class="w3w-link" onclick="event.stopPropagation()">${escapeHtml(w3wClean)}</a>`);
+      }
+    }
     const r1 = parts.join(' ');
     return { row1: r1, row2: '', hasContent: !!r1 };
   }
