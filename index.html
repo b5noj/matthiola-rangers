@@ -49,6 +49,13 @@
     align-items:center;
     gap:14px;
   }
+  .header::before{
+    content:"";
+    position:absolute; top:-40%; right:-10%;
+    width:260px; height:260px;
+    border:2px solid rgba(255,255,255,0.08);
+    border-radius:50%;
+  }
   .crest{ flex-shrink:0; width:50px; height:auto; max-height:56px; object-fit:contain; position:relative; z-index:1; }
   .title-block{ position:relative; z-index:1; min-width:0; }
   .club-name{
@@ -314,63 +321,14 @@
   .weekly-comms-preview{width:100%;min-height:360px;padding:12px;border:1.5px solid var(--border);border-radius:8px;background:#fafaf7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;resize:vertical;}
   .weekly-comms-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:6px 0 0;}
 
-  /* Keep native iOS/Safari date controls inside their cards */
-  input[type="date"]{
-    box-sizing:border-box !important;
-    max-width:100% !important;
-  }
-
+  .weekly-comms-week-control{width:100%;min-width:0;max-width:100%}
+  .weekly-comms-week-control input[type="date"]{display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0}
+  .weekly-comms-week-buttons{display:flex;gap:7px;margin-top:8px}
+  .weekly-comms-week-buttons .btn{flex:1;min-width:0;padding:8px 6px;font-size:11px}
   @media(max-width:519px){
-    .bulk-training-date-row{
-      grid-template-columns:1fr !important;
-      gap:10px !important;
-    }
-    input[type="date"]{
-      width:calc(100% - 10px) !important;
-      max-width:calc(100% - 10px) !important;
-      margin-right:10px !important;
-    }
+    .weekly-comms-week-buttons{gap:5px}
+    .weekly-comms-week-buttons .btn{font-size:10px;padding:8px 3px}
   }
-
-  .admin-date-wrapper{
-    width:100%;
-    max-width:100%;
-    min-width:0;
-    overflow:hidden;
-  }
-  .admin-date-wrapper input[type="date"]{
-    display:block !important;
-    box-sizing:border-box !important;
-    width:100% !important;
-    max-width:100% !important;
-    min-width:0 !important;
-  }
-
-  .parent-link-summary{
-    background:#fff;border:1.5px solid var(--border);border-radius:10px;
-    padding:14px;margin-bottom:14px;
-  }
-  .parent-link-summary-head{
-    display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;
-  }
-  .parent-link-summary-title{
-    font-family:'Bebas Neue';font-size:17px;letter-spacing:.04em;color:var(--brand-deep);
-  }
-  .parent-link-summary-count{
-    font-size:11px;font-weight:800;padding:4px 8px;border-radius:20px;
-  }
-  .parent-link-summary-count.good{background:var(--good-soft);color:var(--good);}
-  .parent-link-summary-count.warn{background:var(--red-soft);color:var(--red);}
-  .parent-link-child{
-    display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:8px 0;border-top:1px solid var(--line);font-size:13px;
-  }
-  .parent-link-child:first-child{border-top:none;}
-  .parent-link-child-name{font-weight:800;}
-  .parent-link-child-status{font-size:11.5px;font-weight:800;white-space:nowrap;}
-  .parent-link-child-status.good{color:var(--good);}
-  .parent-link-child-status.warn{color:var(--red);}
-  .parent-link-parent-names{font-size:10.5px;color:var(--ink-soft);font-weight:600;margin-left:6px;}
 </style>
 </head>
 <body>
@@ -445,7 +403,7 @@ let teamName = DEFAULT_TEAM_NAME;
 let availability = {match:{}, training:{}};
 let availabilityMeta = {match:{}, training:{}}; // type -> name -> {updatedAt, updatedBy}
 let fixtures = {};        // dateKey -> {opponent, koTime, location}
-let trainingInfo = {};    // dateKey -> {time, location, what3words}
+let trainingInfo = {};    // dateKey -> {time, location}
 let parents = {};         // email -> {child: 'Will'|'', isAdmin: bool}
 let parentAccess = {};    // email -> {lastSeen: timestamp}
 let currentUser = null;   // {email, name}
@@ -454,7 +412,6 @@ let parentsLoaded = false; // true once the signed-in parent's record has been l
 let parentRecordLoaded = false; // prevents the UI from treating an unqueried parent as unlinked
 let editingFixture = null;
 let editingTrainingInfo = null;
-let bulkTrainingFrom = ''; let bulkTrainingTo = ''; let bulkTrainingDay = ''; let bulkTrainingTime = ''; let bulkTrainingLocation = ''; let bulkTrainingW3W = '';
 let expandedSlot = null;
 let selectedPlayer = null;
 let activeSheet = 'match';
@@ -601,7 +558,7 @@ async function ensureSettingsSeeded(){
   const ref = doc(db, 'team_config', 'settings');
   const snap = await getDoc(ref);
   if(!snap.exists()){
-    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER, matchMinPlayers: 7, trainingMinPlayers: 7 });
+    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER });
   }
 }
 
@@ -611,10 +568,6 @@ function watchSettings(){
       const data = snap.data();
       teamName = data.teamName || DEFAULT_TEAM_NAME;
       roster = Array.isArray(data.roster) && data.roster.length ? data.roster : DEFAULT_ROSTER.slice();
-      const matchMin = Number(data.matchMinPlayers);
-      const trainingMin = Number(data.trainingMinPlayers);
-      SHEETS.match.threshold = Number.isFinite(matchMin) && matchMin >= 1 ? matchMin : 7;
-      SHEETS.training.threshold = Number.isFinite(trainingMin) && trainingMin >= 1 ? trainingMin : 7;
     }
     if(roster.length && !selectedPlayer) selectedPlayer = roster[0];
     if(roster.length && !roster.includes(selectedPlayer)) selectedPlayer = roster[0];
@@ -727,20 +680,8 @@ async function removeCancelledDate(type, dateKey){
 }
 
 async function saveSettings(){
-  try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster, matchMinPlayers: SHEETS.match.threshold, trainingMinPlayers: SHEETS.training.threshold }, {merge:true}); }
+  try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster }); }
   catch(e){ console.error('Failed to save settings', e); showConnectionWarning(); }
-}
-async function savePlayerThresholds(matchMin, trainingMin){
-  const m = Math.max(1, Math.min(30, Number(matchMin) || 1));
-  const t = Math.max(1, Math.min(30, Number(trainingMin) || 1));
-  SHEETS.match.threshold = m;
-  SHEETS.training.threshold = t;
-  try{
-    await setDoc(doc(db, 'team_config', 'settings'), { matchMinPlayers:m, trainingMinPlayers:t }, {merge:true});
-  }catch(e){
-    console.error('Failed to save player thresholds', e);
-    showConnectionWarning();
-  }
 }
 async function saveFixture(dateKey, data){
   try{ await setDoc(doc(db, 'fixtures', dateKey), data); }
@@ -945,13 +886,6 @@ function fixtureInfoRows(dateKey){
     const parts = [];
     if(t.time) parts.push(escapeHtml(t.time));
     if(t.location) parts.push(`@ ${escapeHtml(t.location)}`);
-    if(t.what3words){
-      const w3wClean = String(t.what3words).replace(/^\/+/, '').trim();
-      if(w3wClean){
-        const w3wUrl = `https://what3words.com/${encodeURIComponent(w3wClean)}`;
-        parts.push(`w3w: <a href="${w3wUrl}" target="_blank" rel="noopener" class="w3w-link" onclick="event.stopPropagation()">${escapeHtml(w3wClean)}</a>`);
-      }
-    }
     const r1 = parts.join(' ');
     return { row1: r1, row2: '', hasContent: !!r1 };
   }
@@ -993,7 +927,6 @@ function renderFixtureLine(dateKey){
       return `<div class="fixture-edit">
         <input class="fx-input" data-field="time" placeholder="Time e.g. 6:00pm" value="${escapeAttr(t.time||'')}"/>
         <input class="fx-input" data-field="location" placeholder="Location" value="${escapeAttr(t.location||'')}"/>
-        <input class="fx-input" data-field="what3words" placeholder="What3Words e.g. filled.count.soap" value="${escapeAttr(t.what3words||'')}"/>
         <div class="fx-actions">
           <button class="btn btn-amber fx-save-training" data-datekey="${dateKey}">Save</button>
           <button class="btn btn-ghost fx-cancel">Cancel</button>
@@ -1041,8 +974,7 @@ function wireFixtureEditing(panel){
       const container = el.closest('.fixture-edit');
       const data = {
         time: container.querySelector('[data-field="time"]').value.trim(),
-        location: container.querySelector('[data-field="location"]').value.trim(),
-        what3words: container.querySelector('[data-field="what3words"]').value.trim().replace(/^\/+/, '')
+        location: container.querySelector('[data-field="location"]').value.trim()
       };
       trainingInfo[dateKey] = data;
       editingTrainingInfo = null;
@@ -1361,14 +1293,13 @@ function weeklyAvailabilitySummary(type, dateKey, slotId){
     if(!slot[slotId]) available++;
   });
   const total = roster.length;
-  const threshold = SHEETS[type]?.threshold ?? 7;
-  const traffic = available >= threshold ? '🟢' : '🔴';
+  const traffic = available >= 7 ? '🟢' : '🔴';
   return {available, total, traffic};
 }
 function weeklyMatchSection(dateKey){
   const f = fixtures[dateKey] || {};
   const cancelled = isCancelled('match', dateKey);
-  const lines = [`*⚽ MATCH${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
+  const lines = [`⚽ *MATCH${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
   if(f.matchType) lines.push(`Type: ${f.matchType}`);
   if(f.opponent) lines.push(`🆚 ${f.opponent}`);
   if(f.koTime) lines.push(`🕐 ${f.koTime}`);
@@ -1383,14 +1314,14 @@ function weeklyMatchSection(dateKey){
   if(slot){
     const summary = weeklyAvailabilitySummary('match', dateKey, slot.id);
     lines.push('', `👥 *${summary.available}/${summary.total} AVAILABLE* ${summary.traffic}`);
-    lines.push(weeklyPlayerGrid('match', dateKey, slot.id));
+    lines.push('', weeklyPlayerGrid('match', dateKey, slot.id));
   }
   return lines.join('\n');
 }
 function weeklyTrainingSection(dateKey){
   const t = trainingInfo[dateKey] || {};
   const cancelled = isCancelled('training', dateKey);
-  const lines = [`*🏃 TRAINING${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
+  const lines = [`🏃 *TRAINING${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
   if(t.time) lines.push(`🕐 ${t.time}`);
   if(t.location) lines.push(`📍 ${t.location}`);
   if(t.what3words){
@@ -1403,7 +1334,7 @@ function weeklyTrainingSection(dateKey){
   if(slots.length){
     const summary = weeklyAvailabilitySummary('training', dateKey, slots[0].id);
     lines.push('', `👥 *${summary.available}/${summary.total} AVAILABLE* ${summary.traffic}`);
-    lines.push(weeklyPlayerGrid('training', dateKey, slots[0].id));
+    lines.push('', weeklyPlayerGrid('training', dateKey, slots[0].id));
   }
   return lines.join('\n');
 }
@@ -1425,39 +1356,29 @@ function generateWeeklyCommsMessage(){
   // from appearing in WhatsApp after it has been removed from Extra Fixtures.
   const matchKeys=keys.filter(k=>{
     const regularDay=new Date(k+'T00:00:00').getDay()===SHEETS.match.dayOfWeek;
-    const hasFixture=!!(fixtures[k] && Object.keys(fixtures[k]).length);
-    return (regularDay && hasFixture) || !!(extraDates.match&&extraDates.match[k]) || isCancelled('match',k);
+    return regularDay || !!(extraDates.match&&extraDates.match[k]) || isCancelled('match',k);
   });
   const trainingKeys=keys.filter(k=>{
     const regularDay=new Date(k+'T00:00:00').getDay()===SHEETS.training.dayOfWeek;
-    const hasTraining=!!(trainingInfo[k] && Object.keys(trainingInfo[k]).length);
-    return (regularDay && hasTraining) || !!(extraDates.training&&extraDates.training[k]) || isCancelled('training',k);
+    return regularDay || !!(extraDates.training&&extraDates.training[k]) || isCancelled('training',k);
   });
 
   const sections=[`📅 ${teamName.toUpperCase()} — WEEK COMMENCING ${formatLongDateKey(isoDate(monday))}`,''];
   if(matchKeys.length) matchKeys.forEach(k=>sections.push(weeklyMatchSection(k)));
-  else sections.push('*⚽ MATCH*','', 'No match scheduled this week.');
+  else sections.push('⚽ *MATCH*','', 'No match scheduled this week.');
   sections.push('');
   if(trainingKeys.length) trainingKeys.forEach(k=>sections.push(weeklyTrainingSection(k)));
-  else sections.push('*🏃 TRAINING*','', 'No training scheduled this week.');
+  else sections.push('🏃 *TRAINING*','', 'No training scheduled this week.');
   return sections.join('\n');
 }
 function renderWeeklyCommsTab(){
   const panel=document.getElementById('panel');
-  if(!weeklyCommsWeek) weeklyCommsWeek=isoDate(getNextMondayDate());
+  if(!weeklyCommsWeek) weeklyCommsWeek=isoDate(getMondayDate(new Date()));
   const message=generateWeeklyCommsMessage();
-  panel.innerHTML=`<div class="section-label">Admin</div>
-    <div class="admin-subtabs">
-      <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
-      <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
-      <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
-      <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
-     <div class="admin-subtab ${adminSubTab==='bulkTraining'?'active':''}" data-subtab="bulkTraining">Bulk Training</div>
-    </div>
-    <div class="section-label">Weekly Comms</div>
+  panel.innerHTML=`<div class="section-label">Weekly Comms</div>
     <div class="weekly-comms-card">
       <div class="admin-label-sm">Week commencing</div>
-      <div class="admin-date-wrapper"><input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="box-sizing:border-box;min-width:0;max-width:100%;width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter';"/></div>
+      <div class="weekly-comms-week-control"><input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter';"/><div class="weekly-comms-week-buttons"><button type="button" class="btn btn-small" id="weeklyCommsPrevWeekBtn">‹ Previous Week</button><button type="button" class="btn btn-small" id="weeklyCommsThisWeekBtn">This Week</button><button type="button" class="btn btn-small" id="weeklyCommsNextWeekBtn">Next Week ›</button></div></div>
       <p class="weekly-comms-note">The message uses the existing match/training details and squad availability. Everyone is treated as available unless they have marked themselves unavailable.</p>
     </div>
     <div class="weekly-comms-card">
@@ -1468,10 +1389,25 @@ function renderWeeklyCommsTab(){
         <button class="btn btn-brand" id="openWeeklyWhatsAppBtn">Open WhatsApp</button>
       </div>
     </div>`;
-  panel.querySelectorAll('.admin-subtab').forEach(el => {
-    el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
+  
+  function setWeeklyCommsWeekFromDate(date){
+    weeklyCommsWeek=isoDate(getMondayDate(date));
+    render();
+  }
+  document.getElementById('weeklyCommsPrevWeekBtn').addEventListener('click',()=>{
+    const d=mondayForDateInput(weeklyCommsWeek);
+    d.setDate(d.getDate()-7);
+    setWeeklyCommsWeekFromDate(d);
   });
-  document.getElementById('weeklyCommsWeekInput').addEventListener('change',e=>{
+  document.getElementById('weeklyCommsThisWeekBtn').addEventListener('click',()=>{
+    setWeeklyCommsWeekFromDate(new Date());
+  });
+  document.getElementById('weeklyCommsNextWeekBtn').addEventListener('click',()=>{
+    const d=mondayForDateInput(weeklyCommsWeek);
+    d.setDate(d.getDate()+7);
+    setWeeklyCommsWeekFromDate(d);
+  });
+document.getElementById('weeklyCommsWeekInput').addEventListener('change',e=>{
     weeklyCommsWeek=isoDate(mondayForDateInput(e.target.value)); render();
   });
   document.getElementById('copyWeeklyCommsBtn').addEventListener('click',async()=>{
@@ -1486,82 +1422,6 @@ function renderWeeklyCommsTab(){
   });
 }
 
-function renderBulkTrainingTab(){
-  const panel=document.getElementById('panel');
-  panel.innerHTML=`<div class="section-label">Admin</div>
-    <div class="admin-subtabs">
-      <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
-      <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
-      <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
-      <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
-      <div class="admin-subtab ${adminSubTab==='bulkTraining'?'active':''}" data-subtab="bulkTraining">Bulk Training</div>
-    </div>
-    <div class="section-label">Bulk Training Schedule</div>
-    <div class="weekly-comms-card">
-      <div class="bulk-training-date-row" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;width:100%;">
-        <div style="min-width:0;width:100%;"><div class="admin-label-sm">From</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
-        <div style="min-width:0;width:100%;"><div class="admin-label-sm">To</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
-      </div>
-      <div class="admin-label-sm" style="margin-top:10px;">Training day</div>
-      <select class="fx-input" id="bulkTrainingDay">
-        <option value="">Select day</option>
-        ${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d,i)=>`<option value="${i}" ${bulkTrainingDay===String(i)?'selected':''}>${d}</option>`).join('')}
-      </select>
-      <div class="admin-label-sm" style="margin-top:10px;">Time</div><input class="fx-input" id="bulkTrainingTime" placeholder="e.g. 6:00pm" value="${escapeAttr(bulkTrainingTime)}"/>
-      <div class="admin-label-sm">Location</div><input class="fx-input" id="bulkTrainingLocation" placeholder="e.g. Walton Hall Astro" value="${escapeAttr(bulkTrainingLocation)}"/>
-      <div class="admin-label-sm">What3Words</div><input class="fx-input" id="bulkTrainingW3W" placeholder="e.g. filled.count.soap" value="${escapeAttr(bulkTrainingW3W)}"/>
-      <button class="btn btn-amber" id="applyBulkTrainingBtn">Update Training</button>
-    </div>`;
-
-  panel.querySelectorAll('.admin-subtab').forEach(el => {
-    el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
-  });
-
-  const ids=['bulkTrainingFrom','bulkTrainingTo','bulkTrainingDay','bulkTrainingTime','bulkTrainingLocation','bulkTrainingW3W'];
-  ids.forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{
-    bulkTrainingFrom=document.getElementById('bulkTrainingFrom').value;
-    bulkTrainingTo=document.getElementById('bulkTrainingTo').value;
-    bulkTrainingDay=document.getElementById('bulkTrainingDay').value;
-    bulkTrainingTime=document.getElementById('bulkTrainingTime').value;
-    bulkTrainingLocation=document.getElementById('bulkTrainingLocation').value;
-    bulkTrainingW3W=document.getElementById('bulkTrainingW3W').value;
-  }));
-
-  document.getElementById('applyBulkTrainingBtn').addEventListener('click',async()=>{
-    bulkTrainingFrom=document.getElementById('bulkTrainingFrom').value;
-    bulkTrainingTo=document.getElementById('bulkTrainingTo').value;
-    bulkTrainingDay=document.getElementById('bulkTrainingDay').value;
-    bulkTrainingTime=document.getElementById('bulkTrainingTime').value.trim();
-    bulkTrainingLocation=document.getElementById('bulkTrainingLocation').value.trim();
-    bulkTrainingW3W=document.getElementById('bulkTrainingW3W').value.trim().replace(/^\/+/, '');
-
-    if(!bulkTrainingFrom || !bulkTrainingTo || bulkTrainingDay===''){
-      alert('Please enter the date range and training day.');
-      return;
-    }
-    if(new Date(bulkTrainingFrom+'T00:00:00') > new Date(bulkTrainingTo+'T00:00:00')){
-      alert('The From date must be before the To date.');
-      return;
-    }
-
-    const data={time:bulkTrainingTime,location:bulkTrainingLocation,what3words:bulkTrainingW3W};
-    let count=0;
-    const start=new Date(bulkTrainingFrom+'T00:00:00');
-    const end=new Date(bulkTrainingTo+'T00:00:00');
-
-    for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
-      if(d.getDay()!==Number(bulkTrainingDay)) continue;
-      const key=isoDate(d);
-      await saveTrainingInfo(key,data);
-      trainingInfo[key]=data;
-      count++;
-    }
-
-    render();
-    alert(`${count} training date${count===1?'':'s'} updated.`);
-  });
-}
-
 function renderAdminTab(){
   const panel = document.getElementById('panel');
   let html = `<div class="section-label">Admin</div>`;
@@ -1570,7 +1430,6 @@ function renderAdminTab(){
     <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
     <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
     <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
-     <div class="admin-subtab ${adminSubTab==='bulkTraining'?'active':''}" data-subtab="bulkTraining">Bulk Training</div>
   </div>`;
 
   if(adminSubTab === 'squad'){
@@ -1608,48 +1467,8 @@ function renderAdminTab(){
       <input id="newPlayerInput" placeholder="Add a player to the squad…" maxlength="40"/>
       <button class="btn btn-amber" id="addPlayerBtn">Add</button>
     </div>`;
-    html += `<div class="admin-form" style="margin-top:14px;">
-      <div class="admin-label-sm">Minimum players required</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div style="min-width:0;">
-          <div class="admin-label-sm" style="margin-bottom:4px;">Match</div>
-          <input id="matchMinPlayersInput" type="number" min="1" max="30" step="1" value="${SHEETS.match.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
-        </div>
-        <div style="min-width:0;">
-          <div class="admin-label-sm" style="margin-bottom:4px;">Training</div>
-          <input id="trainingMinPlayersInput" type="number" min="1" max="30" step="1" value="${SHEETS.training.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
-        </div>
-      </div>
-      <button class="btn btn-amber" id="saveThresholdsBtn" style="width:100%;margin-top:10px;">Save player requirements</button>
-    </div>`;
   } else if(adminSubTab === 'parents'){
-    const childParentMap = {};
-    roster.forEach(child => { childParentMap[child] = []; });
-    Object.keys(parents).forEach(email => {
-      const p = parents[email] || {};
-      if(p.child && childParentMap[p.child]) childParentMap[p.child].push(p.name || email);
-    });
-    const linkedChildren = roster.filter(child => childParentMap[child].length > 0).length;
-    const allChildrenLinked = linkedChildren === roster.length && roster.length > 0;
-
     html += `<div class="hint">Link each parent's login email to their child, and mark which parents are admins. A parent only ever sees and updates their own child's availability.</div>`;
-    html += `<div class="parent-link-summary">
-      <div class="parent-link-summary-head">
-        <div class="parent-link-summary-title">Parent Link Check</div>
-        <div class="parent-link-summary-count ${allChildrenLinked ? 'good' : 'warn'}">${linkedChildren}/${roster.length} children linked</div>
-      </div>
-      ${roster.map(child => {
-        const linked = childParentMap[child] || [];
-        const hasParent = linked.length > 0;
-        return `<div class="parent-link-child">
-          <div>
-            <span class="parent-link-child-name">${escapeHtml(child)}</span>
-            ${hasParent ? `<span class="parent-link-parent-names">(${linked.map(escapeHtml).join(', ')})</span>` : ''}
-          </div>
-          <div class="parent-link-child-status ${hasParent ? 'good' : 'warn'}">${hasParent ? `✓ ${linked.length} parent${linked.length===1?'':'s'}` : '⚠ No parent linked'}</div>
-        </div>`;
-      }).join('')}
-    </div>`;
     html += `<div class="admin-list">`;
     Object.keys(parents).forEach(email => {
       const p = parents[email];
@@ -1709,7 +1528,7 @@ function renderAdminTab(){
         <button type="button" class="reason-chip extra-type-chip ${adminExtraType==='training'?'selected':''}" data-extratype="training">Training</button>
       </div>
       <div class="admin-label-sm">Date:</div>
-      <div class="admin-date-wrapper"><input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="box-sizing:border-box;min-width:0;max-width:100%;width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/></div>
+      <input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
       <div class="admin-label-sm">Time slot(s):</div>
       <input id="extraSlotsInput" placeholder="e.g. 6-7pm, or 5-6pm, 6-7pm for more than one" value="${escapeAttr(adminExtraSlotsRaw)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
       <div class="hint" style="margin:0 0 12px;">Separate with commas if there's more than one slot. Leave blank for a single unlabelled session.</div>
@@ -1734,10 +1553,6 @@ function renderAdminTab(){
     </div>`;
   }
 
-  if(adminSubTab === 'bulkTraining') {
-    renderBulkTrainingTab();
-    return;
-  }
   if(adminSubTab === 'weekly') {
     renderWeeklyCommsTab();
     return;
@@ -1754,13 +1569,6 @@ function renderAdminTab(){
   if(addBtn) addBtn.addEventListener('click', addPlayer);
   const newInput = document.getElementById('newPlayerInput');
   if(newInput) newInput.addEventListener('keydown', e => { if(e.key==='Enter') addPlayer(); });
-  const saveThresholdsBtn = document.getElementById('saveThresholdsBtn');
-  if(saveThresholdsBtn) saveThresholdsBtn.addEventListener('click', async () => {
-    const m = document.getElementById('matchMinPlayersInput')?.value;
-    const t = document.getElementById('trainingMinPlayersInput')?.value;
-    await savePlayerThresholds(m, t);
-    render();
-  });
   panel.querySelectorAll('[data-removeplayer]').forEach(el => {
     el.addEventListener('click', () => removePlayer(el.dataset.removeplayer));
   });
