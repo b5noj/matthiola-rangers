@@ -345,6 +345,32 @@
     max-width:100% !important;
     min-width:0 !important;
   }
+
+  .parent-link-summary{
+    background:#fff;border:1.5px solid var(--border);border-radius:10px;
+    padding:14px;margin-bottom:14px;
+  }
+  .parent-link-summary-head{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;
+  }
+  .parent-link-summary-title{
+    font-family:'Bebas Neue';font-size:17px;letter-spacing:.04em;color:var(--brand-deep);
+  }
+  .parent-link-summary-count{
+    font-size:11px;font-weight:800;padding:4px 8px;border-radius:20px;
+  }
+  .parent-link-summary-count.good{background:var(--good-soft);color:var(--good);}
+  .parent-link-summary-count.warn{background:var(--red-soft);color:var(--red);}
+  .parent-link-child{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:8px 0;border-top:1px solid var(--line);font-size:13px;
+  }
+  .parent-link-child:first-child{border-top:none;}
+  .parent-link-child-name{font-weight:800;}
+  .parent-link-child-status{font-size:11.5px;font-weight:800;white-space:nowrap;}
+  .parent-link-child-status.good{color:var(--good);}
+  .parent-link-child-status.warn{color:var(--red);}
+  .parent-link-parent-names{font-size:10.5px;color:var(--ink-soft);font-weight:600;margin-left:6px;}
 </style>
 </head>
 <body>
@@ -1597,7 +1623,33 @@ function renderAdminTab(){
       <button class="btn btn-amber" id="saveThresholdsBtn" style="width:100%;margin-top:10px;">Save player requirements</button>
     </div>`;
   } else if(adminSubTab === 'parents'){
+    const childParentMap = {};
+    roster.forEach(child => { childParentMap[child] = []; });
+    Object.keys(parents).forEach(email => {
+      const p = parents[email] || {};
+      if(p.child && childParentMap[p.child]) childParentMap[p.child].push(p.name || email);
+    });
+    const linkedChildren = roster.filter(child => childParentMap[child].length > 0).length;
+    const allChildrenLinked = linkedChildren === roster.length && roster.length > 0;
+
     html += `<div class="hint">Link each parent's login email to their child, and mark which parents are admins. A parent only ever sees and updates their own child's availability.</div>`;
+    html += `<div class="parent-link-summary">
+      <div class="parent-link-summary-head">
+        <div class="parent-link-summary-title">Parent Link Check</div>
+        <div class="parent-link-summary-count ${allChildrenLinked ? 'good' : 'warn'}">${linkedChildren}/${roster.length} children linked</div>
+      </div>
+      ${roster.map(child => {
+        const linked = childParentMap[child] || [];
+        const hasParent = linked.length > 0;
+        return `<div class="parent-link-child">
+          <div>
+            <span class="parent-link-child-name">${escapeHtml(child)}</span>
+            ${hasParent ? `<span class="parent-link-parent-names">(${linked.map(escapeHtml).join(', ')})</span>` : ''}
+          </div>
+          <div class="parent-link-child-status ${hasParent ? 'good' : 'warn'}">${hasParent ? `✓ ${linked.length} parent${linked.length===1?'':'s'}` : '⚠ No parent linked'}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
     html += `<div class="admin-list">`;
     Object.keys(parents).forEach(email => {
       const p = parents[email];
