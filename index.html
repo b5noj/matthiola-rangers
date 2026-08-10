@@ -378,6 +378,8 @@
     .weekly-comms-week-buttons{gap:5px}
     .weekly-comms-week-buttons .btn{font-size:9.5px;padding:8px 3px}
   }
+
+  .schedule-slot-row{display:flex;gap:8px;align-items:center;margin:6px 0;min-width:0}.schedule-slot-row input{flex:1;min-width:0}.schedule-slot-row button{flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -426,28 +428,17 @@ const googleProvider = new GoogleAuthProvider();
 const DEFAULT_TEAM_NAME = 'Matthiola Rangers';
 const DEFAULT_ROSTER = ['Will','Teddy','Rex','Lennie','Brodie','Luca','Kayleb'];
 
+const DEFAULT_SCHEDULE = {
+  match: { dayOfWeek:6, slots:[{id:'s1',label:'9–10am'},{id:'s2',label:'10–11am'},{id:'s3',label:'11–12am'}] },
+  training: { dayOfWeek:4, slots:[{id:'t1',label:'Session'}] }
+};
 const SHEETS = {
-  match: {
-    label: 'Matches',
-    dayOfWeek: 6,
-    slots: [
-      {id:'s1', label:'9–10am'},
-      {id:'s2', label:'10–11am'},
-      {id:'s3', label:'11–12am'}
-    ],
-    threshold: 7
-  },
-  training: {
-    label: 'Training',
-    dayOfWeek: 4,
-    slots: [
-      {id:'t1', label:'Session'}
-    ],
-    threshold: 7
-  }
+  match: { label:'Matches', dayOfWeek:DEFAULT_SCHEDULE.match.dayOfWeek, slots:DEFAULT_SCHEDULE.match.slots.map(s=>({...s})), threshold:7 },
+  training: { label:'Training', dayOfWeek:DEFAULT_SCHEDULE.training.dayOfWeek, slots:DEFAULT_SCHEDULE.training.slots.map(s=>({...s})), threshold:7 }
 };
 
 let roster = DEFAULT_ROSTER.slice();
+let scheduleConfig = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
 let teamName = DEFAULT_TEAM_NAME;
 let availability = {match:{}, training:{}};
 let availabilityMeta = {match:{}, training:{}}; // type -> name -> {updatedAt, updatedBy}
@@ -608,7 +599,7 @@ async function ensureSettingsSeeded(){
   const ref = doc(db, 'team_config', 'settings');
   const snap = await getDoc(ref);
   if(!snap.exists()){
-    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER, matchMinPlayers: 7, trainingMinPlayers: 7 });
+    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER, matchMinPlayers: 7, trainingMinPlayers: 7, scheduleConfig: DEFAULT_SCHEDULE });
   }
 }
 
@@ -622,6 +613,21 @@ function watchSettings(){
       const trainingMin = Number(data.trainingMinPlayers);
       SHEETS.match.threshold = Number.isFinite(matchMin) && matchMin >= 1 ? matchMin : 7;
       SHEETS.training.threshold = Number.isFinite(trainingMin) && trainingMin >= 1 ? trainingMin : 7;
+      const sc = data.scheduleConfig || {};
+      scheduleConfig = {
+        match: {
+          dayOfWeek: Number.isInteger(sc.match?.dayOfWeek) ? sc.match.dayOfWeek : DEFAULT_SCHEDULE.match.dayOfWeek,
+          slots: Array.isArray(sc.match?.slots) && sc.match.slots.length ? sc.match.slots : DEFAULT_SCHEDULE.match.slots
+        },
+        training: {
+          dayOfWeek: Number.isInteger(sc.training?.dayOfWeek) ? sc.training.dayOfWeek : DEFAULT_SCHEDULE.training.dayOfWeek,
+          slots: Array.isArray(sc.training?.slots) && sc.training.slots.length ? sc.training.slots : DEFAULT_SCHEDULE.training.slots
+        }
+      };
+      SHEETS.match.dayOfWeek=scheduleConfig.match.dayOfWeek;
+      SHEETS.match.slots=scheduleConfig.match.slots.map(s=>({...s}));
+      SHEETS.training.dayOfWeek=scheduleConfig.training.dayOfWeek;
+      SHEETS.training.slots=scheduleConfig.training.slots.map(s=>({...s}));
     }
     if(roster.length && !selectedPlayer) selectedPlayer = roster[0];
     if(roster.length && !roster.includes(selectedPlayer)) selectedPlayer = roster[0];
@@ -1458,7 +1464,8 @@ function renderWeeklyCommsTab(){
       <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
       <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
       <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
-      <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
+      <div class="admin-subtab ${adminSubTab==='schedule'?'active':''}" data-subtab="schedule">Schedule</div>
+    <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
      <div class="admin-subtab ${adminSubTab==='bulkTraining'?'active':''}" data-subtab="bulkTraining">Bulk Training</div>
     </div>
     <div class="section-label">Weekly Comms</div>
@@ -1651,6 +1658,26 @@ function renderAdminTab(){
       </div>
       <button class="btn btn-amber" id="saveThresholdsBtn" style="width:100%;margin-top:10px;">Save player requirements</button>
     </div>`;
+
+  } else if(adminSubTab === 'schedule'){
+    html += `<div class="hint">Set the normal match and training days and time slots. These are defaults only; existing dates and bulk training changes are not altered.</div>`;
+    html += `<div class="admin-card">
+      <div class="admin-card-title">Default Match Schedule</div>
+      <div class="admin-label-sm">Match day</div>
+      <select id="scheduleMatchDay" class="fx-input" style="width:100%;"><option value="1" ${scheduleConfig.match.dayOfWeek==1?"selected":""}>Monday</option><option value="2" ${scheduleConfig.match.dayOfWeek==2?"selected":""}>Tuesday</option><option value="3" ${scheduleConfig.match.dayOfWeek==3?"selected":""}>Wednesday</option><option value="4" ${scheduleConfig.match.dayOfWeek==4?"selected":""}>Thursday</option><option value="5" ${scheduleConfig.match.dayOfWeek==5?"selected":""}>Friday</option><option value="6" ${scheduleConfig.match.dayOfWeek==6?"selected":""}>Saturday</option><option value="0" ${scheduleConfig.match.dayOfWeek==0?"selected":""}>Sunday</option></select>
+      <div class="admin-label-sm" style="margin-top:10px;">Match time slots</div>
+      <div id="scheduleMatchSlots"></div>
+      <button class="btn btn-ghost" id="scheduleAddMatchSlot" type="button">+ Add match time slot</button>
+    </div>`;
+    html += `<div class="admin-card" style="margin-top:12px;">
+      <div class="admin-card-title">Default Training Schedule</div>
+      <div class="admin-label-sm">Training day</div>
+      <select id="scheduleTrainingDay" class="fx-input" style="width:100%;"><option value="1" ${scheduleConfig.training.dayOfWeek==1?"selected":""}>Monday</option><option value="2" ${scheduleConfig.training.dayOfWeek==2?"selected":""}>Tuesday</option><option value="3" ${scheduleConfig.training.dayOfWeek==3?"selected":""}>Wednesday</option><option value="4" ${scheduleConfig.training.dayOfWeek==4?"selected":""}>Thursday</option><option value="5" ${scheduleConfig.training.dayOfWeek==5?"selected":""}>Friday</option><option value="6" ${scheduleConfig.training.dayOfWeek==6?"selected":""}>Saturday</option><option value="0" ${scheduleConfig.training.dayOfWeek==0?"selected":""}>Sunday</option></select>
+      <div class="admin-label-sm" style="margin-top:10px;">Training time slots</div>
+      <div id="scheduleTrainingSlots"></div>
+      <button class="btn btn-ghost" id="scheduleAddTrainingSlot" type="button">+ Add training time slot</button>
+    </div>`;
+    html += `<button class="btn btn-amber" id="saveScheduleBtn" style="width:100%;margin-top:10px;">Save schedule settings</button>`;
   } else if(adminSubTab === 'parents'){
     const childParentMap = {};
     roster.forEach(child => { childParentMap[child] = []; });
@@ -1990,6 +2017,40 @@ function updateUserBar(){
   }
 }
 
+function renderScheduleEditor(){
+  const m=document.getElementById('scheduleMatchSlots'), t=document.getElementById('scheduleTrainingSlots');
+  if(!m || !t) return;
+  const draw=(el,type)=>{
+    el.innerHTML=scheduleConfig[type].slots.map((s,i)=>`<div class="schedule-slot-row"><input class="fx-input" data-schedule-type="${type}" data-schedule-index="${i}" value="${escapeAttr(s.label)}"><button class="btn btn-ghost" type="button" data-schedule-remove="${type}" data-schedule-index="${i}">Remove</button></div>`).join('');
+    el.querySelectorAll('[data-schedule-remove]').forEach(b=>b.onclick=()=>{
+      const ty=b.dataset.scheduleRemove,i=Number(b.dataset.scheduleIndex);
+      if(scheduleConfig[ty].slots.length>1){scheduleConfig[ty].slots.splice(i,1);renderScheduleEditor();}
+    });
+  };
+  draw(m,'match'); draw(t,'training');
+  const addM=document.getElementById('scheduleAddMatchSlot');
+  const addT=document.getElementById('scheduleAddTrainingSlot');
+  const save=document.getElementById('saveScheduleBtn');
+  if(addM) addM.onclick=()=>{scheduleConfig.match.slots.push({id:'s'+Date.now(),label:'New slot'});renderScheduleEditor();};
+  if(addT) addT.onclick=()=>{scheduleConfig.training.slots.push({id:'t'+Date.now(),label:'New slot'});renderScheduleEditor();};
+  if(save) save.onclick=async()=>{
+    scheduleConfig.match.dayOfWeek=Number(document.getElementById('scheduleMatchDay').value);
+    scheduleConfig.training.dayOfWeek=Number(document.getElementById('scheduleTrainingDay').value);
+    document.querySelectorAll('[data-schedule-type]').forEach(i=>{
+      const ty=i.dataset.scheduleType,n=Number(i.dataset.scheduleIndex);
+      if(scheduleConfig[ty]?.slots[n]) scheduleConfig[ty].slots[n].label=i.value.trim()||'Slot';
+    });
+    try{
+      save.disabled=true;
+      await setDoc(doc(db,'team_config','settings'),{scheduleConfig},{merge:true});
+      SHEETS.match.dayOfWeek=scheduleConfig.match.dayOfWeek; SHEETS.match.slots=scheduleConfig.match.slots.map(s=>({...s}));
+      SHEETS.training.dayOfWeek=scheduleConfig.training.dayOfWeek; SHEETS.training.slots=scheduleConfig.training.slots.map(s=>({...s}));
+      render();
+    }catch(e){console.error('Schedule save failed',e);showConnectionWarning();}
+    finally{save.disabled=false;}
+  };
+}
+
 function render(){
   updateChromeVisibility();
   updateUserBar();
@@ -2005,7 +2066,8 @@ function render(){
   renderTabsBar();
   if(activeTab === 'mark') renderMarkTab();
   else renderSummaryTab();
-}
+
+  renderScheduleEditor();}
 
 // ---- Init ----
 render(); // instant paint (login screen or defaults) before Firebase responds
