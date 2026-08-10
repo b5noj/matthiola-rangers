@@ -575,7 +575,7 @@ async function ensureSettingsSeeded(){
   const ref = doc(db, 'team_config', 'settings');
   const snap = await getDoc(ref);
   if(!snap.exists()){
-    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER });
+    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER, matchMinPlayers: 7, trainingMinPlayers: 7 });
   }
 }
 
@@ -585,6 +585,10 @@ function watchSettings(){
       const data = snap.data();
       teamName = data.teamName || DEFAULT_TEAM_NAME;
       roster = Array.isArray(data.roster) && data.roster.length ? data.roster : DEFAULT_ROSTER.slice();
+      const matchMin = Number(data.matchMinPlayers);
+      const trainingMin = Number(data.trainingMinPlayers);
+      SHEETS.match.threshold = Number.isFinite(matchMin) && matchMin >= 1 ? matchMin : 7;
+      SHEETS.training.threshold = Number.isFinite(trainingMin) && trainingMin >= 1 ? trainingMin : 7;
     }
     if(roster.length && !selectedPlayer) selectedPlayer = roster[0];
     if(roster.length && !roster.includes(selectedPlayer)) selectedPlayer = roster[0];
@@ -697,8 +701,20 @@ async function removeCancelledDate(type, dateKey){
 }
 
 async function saveSettings(){
-  try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster }); }
+  try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster, matchMinPlayers: SHEETS.match.threshold, trainingMinPlayers: SHEETS.training.threshold }, {merge:true}); }
   catch(e){ console.error('Failed to save settings', e); showConnectionWarning(); }
+}
+async function savePlayerThresholds(matchMin, trainingMin){
+  const m = Math.max(1, Math.min(30, Number(matchMin) || 1));
+  const t = Math.max(1, Math.min(30, Number(trainingMin) || 1));
+  SHEETS.match.threshold = m;
+  SHEETS.training.threshold = t;
+  try{
+    await setDoc(doc(db, 'team_config', 'settings'), { matchMinPlayers:m, trainingMinPlayers:t }, {merge:true});
+  }catch(e){
+    console.error('Failed to save player thresholds', e);
+    showConnectionWarning();
+  }
 }
 async function saveFixture(dateKey, data){
   try{ await setDoc(doc(db, 'fixtures', dateKey), data); }
@@ -1319,7 +1335,8 @@ function weeklyAvailabilitySummary(type, dateKey, slotId){
     if(!slot[slotId]) available++;
   });
   const total = roster.length;
-  const traffic = available >= 7 ? '🟢' : '🔴';
+  const threshold = SHEETS[type]?.threshold ?? 7;
+  const traffic = available >= threshold ? '🟢' : '🔴';
   return {available, total, traffic};
 }
 function weeklyMatchSection(dateKey){
@@ -1565,6 +1582,20 @@ function renderAdminTab(){
       <input id="newPlayerInput" placeholder="Add a player to the squad…" maxlength="40"/>
       <button class="btn btn-amber" id="addPlayerBtn">Add</button>
     </div>`;
+    html += `<div class="admin-form" style="margin-top:14px;">
+      <div class="admin-label-sm">Minimum players required</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="min-width:0;">
+          <div class="admin-label-sm" style="margin-bottom:4px;">Match</div>
+          <input id="matchMinPlayersInput" type="number" min="1" max="30" step="1" value="${SHEETS.match.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
+        </div>
+        <div style="min-width:0;">
+          <div class="admin-label-sm" style="margin-bottom:4px;">Training</div>
+          <input id="trainingMinPlayersInput" type="number" min="1" max="30" step="1" value="${SHEETS.training.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
+        </div>
+      </div>
+      <button class="btn btn-amber" id="saveThresholdsBtn" style="width:100%;margin-top:10px;">Save player requirements</button>
+    </div>`;
   } else if(adminSubTab === 'parents'){
     html += `<div class="hint">Link each parent's login email to their child, and mark which parents are admins. A parent only ever sees and updates their own child's availability.</div>`;
     html += `<div class="admin-list">`;
@@ -1671,6 +1702,13 @@ function renderAdminTab(){
   if(addBtn) addBtn.addEventListener('click', addPlayer);
   const newInput = document.getElementById('newPlayerInput');
   if(newInput) newInput.addEventListener('keydown', e => { if(e.key==='Enter') addPlayer(); });
+  const saveThresholdsBtn = document.getElementById('saveThresholdsBtn');
+  if(saveThresholdsBtn) saveThresholdsBtn.addEventListener('click', async () => {
+    const m = document.getElementById('matchMinPlayersInput')?.value;
+    const t = document.getElementById('trainingMinPlayersInput')?.value;
+    await savePlayerThresholds(m, t);
+    render();
+  });
   panel.querySelectorAll('[data-removeplayer]').forEach(el => {
     el.addEventListener('click', () => removePlayer(el.dataset.removeplayer));
   });
