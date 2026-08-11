@@ -743,6 +743,42 @@ async function saveSettings(){
   try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster, matchMinPlayers: SHEETS.match.threshold, trainingMinPlayers: SHEETS.training.threshold }, {merge:true}); }
   catch(e){ console.error('Failed to save settings', e); showConnectionWarning(); }
 }
+
+async function saveTeamSettingsFromAdmin(){
+  const name=(document.getElementById('teamNameSettingsInput')?.value || '').trim();
+  const matchMin=Math.max(1,Math.min(30,Number(document.getElementById('settingsMatchMinPlayers')?.value)||1));
+  const trainingMin=Math.max(1,Math.min(30,Number(document.getElementById('settingsTrainingMinPlayers')?.value)||1));
+
+  scheduleConfig.match.dayOfWeek=Number(document.getElementById('settingsMatchDay').value);
+  scheduleConfig.training.dayOfWeek=Number(document.getElementById('settingsTrainingDay').value);
+
+  document.querySelectorAll('[data-settings-schedule-type]').forEach(input=>{
+    const type=input.dataset.settingsScheduleType;
+    const index=Number(input.dataset.settingsScheduleIndex);
+    if(scheduleConfig[type]?.slots[index]) scheduleConfig[type].slots[index].label=input.value.trim() || 'Slot';
+  });
+
+  teamName=name || DEFAULT_TEAM_NAME;
+  SHEETS.match.threshold=matchMin;
+  SHEETS.training.threshold=trainingMin;
+  SHEETS.match.dayOfWeek=scheduleConfig.match.dayOfWeek;
+  SHEETS.match.slots=scheduleConfig.match.slots.map(s=>({...s}));
+  SHEETS.training.dayOfWeek=scheduleConfig.training.dayOfWeek;
+  SHEETS.training.slots=scheduleConfig.training.slots.map(s=>({...s}));
+
+  try{
+    await setDoc(doc(db,'team_config','settings'),{
+      teamName,
+      matchMinPlayers:matchMin,
+      trainingMinPlayers:trainingMin,
+      scheduleConfig
+    },{merge:true});
+  }catch(e){
+    console.error('Failed to save team settings',e);
+    showConnectionWarning();
+  }
+}
+
 async function savePlayerThresholds(matchMin, trainingMin){
   const m = Math.max(1, Math.min(30, Number(matchMin) || 1));
   const t = Math.max(1, Math.min(30, Number(trainingMin) || 1));
@@ -1462,9 +1498,9 @@ function renderWeeklyCommsTab(){
   panel.innerHTML=`<div class="section-label">Admin</div>
     <div class="admin-subtabs">
       <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
+      <div class="admin-subtab ${adminSubTab==='settings'?'active':''}" data-subtab="settings">Team Settings</div>
       <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
       <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
-      <div class="admin-subtab ${adminSubTab==='schedule'?'active':''}" data-subtab="schedule">Schedule</div>
     <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
      <div class="admin-subtab ${adminSubTab==='bulkTraining'?'active':''}" data-subtab="bulkTraining">Bulk Training</div>
     </div>
@@ -1527,6 +1563,7 @@ function renderBulkTrainingTab(){
   panel.innerHTML=`<div class="section-label">Admin</div>
     <div class="admin-subtabs">
       <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
+      <div class="admin-subtab ${adminSubTab==='settings'?'active':''}" data-subtab="settings">Team Settings</div>
       <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
       <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
       <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
@@ -1603,6 +1640,7 @@ function renderAdminTab(){
   let html = `<div class="section-label">Admin</div>`;
   html += `<div class="admin-subtabs">
     <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
+      <div class="admin-subtab ${adminSubTab==='settings'?'active':''}" data-subtab="settings">Team Settings</div>
     <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
     <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
     <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
@@ -1659,25 +1697,47 @@ function renderAdminTab(){
       <button class="btn btn-amber" id="saveThresholdsBtn" style="width:100%;margin-top:10px;">Save player requirements</button>
     </div>`;
 
-  } else if(adminSubTab === 'schedule'){
-    html += `<div class="hint">Set the normal match and training days and time slots. These are defaults only; existing dates and bulk training changes are not altered.</div>`;
-    html += `<div class="admin-card">
-      <div class="admin-card-title">Default Match Schedule</div>
-      <div class="admin-label-sm">Match day</div>
-      <select id="scheduleMatchDay" class="fx-input" style="width:100%;"><option value="1" ${scheduleConfig.match.dayOfWeek==1?"selected":""}>Monday</option><option value="2" ${scheduleConfig.match.dayOfWeek==2?"selected":""}>Tuesday</option><option value="3" ${scheduleConfig.match.dayOfWeek==3?"selected":""}>Wednesday</option><option value="4" ${scheduleConfig.match.dayOfWeek==4?"selected":""}>Thursday</option><option value="5" ${scheduleConfig.match.dayOfWeek==5?"selected":""}>Friday</option><option value="6" ${scheduleConfig.match.dayOfWeek==6?"selected":""}>Saturday</option><option value="0" ${scheduleConfig.match.dayOfWeek==0?"selected":""}>Sunday</option></select>
+  } else if(adminSubTab === 'settings'){
+    html += `<div class="hint">Team-wide settings used by the squad, availability summaries, Weekly Comms and new schedule dates.</div>`;
+
+    html += `<div class="admin-form">
+      <div class="admin-label-sm">Team name</div>
+      <input id="teamNameSettingsInput" value="${escapeAttr(teamName)}" placeholder="Team name" maxlength="80"/>
+    </div>`;
+
+    html += `<div class="admin-form" style="margin-top:12px;">
+      <div class="admin-label-sm">Minimum players required</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="min-width:0;">
+          <div class="admin-label-sm" style="margin-bottom:4px;">Match</div>
+          <input id="settingsMatchMinPlayers" type="number" min="1" max="30" step="1" value="${SHEETS.match.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
+        </div>
+        <div style="min-width:0;">
+          <div class="admin-label-sm" style="margin-bottom:4px;">Training</div>
+          <input id="settingsTrainingMinPlayers" type="number" min="1" max="30" step="1" value="${SHEETS.training.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
+        </div>
+      </div>
+    </div>`;
+
+    html += `<div class="admin-form" style="margin-top:12px;">
+      <div class="admin-label-sm">Default match schedule</div>
+      <div class="admin-label-sm" style="margin-top:8px;">Match day</div>
+      <select id="settingsMatchDay" class="fx-input" style="width:100%;"><option value="1" ${scheduleConfig.match.dayOfWeek==1?"selected":""}>Monday</option><option value="2" ${scheduleConfig.match.dayOfWeek==2?"selected":""}>Tuesday</option><option value="3" ${scheduleConfig.match.dayOfWeek==3?"selected":""}>Wednesday</option><option value="4" ${scheduleConfig.match.dayOfWeek==4?"selected":""}>Thursday</option><option value="5" ${scheduleConfig.match.dayOfWeek==5?"selected":""}>Friday</option><option value="6" ${scheduleConfig.match.dayOfWeek==6?"selected":""}>Saturday</option><option value="0" ${scheduleConfig.match.dayOfWeek==0?"selected":""}>Sunday</option></select>
       <div class="admin-label-sm" style="margin-top:10px;">Match time slots</div>
-      <div id="scheduleMatchSlots"></div>
-      <button class="btn btn-ghost" id="scheduleAddMatchSlot" type="button">+ Add match time slot</button>
+      <div id="settingsMatchSlots"></div>
+      <button class="btn btn-ghost" id="settingsAddMatchSlot" type="button">+ Add match time slot</button>
     </div>`;
-    html += `<div class="admin-card" style="margin-top:12px;">
-      <div class="admin-card-title">Default Training Schedule</div>
-      <div class="admin-label-sm">Training day</div>
-      <select id="scheduleTrainingDay" class="fx-input" style="width:100%;"><option value="1" ${scheduleConfig.training.dayOfWeek==1?"selected":""}>Monday</option><option value="2" ${scheduleConfig.training.dayOfWeek==2?"selected":""}>Tuesday</option><option value="3" ${scheduleConfig.training.dayOfWeek==3?"selected":""}>Wednesday</option><option value="4" ${scheduleConfig.training.dayOfWeek==4?"selected":""}>Thursday</option><option value="5" ${scheduleConfig.training.dayOfWeek==5?"selected":""}>Friday</option><option value="6" ${scheduleConfig.training.dayOfWeek==6?"selected":""}>Saturday</option><option value="0" ${scheduleConfig.training.dayOfWeek==0?"selected":""}>Sunday</option></select>
+
+    html += `<div class="admin-form" style="margin-top:12px;">
+      <div class="admin-label-sm">Default training schedule</div>
+      <div class="admin-label-sm" style="margin-top:8px;">Training day</div>
+      <select id="settingsTrainingDay" class="fx-input" style="width:100%;"><option value="1" ${scheduleConfig.training.dayOfWeek==1?"selected":""}>Monday</option><option value="2" ${scheduleConfig.training.dayOfWeek==2?"selected":""}>Tuesday</option><option value="3" ${scheduleConfig.training.dayOfWeek==3?"selected":""}>Wednesday</option><option value="4" ${scheduleConfig.training.dayOfWeek==4?"selected":""}>Thursday</option><option value="5" ${scheduleConfig.training.dayOfWeek==5?"selected":""}>Friday</option><option value="6" ${scheduleConfig.training.dayOfWeek==6?"selected":""}>Saturday</option><option value="0" ${scheduleConfig.training.dayOfWeek==0?"selected":""}>Sunday</option></select>
       <div class="admin-label-sm" style="margin-top:10px;">Training time slots</div>
-      <div id="scheduleTrainingSlots"></div>
-      <button class="btn btn-ghost" id="scheduleAddTrainingSlot" type="button">+ Add training time slot</button>
+      <div id="settingsTrainingSlots"></div>
+      <button class="btn btn-ghost" id="settingsAddTrainingSlot" type="button">+ Add training time slot</button>
     </div>`;
-    html += `<button class="btn btn-amber" id="saveScheduleBtn" style="width:100%;margin-top:10px;">Save schedule settings</button>`;
+
+    html += `<button class="btn btn-amber" id="saveTeamSettingsBtn" style="width:100%;margin-top:12px;">Save team settings</button>`;
   } else if(adminSubTab === 'parents'){
     const childParentMap = {};
     roster.forEach(child => { childParentMap[child] = []; });
@@ -1804,6 +1864,19 @@ function renderAdminTab(){
   panel.querySelectorAll('.admin-subtab').forEach(el => {
     el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
   });
+
+
+  // Team Settings
+  if(adminSubTab === 'settings'){
+    renderTeamSettingsEditor();
+    const saveTeamSettingsBtn=document.getElementById('saveTeamSettingsBtn');
+    if(saveTeamSettingsBtn) saveTeamSettingsBtn.addEventListener('click',async()=>{
+      saveTeamSettingsBtn.disabled=true;
+      await saveTeamSettingsFromAdmin();
+      saveTeamSettingsBtn.disabled=false;
+      render();
+    });
+  }
 
   // Squad
   const addBtn = document.getElementById('addPlayerBtn');
@@ -2017,38 +2090,39 @@ function updateUserBar(){
   }
 }
 
-function renderScheduleEditor(){
-  const m=document.getElementById('scheduleMatchSlots'), t=document.getElementById('scheduleTrainingSlots');
+
+function renderTeamSettingsEditor(){
+  const m=document.getElementById('settingsMatchSlots');
+  const t=document.getElementById('settingsTrainingSlots');
   if(!m || !t) return;
+
   const draw=(el,type)=>{
-    el.innerHTML=scheduleConfig[type].slots.map((s,i)=>`<div class="schedule-slot-row"><input class="fx-input" data-schedule-type="${type}" data-schedule-index="${i}" value="${escapeAttr(s.label)}"><button class="btn btn-ghost" type="button" data-schedule-remove="${type}" data-schedule-index="${i}">Remove</button></div>`).join('');
-    el.querySelectorAll('[data-schedule-remove]').forEach(b=>b.onclick=()=>{
-      const ty=b.dataset.scheduleRemove,i=Number(b.dataset.scheduleIndex);
-      if(scheduleConfig[ty].slots.length>1){scheduleConfig[ty].slots.splice(i,1);renderScheduleEditor();}
+    el.innerHTML=scheduleConfig[type].slots.map((s,i)=>`
+      <div class="schedule-slot-row">
+        <input class="fx-input" data-settings-schedule-type="${type}" data-settings-schedule-index="${i}" value="${escapeAttr(s.label)}">
+        <button class="btn btn-ghost" type="button" data-settings-remove="${type}" data-settings-remove-index="${i}">Remove</button>
+      </div>`).join('');
+
+    el.querySelectorAll('[data-settings-remove]').forEach(b=>b.onclick=()=>{
+      const ty=b.dataset.settingsRemove, i=Number(b.dataset.settingsRemoveIndex);
+      if(scheduleConfig[ty].slots.length>1){
+        scheduleConfig[ty].slots.splice(i,1);
+        renderTeamSettingsEditor();
+      }
     });
   };
-  draw(m,'match'); draw(t,'training');
-  const addM=document.getElementById('scheduleAddMatchSlot');
-  const addT=document.getElementById('scheduleAddTrainingSlot');
-  const save=document.getElementById('saveScheduleBtn');
-  if(addM) addM.onclick=()=>{scheduleConfig.match.slots.push({id:'s'+Date.now(),label:'New slot'});renderScheduleEditor();};
-  if(addT) addT.onclick=()=>{scheduleConfig.training.slots.push({id:'t'+Date.now(),label:'New slot'});renderScheduleEditor();};
-  if(save) save.onclick=async()=>{
-    scheduleConfig.match.dayOfWeek=Number(document.getElementById('scheduleMatchDay').value);
-    scheduleConfig.training.dayOfWeek=Number(document.getElementById('scheduleTrainingDay').value);
-    document.querySelectorAll('[data-schedule-type]').forEach(i=>{
-      const ty=i.dataset.scheduleType,n=Number(i.dataset.scheduleIndex);
-      if(scheduleConfig[ty]?.slots[n]) scheduleConfig[ty].slots[n].label=i.value.trim()||'Slot';
-    });
-    try{
-      save.disabled=true;
-      await setDoc(doc(db,'team_config','settings'),{scheduleConfig},{merge:true});
-      SHEETS.match.dayOfWeek=scheduleConfig.match.dayOfWeek; SHEETS.match.slots=scheduleConfig.match.slots.map(s=>({...s}));
-      SHEETS.training.dayOfWeek=scheduleConfig.training.dayOfWeek; SHEETS.training.slots=scheduleConfig.training.slots.map(s=>({...s}));
-      render();
-    }catch(e){console.error('Schedule save failed',e);showConnectionWarning();}
-    finally{save.disabled=false;}
-  };
+
+  draw(m,'match');
+  draw(t,'training');
+
+  document.getElementById('settingsAddMatchSlot')?.addEventListener('click',()=>{
+    scheduleConfig.match.slots.push({id:'s'+Date.now(),label:'New slot'});
+    renderTeamSettingsEditor();
+  });
+  document.getElementById('settingsAddTrainingSlot')?.addEventListener('click',()=>{
+    scheduleConfig.training.slots.push({id:'t'+Date.now(),label:'New slot'});
+    renderTeamSettingsEditor();
+  });
 }
 
 function render(){
@@ -2067,7 +2141,7 @@ function render(){
   if(activeTab === 'mark') renderMarkTab();
   else renderSummaryTab();
 
-  renderScheduleEditor();}
+  renderTeamSettingsEditor();}
 
 // ---- Init ----
 render(); // instant paint (login screen or defaults) before Firebase responds
