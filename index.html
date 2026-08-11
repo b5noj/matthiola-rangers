@@ -380,6 +380,14 @@
   }
 
   .schedule-slot-row{display:flex;gap:8px;align-items:center;margin:6px 0;min-width:0}.schedule-slot-row input{flex:1;min-width:0}.schedule-slot-row button{flex:0 0 auto}
+
+  .admin-form,.admin-card{max-width:100%;box-sizing:border-box;overflow:hidden}
+  .admin-form input,.admin-form select,.admin-form textarea,
+  .admin-card input,.admin-card select,.admin-card textarea{
+    max-width:100%;
+    box-sizing:border-box;
+  }
+
 </style>
 </head>
 <body>
@@ -779,18 +787,6 @@ async function saveTeamSettingsFromAdmin(){
   }
 }
 
-async function savePlayerThresholds(matchMin, trainingMin){
-  const m = Math.max(1, Math.min(30, Number(matchMin) || 1));
-  const t = Math.max(1, Math.min(30, Number(trainingMin) || 1));
-  SHEETS.match.threshold = m;
-  SHEETS.training.threshold = t;
-  try{
-    await setDoc(doc(db, 'team_config', 'settings'), { matchMinPlayers:m, trainingMinPlayers:t }, {merge:true});
-  }catch(e){
-    console.error('Failed to save player thresholds', e);
-    showConnectionWarning();
-  }
-}
 async function saveFixture(dateKey, data){
   try{ await setDoc(doc(db, 'fixtures', dateKey), data); }
   catch(e){ console.error('Failed to save fixture', e); showConnectionWarning(); }
@@ -1682,20 +1678,6 @@ function renderAdminTab(){
       <input id="newPlayerInput" placeholder="Add a player to the squad…" maxlength="40"/>
       <button class="btn btn-amber" id="addPlayerBtn">Add</button>
     </div>`;
-    html += `<div class="admin-form" style="margin-top:14px;">
-      <div class="admin-label-sm">Minimum players required</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div style="min-width:0;">
-          <div class="admin-label-sm" style="margin-bottom:4px;">Match</div>
-          <input id="matchMinPlayersInput" type="number" min="1" max="30" step="1" value="${SHEETS.match.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
-        </div>
-        <div style="min-width:0;">
-          <div class="admin-label-sm" style="margin-bottom:4px;">Training</div>
-          <input id="trainingMinPlayersInput" type="number" min="1" max="30" step="1" value="${SHEETS.training.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
-        </div>
-      </div>
-      <button class="btn btn-amber" id="saveThresholdsBtn" style="width:100%;margin-top:10px;">Save player requirements</button>
-    </div>`;
 
   } else if(adminSubTab === 'settings'){
     html += `<div class="hint">Team-wide settings used by the squad, availability summaries, Weekly Comms and new schedule dates.</div>`;
@@ -1883,14 +1865,7 @@ function renderAdminTab(){
   if(addBtn) addBtn.addEventListener('click', addPlayer);
   const newInput = document.getElementById('newPlayerInput');
   if(newInput) newInput.addEventListener('keydown', e => { if(e.key==='Enter') addPlayer(); });
-  const saveThresholdsBtn = document.getElementById('saveThresholdsBtn');
-  if(saveThresholdsBtn) saveThresholdsBtn.addEventListener('click', async () => {
-    const m = document.getElementById('matchMinPlayersInput')?.value;
-    const t = document.getElementById('trainingMinPlayersInput')?.value;
-    await savePlayerThresholds(m, t);
-    render();
-  });
-  panel.querySelectorAll('[data-removeplayer]').forEach(el => {
+panel.querySelectorAll('[data-removeplayer]').forEach(el => {
     el.addEventListener('click', () => removePlayer(el.dataset.removeplayer));
   });
   panel.querySelectorAll('[data-editplayer]').forEach(el => {
