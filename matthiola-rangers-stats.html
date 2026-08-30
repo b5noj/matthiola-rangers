@@ -49,6 +49,13 @@
     align-items:center;
     gap:14px;
   }
+  .header::before{
+    content:"";
+    position:absolute; top:-40%; right:-10%;
+    width:260px; height:260px;
+    border:2px solid rgba(255,255,255,0.08);
+    border-radius:50%;
+  }
   .crest{ flex-shrink:0; width:50px; height:auto; max-height:56px; object-fit:contain; position:relative; z-index:1; }
   .title-block{ position:relative; z-index:1; min-width:0; }
   .club-name{
@@ -314,104 +321,37 @@
   .weekly-comms-preview{width:100%;min-height:360px;padding:12px;border:1.5px solid var(--border);border-radius:8px;background:#fafaf7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;resize:vertical;}
   .weekly-comms-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:6px 0 0;}
 
-  /* Keep native iOS/Safari date controls inside their cards */
-  input[type="date"]{
-    box-sizing:border-box !important;
-    max-width:100% !important;
-  }
+/* ===== Stats ===== */
+.stats-wrap{margin-top:10px}
+.stats-subtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.stats-subtab{padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:var(--panel);font-weight:800;font-size:13px;cursor:pointer}
+.stats-subtab.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.stats-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:10px 0 14px}
+.stats-summary-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center}
+.stats-summary-card b{display:block;font-size:20px;line-height:1.1}.stats-summary-card span{font-size:10px;color:var(--ink-soft);font-weight:700}
+.stats-filter{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 12px}
+.stats-result-card{border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:12px;margin:9px 0}
+.stats-result-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.stats-result-date{font-weight:800;font-size:13px}.stats-result-opponent{font-size:14px;margin-top:3px}
+.stats-score{font-size:19px;font-weight:900;text-align:right}
+.stats-status{display:inline-block;font-size:10px;font-weight:800;padding:4px 7px;border-radius:7px;margin-top:3px}
+.stats-status.pending{background:#fff1c9}.stats-status.completed{background:#dff1df}.stats-status.cancelled{background:#eee}
+.stats-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.stats-entry-table,.stats-player-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.stats-entry-table th,.stats-entry-table td,.stats-player-table th,.stats-player-table td{padding:7px 3px;border-bottom:1px solid var(--border);font-size:12px;text-align:center}
+.stats-entry-table th:first-child,.stats-entry-table td:first-child,.stats-player-table th:first-child,.stats-player-table td:first-child{text-align:left}
+.stats-entry-table th:first-child,.stats-entry-table td:first-child{width:35%}
+.stats-player-table{min-width:520px}
+.stats-player-table th:first-child,.stats-player-table td:first-child{width:34%}
+.stats-step{display:inline-flex;align-items:center;justify-content:center;gap:3px}
+.stats-step button{width:24px;height:27px;border:1px solid var(--border);border-radius:6px;background:var(--panel);font-weight:900;padding:0}
+.stats-step span{min-width:14px;font-weight:800}
+.stats-awards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.stats-awards label{border:1px solid var(--border);border-radius:8px;padding:7px;font-size:12px}
+.stats-check{font-size:11px;font-weight:800;margin-top:8px}
+.stats-check.good{color:#287a35}.stats-check.bad{color:#a43a2f}
+@media(max-width:700px){.stats-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
-  @media(max-width:519px){
-    .bulk-training-date-row{
-      grid-template-columns:1fr !important;
-      gap:10px !important;
-    }
-    input[type="date"]{
-      width:calc(100% - 10px) !important;
-      max-width:calc(100% - 10px) !important;
-      margin-right:10px !important;
-    }
-  }
-
-  .admin-date-wrapper{
-    width:100%;
-    max-width:100%;
-    min-width:0;
-    overflow:hidden;
-  }
-  .admin-date-wrapper input[type="date"]{
-    display:block !important;
-    box-sizing:border-box !important;
-    width:100% !important;
-    max-width:100% !important;
-    min-width:0 !important;
-  }
-
-  .parent-link-summary{
-    background:#fff;border:1.5px solid var(--border);border-radius:10px;
-    padding:14px;margin-bottom:14px;
-  }
-  .parent-link-summary-head{
-    display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;
-  }
-  .parent-link-summary-title{
-    font-family:'Bebas Neue';font-size:17px;letter-spacing:.04em;color:var(--brand-deep);
-  }
-  .parent-link-summary-count{
-    font-size:11px;font-weight:800;padding:4px 8px;border-radius:20px;
-  }
-  .parent-link-summary-count.good{background:var(--good-soft);color:var(--good);}
-  .parent-link-summary-count.warn{background:var(--red-soft);color:var(--red);}
-  .parent-link-child{
-    display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:8px 0;border-top:1px solid var(--line);font-size:13px;
-  }
-  .parent-link-child:first-child{border-top:none;}
-  .parent-link-child-name{font-weight:800;}
-  .parent-link-child-status{font-size:11.5px;font-weight:800;white-space:nowrap;}
-  .parent-link-child-status.good{color:var(--good);}
-  .parent-link-child-status.warn{color:var(--red);}
-  .parent-link-parent-names{font-size:10.5px;color:var(--ink-soft);font-weight:600;margin-left:6px;}
-
-  .weekly-comms-week-buttons{display:flex;gap:7px;margin-top:8px}
-  .weekly-comms-week-buttons .btn{flex:1;min-width:0;padding:8px 5px;font-size:10.5px}
-  @media(max-width:519px){
-    .weekly-comms-week-buttons{gap:5px}
-    .weekly-comms-week-buttons .btn{font-size:9.5px;padding:8px 3px}
-  }
-
-  .schedule-slot-row{display:flex;gap:8px;align-items:center;margin:6px 0;min-width:0}.schedule-slot-row input{flex:1;min-width:0}.schedule-slot-row button{flex:0 0 auto}
-
-  /* Results & player statistics */
-  .stats-filter{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px;}
-  .stats-filter .btn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
-  .stats-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:14px;}
-  .stats-summary-card{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:9px 5px;text-align:center;}
-  .stats-summary-card b{display:block;font-family:'Bebas Neue';font-size:24px;line-height:1;color:var(--brand);}
-  .stats-summary-card span{font-size:10px;color:var(--ink-soft);font-weight:700;text-transform:uppercase;}
-  .result-card{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:9px;}
-  .result-card.pending{border-color:var(--amber-deep);}
-  .result-card.cancelled{opacity:.68;border-style:dashed;border-color:var(--red);}
-  .result-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
-  .result-card-date{font-weight:800;font-size:14px;}
-  .result-card-opponent{font-size:12.5px;color:var(--ink-soft);font-weight:600;margin-top:2px;}
-  .result-score{font-family:'Bebas Neue';font-size:25px;line-height:1;color:var(--brand-deep);white-space:nowrap;}
-  .result-status{display:inline-block;margin-top:4px;font-size:9.5px;font-weight:800;text-transform:uppercase;padding:3px 7px;border-radius:12px;background:var(--ok-soft);color:var(--brand);}
-  .result-status.pending{background:#fff3cf;color:#9b6900;}.result-status.cancelled{background:var(--red-soft);color:var(--red);}
-  .result-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
-  .result-check{font-size:11px;font-weight:700;color:var(--red);margin-top:7px;}
-  .result-entry-table{width:100%;border-collapse:collapse;table-layout:fixed;}
-  .result-entry-table th,.result-entry-table td{padding:6px 2px;border-bottom:1px solid var(--border);font-size:12px;text-align:center;}
-  .result-entry-table th:first-child,.result-entry-table td:first-child{text-align:left;width:34%;}
-  .result-step{display:inline-flex;align-items:center;justify-content:center;gap:3px;}
-  .result-step button{width:22px;height:26px;padding:0;border:1px solid var(--border);border-radius:6px;background:#fff;font-weight:800;}
-  .result-step span{min-width:14px;font-weight:800;}
-  .result-awards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
-  .result-awards label{border:1px solid var(--border);border-radius:8px;padding:7px;font-size:12px;}
-  .player-stats-wrap{overflow-x:auto;}
-  .player-stats-table{width:100%;border-collapse:collapse;min-width:500px;}
-  .player-stats-table th,.player-stats-table td{padding:8px 5px;border-bottom:1px solid var(--border);font-size:12px;text-align:center;}
-  .player-stats-table th:first-child,.player-stats-table td:first-child{text-align:left;}
-  @media(max-width:519px){.stats-summary{grid-template-columns:repeat(2,minmax(0,1fr));}.result-entry-table th:first-child,.result-entry-table td:first-child{width:30%;}.result-awards{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
 <body>
@@ -460,22 +400,33 @@ const googleProvider = new GoogleAuthProvider();
 const DEFAULT_TEAM_NAME = 'Matthiola Rangers';
 const DEFAULT_ROSTER = ['Will','Teddy','Rex','Lennie','Brodie','Luca','Kayleb'];
 
-const DEFAULT_SCHEDULE = {
-  match: { dayOfWeek:6, slots:[{id:'s1',label:'9–10am'},{id:'s2',label:'10–11am'},{id:'s3',label:'11–12am'}] },
-  training: { dayOfWeek:4, slots:[{id:'t1',label:'Session'}] }
-};
 const SHEETS = {
-  match: { label:'Matches', dayOfWeek:DEFAULT_SCHEDULE.match.dayOfWeek, slots:DEFAULT_SCHEDULE.match.slots.map(s=>({...s})), threshold:7 },
-  training: { label:'Training', dayOfWeek:DEFAULT_SCHEDULE.training.dayOfWeek, slots:DEFAULT_SCHEDULE.training.slots.map(s=>({...s})), threshold:7 }
+  match: {
+    label: 'Matches',
+    dayOfWeek: 6,
+    slots: [
+      {id:'s1', label:'9–10am'},
+      {id:'s2', label:'10–11am'},
+      {id:'s3', label:'11–12am'}
+    ],
+    threshold: 7
+  },
+  training: {
+    label: 'Training',
+    dayOfWeek: 4,
+    slots: [
+      {id:'t1', label:'Session'}
+    ],
+    threshold: 7
+  }
 };
 
 let roster = DEFAULT_ROSTER.slice();
-let scheduleConfig = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
 let teamName = DEFAULT_TEAM_NAME;
 let availability = {match:{}, training:{}};
 let availabilityMeta = {match:{}, training:{}}; // type -> name -> {updatedAt, updatedBy}
 let fixtures = {};        // dateKey -> {opponent, koTime, location}
-let trainingInfo = {};    // dateKey -> {time, location, what3words}
+let trainingInfo = {};    // dateKey -> {time, location}
 let parents = {};         // email -> {child: 'Will'|'', isAdmin: bool}
 let parentAccess = {};    // email -> {lastSeen: timestamp}
 let currentUser = null;   // {email, name}
@@ -484,7 +435,6 @@ let parentsLoaded = false; // true once the signed-in parent's record has been l
 let parentRecordLoaded = false; // prevents the UI from treating an unqueried parent as unlinked
 let editingFixture = null;
 let editingTrainingInfo = null;
-let bulkTrainingFrom = ''; let bulkTrainingTo = ''; let bulkTrainingDay = ''; let bulkTrainingTime = ''; let bulkTrainingLocation = ''; let bulkTrainingW3W = '';
 let expandedSlot = null;
 let selectedPlayer = null;
 let activeSheet = 'match';
@@ -510,8 +460,6 @@ let adminExtraMatchType = '';
 let adminExtraW3W = '';
 let weeklyCommsWeek = '';
 let squadViewFilter = 'all'; // 'all' | 'problem'
-let statsView = 'results'; // 'results' | 'players'
-let resultsFilter = 'pending'; // 'pending' | 'completed' | 'all'
 
 roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
 
@@ -633,7 +581,7 @@ async function ensureSettingsSeeded(){
   const ref = doc(db, 'team_config', 'settings');
   const snap = await getDoc(ref);
   if(!snap.exists()){
-    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER, matchMinPlayers: 7, trainingMinPlayers: 7, scheduleConfig: DEFAULT_SCHEDULE });
+    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER });
   }
 }
 
@@ -643,25 +591,6 @@ function watchSettings(){
       const data = snap.data();
       teamName = data.teamName || DEFAULT_TEAM_NAME;
       roster = Array.isArray(data.roster) && data.roster.length ? data.roster : DEFAULT_ROSTER.slice();
-      const matchMin = Number(data.matchMinPlayers);
-      const trainingMin = Number(data.trainingMinPlayers);
-      SHEETS.match.threshold = Number.isFinite(matchMin) && matchMin >= 1 ? matchMin : 7;
-      SHEETS.training.threshold = Number.isFinite(trainingMin) && trainingMin >= 1 ? trainingMin : 7;
-      const sc = data.scheduleConfig || {};
-      scheduleConfig = {
-        match: {
-          dayOfWeek: Number.isInteger(sc.match?.dayOfWeek) ? sc.match.dayOfWeek : DEFAULT_SCHEDULE.match.dayOfWeek,
-          slots: Array.isArray(sc.match?.slots) && sc.match.slots.length ? sc.match.slots : DEFAULT_SCHEDULE.match.slots
-        },
-        training: {
-          dayOfWeek: Number.isInteger(sc.training?.dayOfWeek) ? sc.training.dayOfWeek : DEFAULT_SCHEDULE.training.dayOfWeek,
-          slots: Array.isArray(sc.training?.slots) && sc.training.slots.length ? sc.training.slots : DEFAULT_SCHEDULE.training.slots
-        }
-      };
-      SHEETS.match.dayOfWeek=scheduleConfig.match.dayOfWeek;
-      SHEETS.match.slots=scheduleConfig.match.slots.map(s=>({...s}));
-      SHEETS.training.dayOfWeek=scheduleConfig.training.dayOfWeek;
-      SHEETS.training.slots=scheduleConfig.training.slots.map(s=>({...s}));
     }
     if(roster.length && !selectedPlayer) selectedPlayer = roster[0];
     if(roster.length && !roster.includes(selectedPlayer)) selectedPlayer = roster[0];
@@ -774,20 +703,8 @@ async function removeCancelledDate(type, dateKey){
 }
 
 async function saveSettings(){
-  try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster, matchMinPlayers: SHEETS.match.threshold, trainingMinPlayers: SHEETS.training.threshold }, {merge:true}); }
+  try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster }); }
   catch(e){ console.error('Failed to save settings', e); showConnectionWarning(); }
-}
-async function savePlayerThresholds(matchMin, trainingMin){
-  const m = Math.max(1, Math.min(30, Number(matchMin) || 1));
-  const t = Math.max(1, Math.min(30, Number(trainingMin) || 1));
-  SHEETS.match.threshold = m;
-  SHEETS.training.threshold = t;
-  try{
-    await setDoc(doc(db, 'team_config', 'settings'), { matchMinPlayers:m, trainingMinPlayers:t }, {merge:true});
-  }catch(e){
-    console.error('Failed to save player thresholds', e);
-    showConnectionWarning();
-  }
 }
 async function saveFixture(dateKey, data){
   try{ await setDoc(doc(db, 'fixtures', dateKey), data); }
@@ -992,13 +909,6 @@ function fixtureInfoRows(dateKey){
     const parts = [];
     if(t.time) parts.push(escapeHtml(t.time));
     if(t.location) parts.push(`@ ${escapeHtml(t.location)}`);
-    if(t.what3words){
-      const w3wClean = String(t.what3words).replace(/^\/+/, '').trim();
-      if(w3wClean){
-        const w3wUrl = `https://what3words.com/${encodeURIComponent(w3wClean)}`;
-        parts.push(`w3w: <a href="${w3wUrl}" target="_blank" rel="noopener" class="w3w-link" onclick="event.stopPropagation()">${escapeHtml(w3wClean)}</a>`);
-      }
-    }
     const r1 = parts.join(' ');
     return { row1: r1, row2: '', hasContent: !!r1 };
   }
@@ -1040,7 +950,6 @@ function renderFixtureLine(dateKey){
       return `<div class="fixture-edit">
         <input class="fx-input" data-field="time" placeholder="Time e.g. 6:00pm" value="${escapeAttr(t.time||'')}"/>
         <input class="fx-input" data-field="location" placeholder="Location" value="${escapeAttr(t.location||'')}"/>
-        <input class="fx-input" data-field="what3words" placeholder="What3Words e.g. filled.count.soap" value="${escapeAttr(t.what3words||'')}"/>
         <div class="fx-actions">
           <button class="btn btn-amber fx-save-training" data-datekey="${dateKey}">Save</button>
           <button class="btn btn-ghost fx-cancel">Cancel</button>
@@ -1088,8 +997,7 @@ function wireFixtureEditing(panel){
       const container = el.closest('.fixture-edit');
       const data = {
         time: container.querySelector('[data-field="time"]').value.trim(),
-        location: container.querySelector('[data-field="location"]').value.trim(),
-        what3words: container.querySelector('[data-field="what3words"]').value.trim().replace(/^\/+/, '')
+        location: container.querySelector('[data-field="location"]').value.trim()
       };
       trainingInfo[dateKey] = data;
       editingTrainingInfo = null;
@@ -1388,69 +1296,47 @@ function namesForSlot(type, dateKey, slotId){
   });
   return {availableNames, unavailableNames};
 }
-function weeklyPlayerGrid(type, dateKey, slotId){
-  const names = roster.map(name => {
-    const slot = (availability[type][name] && availability[type][name][dateKey]) || {};
-    const unavailable = !!slot[slotId];
-    return `${unavailable ? '❌' : '✅'} ${name}`;
-  });
-  const cols = 3;
-  const rows = [];
-  for(let i=0;i<names.length;i+=cols){
-    rows.push(names.slice(i,i+cols).join('    '));
-  }
-  return rows.join('\n');
-}
-function weeklyAvailabilitySummary(type, dateKey, slotId){
-  let available = 0;
-  roster.forEach(name => {
-    const slot = (availability[type][name] && availability[type][name][dateKey]) || {};
-    if(!slot[slotId]) available++;
-  });
-  const total = roster.length;
-  const threshold = SHEETS[type]?.threshold ?? 7;
-  const traffic = available >= threshold ? '🟢' : '🔴';
-  return {available, total, traffic};
-}
 function weeklyMatchSection(dateKey){
   const f = fixtures[dateKey] || {};
   const cancelled = isCancelled('match', dateKey);
-  const lines = [`*⚽ MATCH${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
+  const lines = ['⚽ MATCH', '', formatLongDateKey(dateKey)];
   if(f.matchType) lines.push(`Type: ${f.matchType}`);
-  if(f.opponent) lines.push(`🆚 ${f.opponent}`);
-  if(f.koTime) lines.push(`🕐 ${f.koTime}`);
-  if(f.location) lines.push(`📍 ${f.location}`);
+  if(f.opponent) lines.push(`Opponent: ${f.opponent}`);
+  if(f.koTime) lines.push(`Kick-off: ${f.koTime}`);
+  if(f.location) lines.push(`Location: ${f.location}`);
   if(f.what3words){
     const clean = String(f.what3words).replace(/^\/+/, '').trim();
-    if(clean) lines.push(`🗺️ https://what3words.com/${encodeURIComponent(clean)}`);
+    lines.push(`What3Words: https://what3words.com/${encodeURIComponent(clean)}`);
   }
-  if(cancelled) return lines.join('\n') + '\n🚫 *CANCELLED*';
-
+  if(cancelled){
+    lines.push('', '🚫 CANCELLED');
+    return lines.join('\n');
+  }
   const slot = getRelevantMatchSlot(dateKey);
   if(slot){
-    const summary = weeklyAvailabilitySummary('match', dateKey, slot.id);
-    lines.push('', `👥 *${summary.available}/${summary.total} AVAILABLE* ${summary.traffic}`);
-    lines.push(weeklyPlayerGrid('match', dateKey, slot.id));
+    const names = namesForSlot('match', dateKey, slot.id);
+    lines.push('', slot.label !== 'Session' ? `Availability (${slot.label}):` : 'Availability:');
+    lines.push(`✅ Available (${names.availableNames.length}): ${names.availableNames.length ? names.availableNames.join(', ') : 'None'}`);
+    lines.push(`❌ Unavailable (${names.unavailableNames.length}): ${names.unavailableNames.length ? names.unavailableNames.join(', ') : 'None'}`);
   }
   return lines.join('\n');
 }
 function weeklyTrainingSection(dateKey){
   const t = trainingInfo[dateKey] || {};
   const cancelled = isCancelled('training', dateKey);
-  const lines = [`*🏃 TRAINING${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
-  if(t.time) lines.push(`🕐 ${t.time}`);
-  if(t.location) lines.push(`📍 ${t.location}`);
-  if(t.what3words){
-    const clean = String(t.what3words).replace(/^\/+/, '').trim();
-    if(clean) lines.push(`🗺️ https://what3words.com/${encodeURIComponent(clean)}`);
+  const lines = ['🏃 TRAINING', '', formatLongDateKey(dateKey)];
+  if(t.time) lines.push(`Time: ${t.time}`);
+  if(t.location) lines.push(`Location: ${t.location}`);
+  if(cancelled){
+    lines.push('', '🚫 CANCELLED');
+    return lines.join('\n');
   }
-  if(cancelled) return lines.join('\n') + '\n🚫 *CANCELLED*';
-
   const slots = slotsForDate('training', dateKey);
   if(slots.length){
-    const summary = weeklyAvailabilitySummary('training', dateKey, slots[0].id);
-    lines.push('', `👥 *${summary.available}/${summary.total} AVAILABLE* ${summary.traffic}`);
-    lines.push(weeklyPlayerGrid('training', dateKey, slots[0].id));
+    const names = namesForSlot('training', dateKey, slots[0].id);
+    lines.push('', 'Availability:');
+    lines.push(`✅ Available (${names.availableNames.length}): ${names.availableNames.length ? names.availableNames.join(', ') : 'None'}`);
+    lines.push(`❌ Unavailable (${names.unavailableNames.length}): ${names.unavailableNames.length ? names.unavailableNames.join(', ') : 'None'}`);
   }
   return lines.join('\n');
 }
@@ -1465,52 +1351,30 @@ function generateWeeklyCommsMessage(){
   const monday=mondayForDateInput(weeklyCommsWeek);
   weeklyCommsWeek=isoDate(monday);
   const keys=getWeekSessionKeys(monday);
-
-  // A fixture/training document alone is not enough to make an event part of
-  // the weekly message. It must be a normal scheduled day, an active extra
-  // date, or explicitly cancelled. This prevents an old orphaned test fixture
-  // from appearing in WhatsApp after it has been removed from Extra Fixtures.
   const matchKeys=keys.filter(k=>{
     const regularDay=new Date(k+'T00:00:00').getDay()===SHEETS.match.dayOfWeek;
-    const hasFixture=!!(fixtures[k] && Object.keys(fixtures[k]).length);
-    return (regularDay && hasFixture) || !!(extraDates.match&&extraDates.match[k]) || isCancelled('match',k);
+    return regularDay || !!(extraDates.match&&extraDates.match[k]) || !!fixtures[k] || isCancelled('match',k);
   });
   const trainingKeys=keys.filter(k=>{
     const regularDay=new Date(k+'T00:00:00').getDay()===SHEETS.training.dayOfWeek;
-    const hasTraining=!!(trainingInfo[k] && Object.keys(trainingInfo[k]).length);
-    return (regularDay && hasTraining) || !!(extraDates.training&&extraDates.training[k]) || isCancelled('training',k);
+    return regularDay || !!(extraDates.training&&extraDates.training[k]) || !!trainingInfo[k] || isCancelled('training',k);
   });
-
   const sections=[`📅 ${teamName.toUpperCase()} — WEEK COMMENCING ${formatLongDateKey(isoDate(monday))}`,''];
   if(matchKeys.length) matchKeys.forEach(k=>sections.push(weeklyMatchSection(k)));
-  else sections.push('*⚽ MATCH*','', 'No match scheduled this week.');
+  else sections.push('⚽ MATCH','', 'No match scheduled this week.');
   sections.push('');
   if(trainingKeys.length) trainingKeys.forEach(k=>sections.push(weeklyTrainingSection(k)));
-  else sections.push('*🏃 TRAINING*','', 'No training scheduled this week.');
+  else sections.push('🏃 TRAINING','', 'No training scheduled this week.');
   return sections.join('\n');
 }
 function renderWeeklyCommsTab(){
   const panel=document.getElementById('panel');
-  if(!weeklyCommsWeek) weeklyCommsWeek=isoDate(mondayForDateInput(isoDate(new Date())));
+  if(!weeklyCommsWeek) weeklyCommsWeek=isoDate(getNextMondayDate());
   const message=generateWeeklyCommsMessage();
-  panel.innerHTML=`<div class="section-label">Admin</div>
-    <div class="admin-subtabs">
-      <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
-      <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
-      <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
-      <div class="admin-subtab ${adminSubTab==='schedule'?'active':''}" data-subtab="schedule">Schedule</div>
-    <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
-     <div class="admin-subtab ${adminSubTab==='bulkTraining'?'active':''}" data-subtab="bulkTraining">Bulk Training</div>
-    </div>
-    <div class="section-label">Weekly Comms</div>
+  panel.innerHTML=`<div class="section-label">Weekly Comms</div>
     <div class="weekly-comms-card">
       <div class="admin-label-sm">Week commencing</div>
-      <div class="admin-date-wrapper"><input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="box-sizing:border-box;min-width:0;max-width:100%;width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter';"/></div>
-      <div class="weekly-comms-week-buttons">
-        <button type="button" class="btn btn-ghost" id="weeklyCommsPrevWeekBtn">‹ Previous Week</button>
-        <button type="button" class="btn btn-ghost" id="weeklyCommsThisWeekBtn">This Week</button>
-        <button type="button" class="btn btn-ghost" id="weeklyCommsNextWeekBtn">Next Week ›</button>
-      </div>
+      <input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter';"/>
       <p class="weekly-comms-note">The message uses the existing match/training details and squad availability. Everyone is treated as available unless they have marked themselves unavailable.</p>
     </div>
     <div class="weekly-comms-card">
@@ -1521,27 +1385,7 @@ function renderWeeklyCommsTab(){
         <button class="btn btn-brand" id="openWeeklyWhatsAppBtn">Open WhatsApp</button>
       </div>
     </div>`;
-  panel.querySelectorAll('.admin-subtab').forEach(el => {
-    el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
-  });
-  
-  document.getElementById('weeklyCommsPrevWeekBtn').addEventListener('click',()=>{
-    const d=mondayForDateInput(weeklyCommsWeek);
-    d.setDate(d.getDate()-7);
-    weeklyCommsWeek=isoDate(d);
-    render();
-  });
-  document.getElementById('weeklyCommsThisWeekBtn').addEventListener('click',()=>{
-    weeklyCommsWeek=isoDate(mondayForDateInput(isoDate(new Date())));
-    render();
-  });
-  document.getElementById('weeklyCommsNextWeekBtn').addEventListener('click',()=>{
-    const d=mondayForDateInput(weeklyCommsWeek);
-    d.setDate(d.getDate()+7);
-    weeklyCommsWeek=isoDate(d);
-    render();
-  });
-document.getElementById('weeklyCommsWeekInput').addEventListener('change',e=>{
+  document.getElementById('weeklyCommsWeekInput').addEventListener('change',e=>{
     weeklyCommsWeek=isoDate(mondayForDateInput(e.target.value)); render();
   });
   document.getElementById('copyWeeklyCommsBtn').addEventListener('click',async()=>{
@@ -1556,82 +1400,6 @@ document.getElementById('weeklyCommsWeekInput').addEventListener('change',e=>{
   });
 }
 
-function renderBulkTrainingTab(){
-  const panel=document.getElementById('panel');
-  panel.innerHTML=`<div class="section-label">Admin</div>
-    <div class="admin-subtabs">
-      <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
-      <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
-      <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
-      <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
-      <div class="admin-subtab ${adminSubTab==='bulkTraining'?'active':''}" data-subtab="bulkTraining">Bulk Training</div>
-    </div>
-    <div class="section-label">Bulk Training Schedule</div>
-    <div class="weekly-comms-card">
-      <div class="bulk-training-date-row" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;width:100%;">
-        <div style="min-width:0;width:100%;"><div class="admin-label-sm">From</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
-        <div style="min-width:0;width:100%;"><div class="admin-label-sm">To</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
-      </div>
-      <div class="admin-label-sm" style="margin-top:10px;">Training day</div>
-      <select class="fx-input" id="bulkTrainingDay">
-        <option value="">Select day</option>
-        ${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d,i)=>`<option value="${i}" ${bulkTrainingDay===String(i)?'selected':''}>${d}</option>`).join('')}
-      </select>
-      <div class="admin-label-sm" style="margin-top:10px;">Time</div><input class="fx-input" id="bulkTrainingTime" placeholder="e.g. 6:00pm" value="${escapeAttr(bulkTrainingTime)}"/>
-      <div class="admin-label-sm">Location</div><input class="fx-input" id="bulkTrainingLocation" placeholder="e.g. Walton Hall Astro" value="${escapeAttr(bulkTrainingLocation)}"/>
-      <div class="admin-label-sm">What3Words</div><input class="fx-input" id="bulkTrainingW3W" placeholder="e.g. filled.count.soap" value="${escapeAttr(bulkTrainingW3W)}"/>
-      <button class="btn btn-amber" id="applyBulkTrainingBtn">Update Training</button>
-    </div>`;
-
-  panel.querySelectorAll('.admin-subtab').forEach(el => {
-    el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
-  });
-
-  const ids=['bulkTrainingFrom','bulkTrainingTo','bulkTrainingDay','bulkTrainingTime','bulkTrainingLocation','bulkTrainingW3W'];
-  ids.forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{
-    bulkTrainingFrom=document.getElementById('bulkTrainingFrom').value;
-    bulkTrainingTo=document.getElementById('bulkTrainingTo').value;
-    bulkTrainingDay=document.getElementById('bulkTrainingDay').value;
-    bulkTrainingTime=document.getElementById('bulkTrainingTime').value;
-    bulkTrainingLocation=document.getElementById('bulkTrainingLocation').value;
-    bulkTrainingW3W=document.getElementById('bulkTrainingW3W').value;
-  }));
-
-  document.getElementById('applyBulkTrainingBtn').addEventListener('click',async()=>{
-    bulkTrainingFrom=document.getElementById('bulkTrainingFrom').value;
-    bulkTrainingTo=document.getElementById('bulkTrainingTo').value;
-    bulkTrainingDay=document.getElementById('bulkTrainingDay').value;
-    bulkTrainingTime=document.getElementById('bulkTrainingTime').value.trim();
-    bulkTrainingLocation=document.getElementById('bulkTrainingLocation').value.trim();
-    bulkTrainingW3W=document.getElementById('bulkTrainingW3W').value.trim().replace(/^\/+/, '');
-
-    if(!bulkTrainingFrom || !bulkTrainingTo || bulkTrainingDay===''){
-      alert('Please enter the date range and training day.');
-      return;
-    }
-    if(new Date(bulkTrainingFrom+'T00:00:00') > new Date(bulkTrainingTo+'T00:00:00')){
-      alert('The From date must be before the To date.');
-      return;
-    }
-
-    const data={time:bulkTrainingTime,location:bulkTrainingLocation,what3words:bulkTrainingW3W};
-    let count=0;
-    const start=new Date(bulkTrainingFrom+'T00:00:00');
-    const end=new Date(bulkTrainingTo+'T00:00:00');
-
-    for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
-      if(d.getDay()!==Number(bulkTrainingDay)) continue;
-      const key=isoDate(d);
-      await saveTrainingInfo(key,data);
-      trainingInfo[key]=data;
-      count++;
-    }
-
-    render();
-    alert(`${count} training date${count===1?'':'s'} updated.`);
-  });
-}
-
 function renderAdminTab(){
   const panel = document.getElementById('panel');
   let html = `<div class="section-label">Admin</div>`;
@@ -1640,7 +1408,6 @@ function renderAdminTab(){
     <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
     <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
     <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
-     <div class="admin-subtab ${adminSubTab==='bulkTraining'?'active':''}" data-subtab="bulkTraining">Bulk Training</div>
   </div>`;
 
   if(adminSubTab === 'squad'){
@@ -1678,68 +1445,8 @@ function renderAdminTab(){
       <input id="newPlayerInput" placeholder="Add a player to the squad…" maxlength="40"/>
       <button class="btn btn-amber" id="addPlayerBtn">Add</button>
     </div>`;
-    html += `<div class="admin-form" style="margin-top:14px;">
-      <div class="admin-label-sm">Minimum players required</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div style="min-width:0;">
-          <div class="admin-label-sm" style="margin-bottom:4px;">Match</div>
-          <input id="matchMinPlayersInput" type="number" min="1" max="30" step="1" value="${SHEETS.match.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
-        </div>
-        <div style="min-width:0;">
-          <div class="admin-label-sm" style="margin-bottom:4px;">Training</div>
-          <input id="trainingMinPlayersInput" type="number" min="1" max="30" step="1" value="${SHEETS.training.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
-        </div>
-      </div>
-      <button class="btn btn-amber" id="saveThresholdsBtn" style="width:100%;margin-top:10px;">Save player requirements</button>
-    </div>`;
-
-  } else if(adminSubTab === 'schedule'){
-    html += `<div class="hint">Set the normal match and training days and time slots. These are defaults only; existing dates and bulk training changes are not altered.</div>`;
-    html += `<div class="admin-card">
-      <div class="admin-card-title">Default Match Schedule</div>
-      <div class="admin-label-sm">Match day</div>
-      <select id="scheduleMatchDay" class="fx-input" style="width:100%;"><option value="1" ${scheduleConfig.match.dayOfWeek==1?"selected":""}>Monday</option><option value="2" ${scheduleConfig.match.dayOfWeek==2?"selected":""}>Tuesday</option><option value="3" ${scheduleConfig.match.dayOfWeek==3?"selected":""}>Wednesday</option><option value="4" ${scheduleConfig.match.dayOfWeek==4?"selected":""}>Thursday</option><option value="5" ${scheduleConfig.match.dayOfWeek==5?"selected":""}>Friday</option><option value="6" ${scheduleConfig.match.dayOfWeek==6?"selected":""}>Saturday</option><option value="0" ${scheduleConfig.match.dayOfWeek==0?"selected":""}>Sunday</option></select>
-      <div class="admin-label-sm" style="margin-top:10px;">Match time slots</div>
-      <div id="scheduleMatchSlots"></div>
-      <button class="btn btn-ghost" id="scheduleAddMatchSlot" type="button">+ Add match time slot</button>
-    </div>`;
-    html += `<div class="admin-card" style="margin-top:12px;">
-      <div class="admin-card-title">Default Training Schedule</div>
-      <div class="admin-label-sm">Training day</div>
-      <select id="scheduleTrainingDay" class="fx-input" style="width:100%;"><option value="1" ${scheduleConfig.training.dayOfWeek==1?"selected":""}>Monday</option><option value="2" ${scheduleConfig.training.dayOfWeek==2?"selected":""}>Tuesday</option><option value="3" ${scheduleConfig.training.dayOfWeek==3?"selected":""}>Wednesday</option><option value="4" ${scheduleConfig.training.dayOfWeek==4?"selected":""}>Thursday</option><option value="5" ${scheduleConfig.training.dayOfWeek==5?"selected":""}>Friday</option><option value="6" ${scheduleConfig.training.dayOfWeek==6?"selected":""}>Saturday</option><option value="0" ${scheduleConfig.training.dayOfWeek==0?"selected":""}>Sunday</option></select>
-      <div class="admin-label-sm" style="margin-top:10px;">Training time slots</div>
-      <div id="scheduleTrainingSlots"></div>
-      <button class="btn btn-ghost" id="scheduleAddTrainingSlot" type="button">+ Add training time slot</button>
-    </div>`;
-    html += `<button class="btn btn-amber" id="saveScheduleBtn" style="width:100%;margin-top:10px;">Save schedule settings</button>`;
   } else if(adminSubTab === 'parents'){
-    const childParentMap = {};
-    roster.forEach(child => { childParentMap[child] = []; });
-    Object.keys(parents).forEach(email => {
-      const p = parents[email] || {};
-      if(p.child && childParentMap[p.child]) childParentMap[p.child].push(p.name || email);
-    });
-    const linkedChildren = roster.filter(child => childParentMap[child].length > 0).length;
-    const allChildrenLinked = linkedChildren === roster.length && roster.length > 0;
-
     html += `<div class="hint">Link each parent's login email to their child, and mark which parents are admins. A parent only ever sees and updates their own child's availability.</div>`;
-    html += `<div class="parent-link-summary">
-      <div class="parent-link-summary-head">
-        <div class="parent-link-summary-title">Parent Link Check</div>
-        <div class="parent-link-summary-count ${allChildrenLinked ? 'good' : 'warn'}">${linkedChildren}/${roster.length} children linked</div>
-      </div>
-      ${roster.map(child => {
-        const linked = childParentMap[child] || [];
-        const hasParent = linked.length > 0;
-        return `<div class="parent-link-child">
-          <div>
-            <span class="parent-link-child-name">${escapeHtml(child)}</span>
-            ${hasParent ? `<span class="parent-link-parent-names">(${linked.map(escapeHtml).join(', ')})</span>` : ''}
-          </div>
-          <div class="parent-link-child-status ${hasParent ? 'good' : 'warn'}">${hasParent ? `✓ ${linked.length} parent${linked.length===1?'':'s'}` : '⚠ No parent linked'}</div>
-        </div>`;
-      }).join('')}
-    </div>`;
     html += `<div class="admin-list">`;
     Object.keys(parents).forEach(email => {
       const p = parents[email];
@@ -1799,7 +1506,7 @@ function renderAdminTab(){
         <button type="button" class="reason-chip extra-type-chip ${adminExtraType==='training'?'selected':''}" data-extratype="training">Training</button>
       </div>
       <div class="admin-label-sm">Date:</div>
-      <div class="admin-date-wrapper"><input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="box-sizing:border-box;min-width:0;max-width:100%;width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/></div>
+      <input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
       <div class="admin-label-sm">Time slot(s):</div>
       <input id="extraSlotsInput" placeholder="e.g. 6-7pm, or 5-6pm, 6-7pm for more than one" value="${escapeAttr(adminExtraSlotsRaw)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
       <div class="hint" style="margin:0 0 12px;">Separate with commas if there's more than one slot. Leave blank for a single unlabelled session.</div>
@@ -1824,10 +1531,6 @@ function renderAdminTab(){
     </div>`;
   }
 
-  if(adminSubTab === 'bulkTraining') {
-    renderBulkTrainingTab();
-    return;
-  }
   if(adminSubTab === 'weekly') {
     renderWeeklyCommsTab();
     return;
@@ -1844,13 +1547,6 @@ function renderAdminTab(){
   if(addBtn) addBtn.addEventListener('click', addPlayer);
   const newInput = document.getElementById('newPlayerInput');
   if(newInput) newInput.addEventListener('keydown', e => { if(e.key==='Enter') addPlayer(); });
-  const saveThresholdsBtn = document.getElementById('saveThresholdsBtn');
-  if(saveThresholdsBtn) saveThresholdsBtn.addEventListener('click', async () => {
-    const m = document.getElementById('matchMinPlayersInput')?.value;
-    const t = document.getElementById('trainingMinPlayersInput')?.value;
-    await savePlayerThresholds(m, t);
-    render();
-  });
   panel.querySelectorAll('[data-removeplayer]').forEach(el => {
     el.addEventListener('click', () => removePlayer(el.dataset.removeplayer));
   });
@@ -2052,137 +1748,6 @@ function updateUserBar(){
   }
 }
 
-function renderScheduleEditor(){
-  const m=document.getElementById('scheduleMatchSlots'), t=document.getElementById('scheduleTrainingSlots');
-  if(!m || !t) return;
-  const draw=(el,type)=>{
-    el.innerHTML=scheduleConfig[type].slots.map((s,i)=>`<div class="schedule-slot-row"><input class="fx-input" data-schedule-type="${type}" data-schedule-index="${i}" value="${escapeAttr(s.label)}"><button class="btn btn-ghost" type="button" data-schedule-remove="${type}" data-schedule-index="${i}">Remove</button></div>`).join('');
-    el.querySelectorAll('[data-schedule-remove]').forEach(b=>b.onclick=()=>{
-      const ty=b.dataset.scheduleRemove,i=Number(b.dataset.scheduleIndex);
-      if(scheduleConfig[ty].slots.length>1){scheduleConfig[ty].slots.splice(i,1);renderScheduleEditor();}
-    });
-  };
-  draw(m,'match'); draw(t,'training');
-  const addM=document.getElementById('scheduleAddMatchSlot');
-  const addT=document.getElementById('scheduleAddTrainingSlot');
-  const save=document.getElementById('saveScheduleBtn');
-  if(addM) addM.onclick=()=>{scheduleConfig.match.slots.push({id:'s'+Date.now(),label:'New slot'});renderScheduleEditor();};
-  if(addT) addT.onclick=()=>{scheduleConfig.training.slots.push({id:'t'+Date.now(),label:'New slot'});renderScheduleEditor();};
-  if(save) save.onclick=async()=>{
-    scheduleConfig.match.dayOfWeek=Number(document.getElementById('scheduleMatchDay').value);
-    scheduleConfig.training.dayOfWeek=Number(document.getElementById('scheduleTrainingDay').value);
-    document.querySelectorAll('[data-schedule-type]').forEach(i=>{
-      const ty=i.dataset.scheduleType,n=Number(i.dataset.scheduleIndex);
-      if(scheduleConfig[ty]?.slots[n]) scheduleConfig[ty].slots[n].label=i.value.trim()||'Slot';
-    });
-    try{
-      save.disabled=true;
-      await setDoc(doc(db,'team_config','settings'),{scheduleConfig},{merge:true});
-      SHEETS.match.dayOfWeek=scheduleConfig.match.dayOfWeek; SHEETS.match.slots=scheduleConfig.match.slots.map(s=>({...s}));
-      SHEETS.training.dayOfWeek=scheduleConfig.training.dayOfWeek; SHEETS.training.slots=scheduleConfig.training.slots.map(s=>({...s}));
-      render();
-    }catch(e){console.error('Schedule save failed',e);showConnectionWarning();}
-    finally{save.disabled=false;}
-  };
-}
-
-
-// ---- Results & Player Statistics ----
-function resultStatus(dateKey){
-  const f=fixtures[dateKey]||{};
-  if(f.resultStatus==='cancelled' || f.cancelledResult===true) return 'cancelled';
-  const r=f.result;
-  if(r && Number.isFinite(Number(r.homeScore)) && Number.isFinite(Number(r.awayScore))) return 'completed';
-  return 'pending';
-}
-function resultFixtures(){
-  return Object.keys(fixtures||{}).sort().map(k=>({key:k,data:fixtures[k]||{}}));
-}
-function resultPlayerId(name){ return String(name); }
-function resultPlayerStatsFor(f,name){
-  const r=f.result||{}; const ps=r.players||{}; return ps[resultPlayerId(name)]||{};
-}
-function renderStatsPage(){
-  const panel=document.getElementById('panel');
-  if(!panel) return;
-  if(statsView==='players'){ renderPlayerStatsPage(); return; }
-  const all=resultFixtures();
-  const filtered=all.filter(x=>resultsFilter==='all'||resultStatus(x.key)===resultsFilter);
-  const completed=all.filter(x=>resultStatus(x.key)==='completed');
-  let wins=0,draws=0,losses=0,gf=0,ga=0;
-  completed.forEach(x=>{const h=Number(x.data.result.homeScore||0),a=Number(x.data.result.awayScore||0);gf+=h;ga+=a;if(h>a)wins++;else if(h===a)draws++;else losses++;});
-  panel.innerHTML=`<div class="section-label">Results &amp; Stats</div>
-    <div class="stats-filter">
-      <button class="btn ${statsView==='results'?'btn-amber':''} ${statsView==='results'?'active':''}" onclick="statsShowResults()">Results</button>
-      <button class="btn btn-ghost" onclick="statsShowPlayers()">Player Stats</button>
-    </div>
-    <div class="stats-summary">
-      <div class="stats-summary-card"><b>${completed.length}</b><span>Played</span></div>
-      <div class="stats-summary-card"><b>${wins}</b><span>Wins</span></div>
-      <div class="stats-summary-card"><b>${draws}</b><span>Draws</span></div>
-      <div class="stats-summary-card"><b>${gf}-${ga}</b><span>Goals</span></div>
-    </div>
-    <div class="stats-filter">
-      ${['pending','completed','all'].map(x=>`<button class="btn ${resultsFilter===x?'btn-amber':'btn-ghost'}" onclick="statsSetFilter('${x}')">${x==='pending'?'Pending':x==='completed'?'Completed':'All'}</button>`).join('')}
-    </div>
-    ${filtered.length?filtered.map(x=>renderResultCard(x.key,x.data)).join(''):'<div class="empty-state">No fixtures match this filter.</div>'}`;
-}
-function renderResultCard(key,f){
-  const st=resultStatus(key); const r=f.result||{};
-  const score=st==='completed'?`${Number(r.homeScore||0)} – ${Number(r.awayScore||0)}`:'—';
-  const status=st==='pending'?'Pending result':st==='completed'?'Completed':'Cancelled';
-  const canEdit=isAdmin && st!=='cancelled';
-  return `<div class="result-card ${st}"><div class="result-card-head">
-    <div><div class="result-card-date">${escapeHtml(formatLongDateKey(key))}</div><div class="result-card-opponent">${escapeHtml(f.opponent||'Fixture details not entered')}</div></div>
-    <div style="text-align:right"><div class="result-score">${score}</div><span class="result-status ${st}">${status}</span></div>
-  </div>
-  ${st==='completed' && isAdmin ? `<div class="result-check">${resultGoalsCheck(f)}</div>` : ''}
-  ${isAdmin ? `<div class="result-actions">${canEdit?`<button class="btn btn-amber" onclick="openResultEntry('${escapeAttr(key)}')">${st==='pending'?'Enter Result':'Edit Result'}</button>`:''}${st!=='cancelled'?`<button class="btn btn-ghost" onclick="cancelResultFixture('${escapeAttr(key)}')">Cancel Fixture</button>`:''}</div>`:''}
-  </div>`;
-}
-function resultGoalsCheck(f){
-  const r=f.result||{}, players=r.players||{}; let goals=0;
-  Object.values(players).forEach(x=>goals+=Number(x.goals||0)); goals+=Number(r.ownGoals||0);
-  return goals===Number(r.homeScore||0)?'✓ Player goals match team score':'⚠ Player goals do not match team score';
-}
-function statsSetFilter(x){resultsFilter=x;renderStatsPage();}
-function statsShowResults(){statsView='results';renderStatsPage();}
-function statsShowPlayers(){statsView='players';renderPlayerStatsPage();}
-function openResultEntry(key){
-  const f=fixtures[key]||{}; const r=f.result||{}; const players=roster.slice(); const ps=r.players||{};
-  const motm=new Set(r.motm||[]), ppotm=new Set(r.ppotm||[]);
-  panel.innerHTML=`<div class="section-label">${r && Object.keys(r).length?'Edit':'Enter'} Match Result</div>
-    <div class="admin-form"><div class="hint"><b>${escapeHtml(formatLongDateKey(key))}</b> · ${escapeHtml(f.opponent||'Fixture')}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label>Matthiola Rangers<input id="resultHomeScore" type="number" min="0" step="1" value="${Number(r.homeScore||0)}"/></label><label>Opposition<input id="resultAwayScore" type="number" min="0" step="1" value="${Number(r.awayScore||0)}"/></label></div>
-    <h3 style="margin:15px 0 6px">Player stats</h3>
-    <table class="result-entry-table"><thead><tr><th>Player</th><th>⚽ Goals</th><th>🅰️ Assists</th><th>👕</th></tr></thead><tbody>
-    ${players.map(name=>{const x=ps[name]||{};return `<tr><td>${escapeHtml(name)}</td><td><div class="result-step"><button onclick="changeResultStat('${escapeAttr(name)}','g',-1)">−</button><span id="rg_${escapeAttr(name)}">${Number(x.goals||0)}</span><button onclick="changeResultStat('${escapeAttr(name)}','g',1)">+</button></div></td><td><div class="result-step"><button onclick="changeResultStat('${escapeAttr(name)}','a',-1)">−</button><span id="ra_${escapeAttr(name)}">${Number(x.assists||0)}</span><button onclick="changeResultStat('${escapeAttr(name)}','a',1)">+</button></div></td><td><input id="rp_${escapeAttr(name)}" type="checkbox" ${x.played!==false?'checked':''}/></td></tr>`}).join('')}
-    <tr><td><b>Own Goal</b></td><td><div class="result-step"><button onclick="changeOwnResult(-1)">−</button><span id="rowngoal">${Number(r.ownGoals||0)}</span><button onclick="changeOwnResult(1)">+</button></div></td><td>—</td><td>—</td></tr></tbody></table>
-    <h3 style="margin:15px 0 6px">🏆 MOTM <span style="font-size:11px;font-weight:500;color:var(--ink-soft)">(select all that apply)</span></h3>
-    <div class="result-awards">${players.map(name=>`<label><input type="checkbox" data-result-award="motm" value="${escapeAttr(name)}" ${motm.has(name)?'checked':''}/> ${escapeHtml(name)}</label>`).join('')}</div>
-    <h3 style="margin:15px 0 6px">⭐ PPOTM <span style="font-size:11px;font-weight:500;color:var(--ink-soft)">(select all that apply)</span></h3>
-    <div class="result-awards">${players.map(name=>`<label><input type="checkbox" data-result-award="ppotm" value="${escapeAttr(name)}" ${ppotm.has(name)?'checked':''}/> ${escapeHtml(name)}</label>`).join('')}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px"><button class="btn btn-amber" onclick="saveResultEntry('${escapeAttr(key)}')">Save Result</button><button class="btn btn-ghost" onclick="renderStatsPage()">Back</button></div></div>`;
-}
-let resultOwnGoal=0;
-function changeResultStat(name,type,d){const id=(type==='g'?'rg_':'ra_')+name,e=document.getElementById(id);if(e)e.textContent=Math.max(0,Number(e.textContent||0)+d);}
-function changeOwnResult(d){const e=document.getElementById('rowngoal');if(!e)return;resultOwnGoal=Math.max(0,Number(e.textContent||0)+d);e.textContent=resultOwnGoal;}
-async function saveResultEntry(key){
-  const f={...(fixtures[key]||{})}; const old=f.result||{}; const data={}; resultOwnGoal=Number(document.getElementById('rowngoal')?.textContent||0);
-  roster.forEach(name=>{data[name]={goals:Number(document.getElementById('rg_'+name)?.textContent||0),assists:Number(document.getElementById('ra_'+name)?.textContent||0),played:!!document.getElementById('rp_'+name)?.checked};});
-  f.result={...old,homeScore:Number(document.getElementById('resultHomeScore').value||0),awayScore:Number(document.getElementById('resultAwayScore').value||0),ownGoals:resultOwnGoal,players:data,motm:[...document.querySelectorAll('[data-result-award="motm"]:checked')].map(x=>x.value),ppotm:[...document.querySelectorAll('[data-result-award="ppotm"]:checked')].map(x=>x.value)};
-  delete f.resultStatus; delete f.cancelledResult; fixtures[key]=f; await saveFixture(key,f); renderStatsPage();
-}
-async function cancelResultFixture(key){
-  if(!confirm('Cancel this fixture? It will no longer appear as a pending result.'))return;
-  const f={...(fixtures[key]||{})}; f.resultStatus='cancelled'; f.cancelledResult=true; fixtures[key]=f; await saveFixture(key,f); renderStatsPage();
-}
-function renderPlayerStatsPage(){
-  const panel=document.getElementById('panel'); const completed=resultFixtures().filter(x=>resultStatus(x.key)==='completed');
-  const rows=roster.map(name=>{let apps=0,goals=0,assists=0,motm=0,ppotm=0;completed.forEach(x=>{const ps=resultPlayerStatsFor(x.data,name);if(ps.played)apps++;goals+=Number(ps.goals||0);assists+=Number(ps.assists||0);if((x.data.result.motm||[]).includes(name))motm++;if((x.data.result.ppotm||[]).includes(name))ppotm++;});return `<tr><td><strong>${escapeHtml(name)}</strong></td><td>${apps}</td><td>${goals}</td><td>${assists}</td><td>${motm}</td><td>${ppotm}</td></tr>`;}).join('');
-  panel.innerHTML=`<div class="section-label">Player Stats</div><div class="stats-filter"><button class="btn btn-ghost" onclick="statsShowResults()">Results</button></div><div class="hint">Statistics are calculated from completed matches only.</div><div class="player-stats-wrap"><table class="player-stats-table"><thead><tr><th>Player</th><th>Apps</th><th>⚽ Goals</th><th>🅰️ Assists</th><th>🏆 MOTM</th><th>⭐ PPOTM</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-}
-
 function render(){
   updateChromeVisibility();
   updateUserBar();
@@ -2196,14 +1761,213 @@ function render(){
     return;
   }
   if(activeSheet === 'stats'){
-    renderStatsPage();
+    document.getElementById('tabsBar').style.display='none';
+    renderStats();
     return;
   }
   renderTabsBar();
   if(activeTab === 'mark') renderMarkTab();
   else renderSummaryTab();
+}
 
-  renderScheduleEditor();}
+
+// ===== Results & Player Stats =====
+let statsView = 'team';
+let statsFilter = 'pending';
+let statsOwnGoals = 0;
+
+function statsFixtureStatus(key){
+  const f=fixtures[key]||{};
+  if(f.resultStatus==='cancelled' || f.cancelledResult===true) return 'cancelled';
+  const r=f.result;
+  if(r && r.status==='completed') return 'completed';
+  if(r && Number.isFinite(Number(r.homeScore)) && Number.isFinite(Number(r.awayScore))) return 'completed';
+  return 'pending';
+}
+function statsFixtureKeys(){
+  return Object.keys(fixtures||{}).sort();
+}
+function statsDateLabel(key){
+  const d=new Date(key+'T00:00:00');
+  if(Number.isNaN(d.getTime())) return key;
+  return d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+function statsEsc(v){return escapeHtml(v==null?'':String(v));}
+
+function renderStats(){
+  const panel=document.getElementById('panel');
+  if(!panel) return;
+  panel.innerHTML=`<div class="section-label">Stats</div>
+    <div class="stats-subtabs">
+      <div class="stats-subtab ${statsView==='team'?'active':''}" data-stats-view="team">Team</div>
+      <div class="stats-subtab ${statsView==='players'?'active':''}" data-stats-view="players">Players</div>
+    </div>
+    <div class="stats-wrap" id="statsContent"></div>`;
+
+  panel.querySelectorAll('[data-stats-view]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      statsView=el.dataset.statsView;
+      renderStats();
+    });
+  });
+
+  if(statsView==='players') renderStatsPlayers();
+  else renderStatsTeam();
+}
+
+function renderStatsTeam(){
+  const body=document.getElementById('statsContent');
+  const keys=statsFixtureKeys();
+  const completed=keys.filter(k=>statsFixtureStatus(k)==='completed');
+  let wins=0,draws=0,losses=0,scored=0,conceded=0;
+  completed.forEach(k=>{
+    const r=fixtures[k].result||{};
+    const h=Number(r.homeScore||0), a=Number(r.awayScore||0);
+    scored+=h; conceded+=a;
+    if(h>a)wins++; else if(h===a)draws++; else losses++;
+  });
+  const filtered=keys.filter(k=>statsFilter==='all'||statsFixtureStatus(k)===statsFilter);
+
+  body.innerHTML=`
+    <div class="stats-summary">
+      <div class="stats-summary-card"><b>${completed.length}</b><span>Played</span></div>
+      <div class="stats-summary-card"><b>${wins}</b><span>Wins</span></div>
+      <div class="stats-summary-card"><b>${draws}</b><span>Draws</span></div>
+      <div class="stats-summary-card"><b>${losses}</b><span>Losses</span></div>
+      <div class="stats-summary-card"><b>${scored}</b><span>Scored</span></div>
+      <div class="stats-summary-card"><b>${conceded}</b><span>Conceded</span></div>
+    </div>
+    <div class="stats-filter">
+      ${['pending','completed','all'].map(f=>`<button type="button" class="btn ${statsFilter===f?'btn-amber':'btn-ghost'}" data-stats-filter="${f}">${f==='pending'?'Pending':f==='completed'?'Completed':'All'}</button>`).join('')}
+    </div>
+    ${filtered.length?filtered.map(k=>statsResultCard(k)).join(''):'<div class="hint">No fixtures match this filter.</div>'}`;
+
+  body.querySelectorAll('[data-stats-filter]').forEach(b=>{
+    b.addEventListener('click',()=>{statsFilter=b.dataset.statsFilter;renderStats();});
+  });
+  body.querySelectorAll('[data-result-edit]').forEach(b=>b.addEventListener('click',()=>openStatsResultEntry(b.dataset.resultEdit)));
+  body.querySelectorAll('[data-result-cancel]').forEach(b=>b.addEventListener('click',()=>cancelStatsFixture(b.dataset.resultCancel)));
+}
+
+function statsResultCard(key){
+  const f=fixtures[key]||{}, st=statsFixtureStatus(key), r=f.result||{};
+  const score=st==='completed'?`${Number(r.homeScore||0)} – ${Number(r.awayScore||0)}`:'—';
+  const status=st==='pending'?'Pending result':st==='completed'?'Completed':'Cancelled';
+  const actions=isAdmin && st!=='cancelled'?`
+    <div class="stats-actions">
+      <button type="button" class="btn btn-amber" data-result-edit="${escapeAttr(key)}">${st==='pending'?'Enter Result':'Edit Result'}</button>
+      <button type="button" class="btn btn-ghost" data-result-cancel="${escapeAttr(key)}">Cancel Fixture</button>
+    </div>`:'';
+  const check=st==='completed'?statsGoalsCheck(r):'';
+  return `<div class="stats-result-card">
+    <div class="stats-result-head">
+      <div><div class="stats-result-date">${statsEsc(statsDateLabel(key))}</div><div class="stats-result-opponent">${statsEsc(f.opponent||'Opponent not entered')}</div></div>
+      <div><div class="stats-score">${score}</div><span class="stats-status ${st}">${status}</span></div>
+    </div>${check}${actions}
+  </div>`;
+}
+
+function statsGoalsCheck(r){
+  const players=r.players||{};
+  let total=Number(r.ownGoals||0);
+  Object.values(players).forEach(x=>total+=Number(x.goals||0));
+  return `<div class="stats-check ${total===Number(r.homeScore||0)?'good':'bad'}">${total===Number(r.homeScore||0)?'✓ Player goals match team score':'⚠ Player goals do not match team score'}</div>`;
+}
+
+function openStatsResultEntry(key){
+  const f=fixtures[key]||{}, r=f.result||{}, players=roster.slice(), ps=r.players||{};
+  statsOwnGoals=Number(r.ownGoals||0);
+  const motm=new Set(r.motm||[]), ppotm=new Set(r.ppotm||[]);
+  panel.innerHTML=`<div class="section-label">${r.homeScore!==undefined?'Edit':'Enter'} Match Result</div>
+    <div class="hint"><b>${statsEsc(statsDateLabel(key))}</b> · ${statsEsc(f.opponent||'Opponent')}</div>
+    <div class="admin-form">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label>Matthiola Rangers<input id="statsHomeScore" type="number" min="0" value="${Number(r.homeScore||0)}"></label>
+        <label>Opposition<input id="statsAwayScore" type="number" min="0" value="${Number(r.awayScore||0)}"></label>
+      </div>
+      <h3 style="margin:15px 0 6px">Player stats</h3>
+      <table class="stats-entry-table"><thead><tr><th>Player</th><th>⚽ Goals</th><th>🅰️ Assists</th><th>👕</th></tr></thead><tbody>
+      ${players.map(name=>{
+        const x=ps[name]||{};
+        return `<tr><td>${statsEsc(name)}</td>
+          <td><div class="stats-step"><button type="button" data-rstep="${escapeAttr(name)}" data-rtype="g" data-rd="-1">−</button><span id="statsg_${escapeAttr(name)}">${Number(x.goals||0)}</span><button type="button" data-rstep="${escapeAttr(name)}" data-rtype="g" data-rd="1">+</button></div></td>
+          <td><div class="stats-step"><button type="button" data-rstep="${escapeAttr(name)}" data-rtype="a" data-rd="-1">−</button><span id="statsa_${escapeAttr(name)}">${Number(x.assists||0)}</span><button type="button" data-rstep="${escapeAttr(name)}" data-rtype="a" data-rd="1">+</button></div></td>
+          <td><input id="statsp_${escapeAttr(name)}" type="checkbox" ${x.played!==false?'checked':''}></td></tr>`;
+      }).join('')}
+      <tr><td><b>Own Goal</b></td><td><div class="stats-step"><button type="button" data-own="-1">−</button><span id="statsown">${statsOwnGoals}</span><button type="button" data-own="1">+</button></div></td><td>—</td><td>—</td></tr>
+      </tbody></table>
+      <h3 style="margin:15px 0 6px">🏆 MOTM <span style="font-size:11px;color:var(--ink-soft)">(select all that apply)</span></h3>
+      <div class="stats-awards">${players.map(name=>`<label><input type="checkbox" data-award="motm" value="${escapeAttr(name)}" ${motm.has(name)?'checked':''}> ${statsEsc(name)}</label>`).join('')}</div>
+      <h3 style="margin:15px 0 6px">⭐ PPOTM <span style="font-size:11px;color:var(--ink-soft)">(select all that apply)</span></h3>
+      <div class="stats-awards">${players.map(name=>`<label><input type="checkbox" data-award="ppotm" value="${escapeAttr(name)}" ${ppotm.has(name)?'checked':''}> ${statsEsc(name)}</label>`).join('')}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+        <button type="button" class="btn btn-amber" id="saveStatsResult">Save Result</button>
+        <button type="button" class="btn btn-ghost" id="backStats">Back</button>
+      </div>
+    </div>`;
+
+  panel.querySelectorAll('[data-rstep]').forEach(b=>b.addEventListener('click',()=>{
+    const id=(b.dataset.rtype==='g'?'statsg_':'statsa_')+b.dataset.rstep, e=document.getElementById(id);
+    if(e)e.textContent=Math.max(0,Number(e.textContent||0)+Number(b.dataset.rd));
+  }));
+  panel.querySelectorAll('[data-own]').forEach(b=>b.addEventListener('click',()=>{
+    statsOwnGoals=Math.max(0,statsOwnGoals+Number(b.dataset.own));
+    document.getElementById('statsown').textContent=statsOwnGoals;
+  }));
+  document.getElementById('saveStatsResult').onclick=()=>saveStatsResult(key);
+  document.getElementById('backStats').onclick=()=>renderStats();
+}
+
+async function saveStatsResult(key){
+  const f={...(fixtures[key]||{})}, old=f.result||{}, players={};
+  roster.forEach(name=>{
+    players[name]={
+      goals:Number(document.getElementById('statsg_'+name)?.textContent||0),
+      assists:Number(document.getElementById('statsa_'+name)?.textContent||0),
+      played:!!document.getElementById('statsp_'+name)?.checked
+    };
+  });
+  f.result={
+    ...old,
+    status:'completed',
+    homeScore:Number(document.getElementById('statsHomeScore').value||0),
+    awayScore:Number(document.getElementById('statsAwayScore').value||0),
+    ownGoals:Number(document.getElementById('statsown').textContent||0),
+    players,
+    motm:[...document.querySelectorAll('[data-award="motm"]:checked')].map(x=>x.value),
+    ppotm:[...document.querySelectorAll('[data-award="ppotm"]:checked')].map(x=>x.value)
+  };
+  delete f.resultStatus; delete f.cancelledResult;
+  fixtures[key]=f;
+  await saveFixture(key,f);
+  renderStats();
+}
+
+async function cancelStatsFixture(key){
+  if(!confirm('Cancel this fixture? It will no longer appear as a pending result.'))return;
+  const f={...(fixtures[key]||{})};
+  f.resultStatus='cancelled'; f.cancelledResult=true;
+  fixtures[key]=f;
+  await saveFixture(key,f);
+  renderStats();
+}
+
+function renderStatsPlayers(){
+  const body=document.getElementById('statsContent'), completed=statsFixtureKeys().filter(k=>statsFixtureStatus(k)==='completed');
+  const rows=roster.map(name=>{
+    let apps=0,goals=0,assists=0,motm=0,ppotm=0;
+    completed.forEach(k=>{
+      const r=fixtures[k].result||{}, x=(r.players||{})[name]||{};
+      if(x.played)apps++;
+      goals+=Number(x.goals||0); assists+=Number(x.assists||0);
+      if((r.motm||[]).includes(name))motm++;
+      if((r.ppotm||[]).includes(name))ppotm++;
+    });
+    return `<tr><td><strong>${statsEsc(name)}</strong></td><td>${apps}</td><td>${goals}</td><td>${assists}</td><td>${motm}</td><td>${ppotm}</td></tr>`;
+  }).join('');
+  body.innerHTML=`<div class="hint">Statistics are calculated from completed matches only.</div>
+    <div style="overflow-x:auto"><table class="stats-player-table"><thead><tr><th>Player</th><th>Apps</th><th>⚽ Goals</th><th>🅰️ Assists</th><th>🏆 MOTM</th><th>⭐ PPOTM</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
 
 // ---- Init ----
 render(); // instant paint (login screen or defaults) before Firebase responds
