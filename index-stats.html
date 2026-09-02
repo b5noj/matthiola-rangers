@@ -415,12 +415,6 @@
   /* Final mobile containment rule for Admin navigation */
   .admin-subtabs > .admin-subtab{flex:none !important;}
   @media (max-width:700px){
-    .stats-metric-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;}
-    .stats-metric{padding:5px 1px;}
-    .stats-metric-value{font-size:17px;}
-    .stats-metric-label{font-size:6.5px;}
-    .stats-record,.stats-win-rate-value{font-size:22px;}
-
     .admin-subtabs{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}
     .admin-subtab{font-size:12px;padding-left:4px;padding-right:4px;}
   }
@@ -436,26 +430,65 @@
   .stats-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:12px;}
   .stats-nav-btn{min-width:0;padding:9px 4px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--ink-soft);font:800 12px Inter,sans-serif;cursor:pointer;}
   .stats-nav-btn.active{background:var(--brand);border-color:var(--brand);color:#fff;}
-  .stats-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-  .stats-filter-btn{padding:7px 11px;border-radius:18px;border:1.5px solid var(--border);background:#fff;color:var(--ink-soft);font:800 11px Inter,sans-serif;cursor:pointer;}
-  .stats-filter-btn.active{background:var(--brand);border-color:var(--brand);color:#fff;}
+  .stats-filters{display:flex;gap:0;flex-wrap:nowrap;margin:0;}
+  .stats-filter-btn{padding:7px 12px;border:1.5px solid var(--border);background:#fff;color:var(--ink-soft);font:800 11px Inter,sans-serif;cursor:pointer;margin-left:-1.5px;}
+  .stats-filter-btn:first-child{margin-left:0;border-radius:18px 0 0 18px;}
+  .stats-filter-btn:last-child{border-radius:0 18px 18px 0;}
+  .stats-filter-btn.active{position:relative;z-index:1;background:var(--brand);border-color:var(--brand);color:#fff;}
   .stats-search-wrap{position:relative;width:100%;max-width:100%;margin-bottom:10px;}
   .stats-search-input{width:100%;max-width:100%;box-sizing:border-box;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font:13px Inter,sans-serif;color:var(--ink);}
   .stats-suggestions{position:absolute;left:0;right:0;top:100%;z-index:20;background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 8px 8px;box-shadow:0 6px 14px rgba(58,23,7,.12);overflow:hidden;}
   .stats-suggestion{padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;border-top:1px solid var(--line);}
   .stats-suggestion:hover{background:var(--ok-soft);}
-  .stats-hero{background:var(--brand-deep);color:#fff;border-radius:11px;padding:11px 12px;margin-bottom:12px;}
-  .stats-hero-title{font-family:'Bebas Neue';font-size:16px;letter-spacing:.04em;color:var(--amber);margin-bottom:6px;}
-  .stats-performance-main{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px;}
-  .stats-record{font-family:'Bebas Neue';font-size:24px;line-height:1;color:#fff;white-space:nowrap;}
-  .stats-record-label{font-size:8px;text-transform:uppercase;letter-spacing:.04em;color:rgba(255,255,255,.62);font-weight:800;margin-top:3px;}
-  .stats-win-rate{text-align:right;white-space:nowrap;}
-  .stats-win-rate-value{font-family:'Bebas Neue';font-size:24px;line-height:1;color:var(--amber);}
-  .stats-win-rate-label{font-size:8px;text-transform:uppercase;letter-spacing:.04em;color:rgba(255,255,255,.62);font-weight:800;margin-top:3px;}
-  .stats-metric-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;}
-  .stats-metric{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:7px;padding:5px 2px;text-align:center;min-width:0;}
-  .stats-metric-value{font-family:'Bebas Neue';font-size:18px;line-height:1;color:#fff;}
-  .stats-metric-label{font-size:7px;text-transform:uppercase;letter-spacing:.02em;color:rgba(255,255,255,.68);font-weight:800;margin-top:2px;white-space:nowrap;}
+  .stats-hero{background:#fff;color:var(--ink);border:1.5px solid var(--border);border-radius:13px;padding:14px;margin-bottom:12px;box-shadow:0 3px 10px rgba(58,23,7,.07);overflow:hidden;}
+  .stats-hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+  .stats-hero-title-wrap{display:flex;align-items:center;gap:9px;min-width:0;}
+  .stats-hero-icon{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:var(--amber-soft);color:var(--brand);font-size:22px;flex:none;}
+  .stats-hero-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:.03em;color:var(--ink);line-height:1;}
+  .stats-performance-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:14px;padding:6px 2px 12px;}
+  .stats-donut-wrap{display:flex;justify-content:center;align-items:center;min-width:0;}
+  .stats-donut{width:174px;height:174px;border-radius:50%;position:relative;display:grid;place-items:center;background:conic-gradient(var(--ok) 0deg var(--win-angle), #9b9b9b var(--win-angle) var(--draw-angle), var(--red) var(--draw-angle) 360deg);box-shadow:inset 0 0 0 1px rgba(0,0,0,.03);}
+  .stats-donut::before{content:'';position:absolute;inset:16px;border-radius:50%;background:#fff;}
+  .stats-donut-center{position:relative;z-index:1;text-align:center;}
+  .stats-donut-value{font-family:'Bebas Neue';font-size:38px;line-height:.9;color:var(--brand);}
+  .stats-donut-label{font-size:9px;text-transform:uppercase;letter-spacing:.06em;font-weight:900;color:var(--ink);margin-top:5px;}
+  .stats-outcome-list{min-width:0;}
+  .stats-outcome-row{display:grid;grid-template-columns:12px 1fr auto;align-items:center;gap:9px;padding:9px 2px;border-bottom:1px solid var(--line);}
+  .stats-outcome-row:last-child{border-bottom:0;padding-bottom:3px;}
+  .stats-outcome-dot{width:12px;height:12px;border-radius:50%;}
+  .stats-outcome-dot.win{background:var(--ok);}
+  .stats-outcome-dot.draw{background:#9b9b9b;}
+  .stats-outcome-dot.loss{background:var(--red);}
+  .stats-outcome-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink);}
+  .stats-outcome-value{font-family:'Bebas Neue';font-size:25px;line-height:1;color:var(--ink);}
+  .stats-outcome-row.win .stats-outcome-value{color:var(--ok);}
+  .stats-outcome-row.loss .stats-outcome-value{color:var(--red);}
+  .stats-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--border);border-radius:10px;background:#fff;overflow:hidden;}
+  .stats-metric{background:#fff;border:0;border-right:1px solid var(--border);border-radius:0;padding:9px 3px;text-align:center;min-width:0;}
+  .stats-metric:last-child{border-right:0;}
+  .stats-metric-value{font-family:'Bebas Neue';font-size:25px;line-height:1;color:var(--ink);}
+  .stats-metric:nth-child(3) .stats-metric-value{color:var(--ok);}
+  .stats-metric-label{font-size:7.5px;text-transform:uppercase;letter-spacing:.02em;color:var(--ink-soft);font-weight:800;margin-top:3px;white-space:nowrap;}
+  @media(max-width:519px){
+    .stats-hero{padding:11px;}
+    .stats-hero-top{align-items:flex-start;}
+    .stats-hero-title{font-size:18px;}
+    .stats-hero-icon{width:32px;height:32px;font-size:19px;}
+    .stats-filter-btn{padding:6px 9px;font-size:10px;}
+    .stats-performance-main{grid-template-columns:1fr 1fr;gap:7px;padding-top:3px;}
+    .stats-donut{width:145px;height:145px;}
+    .stats-donut::before{inset:14px;}
+    .stats-donut-value{font-size:31px;}
+    .stats-donut-label{font-size:8px;}
+    .stats-outcome-row{padding:7px 1px;gap:7px;}
+    .stats-outcome-dot{width:10px;height:10px;}
+    .stats-outcome-label{font-size:9px;}
+    .stats-outcome-value{font-size:22px;}
+    .stats-metric-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+    .stats-metric{padding:7px 1px;}
+    .stats-metric-value{font-size:21px;}
+    .stats-metric-label{font-size:6.5px;}
+  }
   .stats-table-wrap{width:100%;max-width:100%;min-width:0;overflow:hidden;background:#fff;border:1.5px solid var(--border);border-radius:10px;}
   .stats-player-table,.stats-opponent-table{width:100%;max-width:100%;min-width:0;border-collapse:collapse;table-layout:fixed;}
   .stats-player-table th,.stats-player-table td,.stats-opponent-table th,.stats-opponent-table td{border-bottom:1px solid var(--line);text-align:center;}
@@ -474,7 +507,7 @@
   .stats-opponent-table th:nth-child(3),.stats-opponent-table td:nth-child(3),.stats-opponent-table th:nth-child(4),.stats-opponent-table td:nth-child(4),.stats-opponent-table th:nth-child(5),.stats-opponent-table td:nth-child(5){width:9%;}
   .stats-opponent-table th:nth-child(6),.stats-opponent-table td:nth-child(6){width:14%;}
   .stats-opponent-table th:nth-child(7),.stats-opponent-table td:nth-child(7),.stats-opponent-table th:nth-child(8),.stats-opponent-table td:nth-child(8){width:12%;}
-  .stats-total-row td{font-weight:900;background:var(--ok-soft);border-bottom:none;border-top:2px solid var(--brand);padding-top:9px;padding-bottom:9px;}
+  .stats-total-row td{font-weight:900;background:var(--ok-soft);border-bottom:none;}
   .stats-own-goals-row td{color:var(--red);font-weight:800;}
   .stats-result-card{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:11px 12px;margin-bottom:9px;}
   .stats-result-head{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;}
@@ -818,14 +851,13 @@ function showStatsSyncError(err, action='read'){
   if(code==='permission-denied') showConnectionWarning('Stats could not sync because Firebase rules are blocking access to match results.');
   else showConnectionWarning('Stats could not sync with Firebase. Check your connection and try again.');
 }
-
 function watchResults(){
   onSnapshot(collection(db, 'match_results'), (snap) => {
     const next = {};
     snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
     results = next;
     render();
-  }, (err) => { showStatsSyncError(err, 'read'); });
+  }, (err) => { showStatsSyncError(err,'read'); });
 }
 
 function watchTrainingInfo(){
@@ -948,7 +980,7 @@ async function saveFixture(dateKey, data){
 }
 async function saveMatchResult(dateKey, data){
   try{ await setDoc(doc(db, 'match_results', dateKey), data); }
-  catch(e){ showStatsSyncError(e, 'write'); }
+  catch(e){ showStatsSyncError(e,'write'); }
 }
 async function saveTrainingInfo(dateKey, data){
   try{ await setDoc(doc(db, 'training_info', dateKey), data); }
@@ -2235,8 +2267,12 @@ function renderStatsTeam(){
   let played=0,wins=0,losses=0,draws=0,gf=0,ga=0;
   completed.forEach(k=>{const r=results[k]||{};const a=Number(r.homeScore)||0,b=Number(r.awayScore)||0;played++;gf+=a;ga+=b;if(a>b)wins++;else if(a<b)losses++;else draws++;});
   const winPct=played?Math.round(wins/played*100):0, avg=played?(gf/played).toFixed(2):'0.00';
-  return `<div class="stats-page"><div class="stats-page-head"><div><div class="stats-page-title">${escapeHtml(teamName)} · ${escapeHtml(statsSeason)}</div><div class="stats-page-sub">Season performance and match results</div></div>${statsSeasonControl()}</div><div class="stats-nav"><button class="stats-nav-btn active" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button></div><div class="stats-hero"><div class="stats-hero-title">Season performance</div><div class="stats-performance-main"><div><div class="stats-record">${wins}W · ${draws}D · ${losses}L</div><div class="stats-record-label">${played} played</div></div><div class="stats-win-rate"><div class="stats-win-rate-value">${winPct}%</div><div class="stats-win-rate-label">Win rate</div></div></div><div class="stats-metric-grid"><div class="stats-metric"><div class="stats-metric-value">${gf}</div><div class="stats-metric-label">GF</div></div><div class="stats-metric"><div class="stats-metric-value">${ga}</div><div class="stats-metric-label">GA</div></div><div class="stats-metric"><div class="stats-metric-value">${gf-ga}</div><div class="stats-metric-label">GD</div></div><div class="stats-metric"><div class="stats-metric-value">${avg}</div><div class="stats-metric-label">Avg For</div></div><div class="stats-metric"><div class="stats-metric-value">${played}</div><div class="stats-metric-label">Played</div></div></div></div><div class="stats-filters">${['completed','pending','all'].map(x=>`<button class="stats-filter-btn ${statsFilter===x?'active':''}" data-stats-filter="${x}">${x==='completed'?'Completed':x==='pending'?'Pending':'All'}</button>`).join('')}</div>${statsSearchBox()}<div>${filtered.length?filtered.map(statsResultCard).join(''):`<div class="empty-state">No ${statsFilter==='all'?'fixtures':statsFilter+' fixtures'}${q?' matching your search':''} for ${escapeHtml(statsSeason)}.</div>`}</div></div>`;
+  const winAngle=played?wins/played*360:0;
+  const drawAngle=played?(wins+draws)/played*360:0;
+  const filters=`<div class="stats-filters">${['all','completed','pending'].map(x=>`<button class="stats-filter-btn ${statsFilter===x?'active':''}" data-stats-filter="${x}">${x==='completed'?'Completed':x==='pending'?'Pending':'All'}</button>`).join('')}</div>`;
+  return `<div class="stats-page"><div class="stats-page-head"><div><div class="stats-page-title">${escapeHtml(teamName)} · ${escapeHtml(statsSeason)}</div><div class="stats-page-sub">Season performance and match results</div></div>${statsSeasonControl()}</div><div class="stats-nav"><button class="stats-nav-btn active" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button></div><div class="stats-hero"><div class="stats-hero-top"><div class="stats-hero-title-wrap"><div class="stats-hero-icon">🏆</div><div class="stats-hero-title">Season performance</div></div>${filters}</div><div class="stats-performance-main"><div class="stats-donut-wrap"><div class="stats-donut" style="--win-angle:${winAngle}deg;--draw-angle:${drawAngle}deg;"><div class="stats-donut-center"><div class="stats-donut-value">${winPct}%</div><div class="stats-donut-label">Win rate</div></div></div></div><div class="stats-outcome-list"><div class="stats-outcome-row win"><span class="stats-outcome-dot win"></span><span class="stats-outcome-label">Won</span><span class="stats-outcome-value">${wins}</span></div><div class="stats-outcome-row draw"><span class="stats-outcome-dot draw"></span><span class="stats-outcome-label">Drawn</span><span class="stats-outcome-value">${draws}</span></div><div class="stats-outcome-row loss"><span class="stats-outcome-dot loss"></span><span class="stats-outcome-label">Lost</span><span class="stats-outcome-value">${losses}</span></div><div class="stats-outcome-row"><span style="font-size:15px;line-height:1">📅</span><span class="stats-outcome-label">Played</span><span class="stats-outcome-value">${played}</span></div></div></div><div class="stats-metric-grid"><div class="stats-metric"><div class="stats-metric-value">${gf}</div><div class="stats-metric-label">Goals For</div></div><div class="stats-metric"><div class="stats-metric-value">${ga}</div><div class="stats-metric-label">Goals Against</div></div><div class="stats-metric"><div class="stats-metric-value">${gf-ga>=0?'+':''}${gf-ga}</div><div class="stats-metric-label">Goal Difference</div></div><div class="stats-metric"><div class="stats-metric-value">${avg}</div><div class="stats-metric-label">Avg Goals For</div></div></div></div>${statsSearchBox()}<div>${filtered.length?filtered.map(statsResultCard).join(''):`<div class="empty-state">No ${statsFilter==='all'?'fixtures':statsFilter+' fixtures'}${q?' matching your search':''} for ${escapeHtml(statsSeason)}.</div>`}</div></div>`;
 }
+
 function statsPlayerRows(){
   const completed=statsSeasonKeys().filter(k=>statsFixtureStatus(k)==='completed');
   return roster.map(name=>{let apps=0,goals=0,assists=0,motm=0,ppotm=0;completed.forEach(k=>{const p=(results[k]?.players||[]).find(x=>x.name===name);if(p?.played)apps++;goals+=Number(p?.goals)||0;assists+=Number(p?.assists)||0;if((results[k]?.motm||[]).includes(name))motm++;if((results[k]?.ppotm||[]).includes(name))ppotm++;});return{name,apps,goals,assists,motm,ppotm,ga:goals+assists};});
