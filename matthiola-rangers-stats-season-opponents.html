@@ -292,7 +292,15 @@
   .login-sub{ font-size:13px; color:var(--ink-soft); margin-bottom:22px; max-width:320px; margin-left:auto; margin-right:auto; line-height:1.5; }
   .login-btn{ padding:13px 28px; font-size:14px; }
 
-  .admin-subtabs{ display:flex; gap:6px; margin-bottom:16px; }
+  .admin-subtabs{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:8px;
+    width:100%;
+    max-width:100%;
+    box-sizing:border-box;
+    margin-bottom:16px;
+  }
   .admin-subtab{
     flex:1; text-align:center; padding:9px 8px; border-radius:8px; cursor:pointer;
     font-size:12.5px; font-weight:700; background:#fff; border:1.5px solid var(--border); color:var(--ink-soft);
@@ -359,17 +367,20 @@
 
 /* Stats table fit refinements */
 .stats-players-compact{min-width:0!important;width:100%}
-.stats-players-compact th,.stats-players-compact td{padding:7px 3px;font-size:10px}
-.stats-players-compact th:first-child,.stats-players-compact td:first-child{width:38%}
+.stats-players-compact th,.stats-players-compact td{padding:7px 2px;font-size:10px}
+.stats-players-compact th:first-child,.stats-players-compact td:first-child{width:27%}
 .stats-opponent-table{min-width:0!important;width:100%;table-layout:fixed}
-.stats-opponent-table th,.stats-opponent-table td{padding:6px 1px;font-size:9px;white-space:nowrap}
+.stats-opponent-table th,.stats-opponent-table td{padding:6px 1px;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stats-opponent-table th:first-child,.stats-opponent-table td:first-child{width:25%;text-align:left}
 @media(max-width:519px){
-  .stats-players-compact th,.stats-players-compact td{font-size:9.5px;padding:7px 2px}
-  .stats-players-compact th:first-child,.stats-players-compact td:first-child{width:38%}
-  .stats-opponent-table th,.stats-opponent-table td{font-size:8.5px;padding:6px 0}
+  .stats-players-compact th,.stats-players-compact td{font-size:10px;padding:7px 2px}
+  .stats-players-compact th:first-child,.stats-players-compact td:first-child{width:27%}
+  .stats-opponent-table th,.stats-opponent-table td{font-size:9px;padding:6px 0;overflow:hidden;text-overflow:ellipsis}
   .stats-opponent-table th:first-child,.stats-opponent-table td:first-child{width:25%}
 }
+  /* Preserve the known-good Admin navigation layout. Stats changes must not alter Admin navigation. */
+  .admin-subtabs{display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:8px;width:100%;max-width:100%;box-sizing:border-box;margin-bottom:16px;}
+  .admin-subtabs > .admin-subtab{min-width:0 !important;width:auto !important;box-sizing:border-box;}
 </style>
 </head>
 <body>
