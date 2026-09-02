@@ -353,6 +353,8 @@
 @media(max-width:700px){.stats-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
 
+
+.stats-season-row{display:flex;justify-content:flex-end;margin:-4px 0 8px}.stats-season-control{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:900;color:var(--ink-soft)}.stats-season-control select{min-width:92px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:#fff;font:700 11px inherit;color:var(--ink)}.stats-page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:9px}.stats-page-title{font-family:'Bebas Neue';font-size:25px;line-height:1;color:var(--brand-deep)}.stats-page-note{font-size:10px;color:var(--ink-soft);margin-top:3px}.stats-players-compact{min-width:0!important}.stats-players-compact th,.stats-players-compact td{padding:6px 2px;font-size:10px}.stats-players-compact th{cursor:pointer;white-space:nowrap}.stats-players-compact th:first-child,.stats-players-compact td:first-child{width:29%}.stats-own-goals-row td{border-top:1px solid var(--border);font-style:italic}.stats-total-row td{border-top:2px solid var(--ink);font-weight:900;background:rgba(0,0,0,.025)}@media(max-width:519px){.stats-page-title{font-size:23px}.stats-page-head .stats-season-control select{min-width:84px}.stats-players-compact th,.stats-players-compact td{font-size:9.5px;padding:6px 1px}}
 .stats-subtabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.stats-subtab{text-align:center;min-width:0}.stats-search-wrap{position:relative;margin:9px 0 10px}.stats-search-input{width:100%;box-sizing:border-box;padding:10px 34px 10px 11px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font:600 13px inherit}.stats-search-clear{display:none;position:absolute;right:6px;top:4px;width:28px;height:28px;border:0;background:none;color:var(--ink-soft);font-size:21px}.stats-suggestions{position:absolute;z-index:50;left:0;right:0;top:100%;background:#fff;border:1px solid var(--border);border-radius:9px;box-shadow:0 8px 20px rgba(0,0,0,.14);overflow:hidden}.stats-suggestion{display:block;width:100%;padding:10px 11px;border:0;border-bottom:1px solid var(--border);background:#fff;text-align:left;font:600 12px inherit;color:var(--ink);cursor:pointer}.stats-suggestion:hover{background:#fff4e8}.stats-search-meta{font-size:10px;color:var(--ink-soft);margin:-3px 0 9px}.stats-performance{background:linear-gradient(135deg,#fff 0%,#fff6ea 58%,#f3ebe3 100%);border:1.5px solid var(--border);border-radius:16px;padding:14px;margin-bottom:13px;box-shadow:0 5px 18px rgba(58,23,7,.10)}.stats-performance-kicker{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.09em;color:var(--brand)}.stats-performance-title{font-family:'Bebas Neue';font-size:25px;line-height:1;color:var(--brand-deep);margin-top:2px}.stats-performance-record{display:flex;gap:6px;align-items:center;margin-top:5px;font-size:11px;font-weight:800}.stats-record-win{color:var(--good)}.stats-record-draw{color:#9b7200}.stats-record-loss{color:var(--red)}.stats-performance-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:12px}.stats-performance-stat{background:rgba(255,255,255,.86);border:1px solid rgba(120,80,50,.15);border-radius:9px;padding:8px 3px;text-align:center}.stats-performance-stat b{display:block;font-family:'Bebas Neue';font-size:22px;line-height:1;color:var(--brand)}.stats-performance-stat span{display:block;font-size:8px;font-weight:900;color:var(--ink-soft);text-transform:uppercase;margin-top:3px}.stats-secondary-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:7px}.stats-secondary-stat{text-align:center;font-size:8.5px;font-weight:800;color:var(--ink-soft)}.stats-secondary-stat b{font-size:12px;color:var(--ink)}.stats-opponent-table{width:100%;table-layout:fixed}.stats-opponent-table th,.stats-opponent-table td{font-size:10px;padding:7px 1px;text-align:center}.stats-opponent-table th:first-child,.stats-opponent-table td:first-child{text-align:left;width:30%}.stats-opponent-table th{cursor:pointer;white-space:nowrap}@media(max-width:519px){.stats-performance-title{font-size:23px}.stats-performance-stat b{font-size:20px}}
 </style>
 </head>
@@ -1789,6 +1791,32 @@ function statsFixtureStatus(key){
 function statsFixtureKeys(){
   return Object.keys(fixtures||{}).sort();
 }
+function statsFixtureSeason(key){
+  const f=fixtures[key]||{};
+  if(f.season) return String(f.season);
+  const d=new Date(key+'T00:00:00');
+  if(Number.isNaN(d.getTime())) return 'Unknown';
+  const y=d.getFullYear(), m=d.getMonth()+1;
+  return m>=8 ? `${y}/${String(y+1).slice(-2)}` : `${y-1}/${String(y).slice(-2)}`;
+}
+function statsSeasons(){
+  const set=new Set(statsFixtureKeys().map(statsFixtureSeason));
+  set.add('2026/27');
+  return [...set].filter(x=>x!=='Unknown').sort((a,b)=>{
+    const ay=Number(a.slice(0,4)), by=Number(b.slice(0,4)); return by-ay;
+  });
+}
+let statsSeason = '2026/27';
+function statsSeasonKeys(){
+  return statsFixtureKeys().filter(k=>statsFixtureSeason(k)===statsSeason);
+}
+function statsSeasonControl(){
+  return `<label class=\"stats-season-control\">Season<select id=\"statsSeasonSelect\">${statsSeasons().map(x=>`<option value=\"${escapeAttr(x)}\" ${x===statsSeason?'selected':''}>${statsEsc(x)}</option>`).join('')}</select></label>`;
+}
+function bindStatsSeason(){
+  const el=document.getElementById('statsSeasonSelect');
+  if(el) el.onchange=()=>{statsSeason=el.value;renderStats();};
+}
 function statsDateLabel(key){
   const d=new Date(key+'T00:00:00');
   if(Number.isNaN(d.getTime())) return key;
@@ -1820,15 +1848,15 @@ function renderStats(){
 }
 
 function renderStatsTeam(){
-  const body=document.getElementById('statsContent'),keys=statsFixtureKeys(),completed=keys.filter(k=>statsFixtureStatus(k)==='completed');
+  const body=document.getElementById('statsContent'),keys=statsSeasonKeys(),completed=keys.filter(k=>statsFixtureStatus(k)==='completed');
   let wins=0,draws=0,losses=0,scored=0,conceded=0; completed.forEach(k=>{const r=fixtures[k].result||{},h=+r.homeScore||0,a=+r.awayScore||0;scored+=h;conceded+=a;if(h>a)wins++;else if(h===a)draws++;else losses++;});
   const pct=completed.length?Math.round(wins/completed.length*100):0,gd=scored-conceded,avg=completed.length?(scored/completed.length).toFixed(1):'0.0';
-  body.innerHTML=`<div class="stats-performance"><div class="stats-performance-kicker">Season performance</div><div class="stats-performance-title">${statsEsc(teamName)} · 2026/27</div><div class="stats-performance-record"><span class="stats-record-win">${wins}W</span><span>·</span><span class="stats-record-draw">${draws}D</span><span>·</span><span class="stats-record-loss">${losses}L</span><span>· ${pct}% win rate</span></div><div class="stats-performance-grid"><div class="stats-performance-stat"><b>${completed.length}</b><span>Played</span></div><div class="stats-performance-stat"><b>${wins}</b><span>Wins</span></div><div class="stats-performance-stat"><b>${draws}</b><span>Draws</span></div><div class="stats-performance-stat"><b>${losses}</b><span>Losses</span></div></div><div class="stats-secondary-stats"><div class="stats-secondary-stat"><b>${scored}</b><br>Goals For</div><div class="stats-secondary-stat"><b>${conceded}</b><br>Goals Against</div><div class="stats-secondary-stat"><b>${gd>=0?'+':''}${gd}</b><br>Goal Diff</div><div class="stats-secondary-stat"><b>${avg}</b><br>Avg For</div></div></div><div class="stats-search-wrap"><input id="statsTeamSearch" class="stats-search-input" type="search" autocomplete="off" placeholder="Search opponent..."><button id="statsTeamSearchClear" class="stats-search-clear" type="button">×</button><div id="statsTeamSuggestions" class="stats-suggestions" hidden></div></div><div id="statsTeamSearchMeta" class="stats-search-meta"></div><div class="stats-filter">${['all','completed','pending'].map(f=>`<button type="button" class="btn ${statsFilter===f?'btn-amber':'btn-ghost'}" data-stats-filter="${f}">${f[0].toUpperCase()+f.slice(1)}</button>`).join('')}</div><div id="statsTeamResults"></div>`;
+  body.innerHTML=`<div class="stats-performance"><div class="stats-performance-kicker">Season performance</div><div class="stats-performance-title">${statsEsc(teamName)} · ${statsEsc(statsSeason)}</div><div class="stats-performance-record"><span class="stats-record-win">${wins}W</span><span>·</span><span class="stats-record-draw">${draws}D</span><span>·</span><span class="stats-record-loss">${losses}L</span><span>· ${pct}% win rate</span></div><div class="stats-performance-grid"><div class="stats-performance-stat"><b>${completed.length}</b><span>Played</span></div><div class="stats-performance-stat"><b>${wins}</b><span>Wins</span></div><div class="stats-performance-stat"><b>${draws}</b><span>Draws</span></div><div class="stats-performance-stat"><b>${losses}</b><span>Losses</span></div></div><div class="stats-secondary-stats"><div class="stats-secondary-stat"><b>${scored}</b><br>Goals For</div><div class="stats-secondary-stat"><b>${conceded}</b><br>Goals Against</div><div class="stats-secondary-stat"><b>${gd>=0?'+':''}${gd}</b><br>Goal Diff</div><div class="stats-secondary-stat"><b>${avg}</b><br>Avg For</div></div></div><div class="stats-season-row">${statsSeasonControl()}</div><div class="stats-search-wrap"><input id="statsTeamSearch" class="stats-search-input" type="search" autocomplete="off" placeholder="Search opponent..."><button id="statsTeamSearchClear" class="stats-search-clear" type="button">×</button><div id="statsTeamSuggestions" class="stats-suggestions" hidden></div></div><div id="statsTeamSearchMeta" class="stats-search-meta"></div><div class="stats-filter">${['all','completed','pending'].map(f=>`<button type="button" class="btn ${statsFilter===f?'btn-amber':'btn-ghost'}" data-stats-filter="${f}">${f[0].toUpperCase()+f.slice(1)}</button>`).join('')}</div><div id="statsTeamResults"></div>`;
   const input=document.getElementById('statsTeamSearch'),clear=document.getElementById('statsTeamSearchClear'),sug=document.getElementById('statsTeamSuggestions'),meta=document.getElementById('statsTeamSearchMeta');
   const opponents=[...new Set(keys.map(k=>fixtures[k]?.opponent||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const draw=()=>{const q=input.value.trim().toLowerCase();clear.style.display=q?'block':'none';const rows=keys.filter(k=>(statsFilter==='all'||statsFixtureStatus(k)===statsFilter)&&(!q||String(fixtures[k]?.opponent||'').toLowerCase().includes(q)));meta.textContent=q?`${rows.length} fixture${rows.length===1?'':'s'} matching “${input.value.trim()}”`:'';document.getElementById('statsTeamResults').innerHTML=rows.length?rows.map(statsResultCard).join(''):'<div class="hint">No fixtures match this search/filter.</div>';document.querySelectorAll('[data-result-edit]').forEach(x=>x.onclick=()=>openStatsResultEntry(x.dataset.resultEdit));document.querySelectorAll('[data-result-cancel]').forEach(x=>x.onclick=()=>cancelStatsFixture(x.dataset.resultCancel));};
   const suggest=()=>{const q=input.value.trim().toLowerCase();if(!q){sug.hidden=true;sug.innerHTML='';return}const m=opponents.filter(x=>x.toLowerCase().includes(q)).slice(0,8);sug.innerHTML=m.map(x=>`<button type="button" class="stats-suggestion" data-opponent="${escapeAttr(x)}">${statsEsc(x)}</button>`).join('');sug.hidden=!m.length;sug.querySelectorAll('[data-opponent]').forEach(x=>x.onclick=()=>{input.value=x.dataset.opponent;sug.hidden=true;draw();input.focus()})};
-  input.oninput=()=>{suggest();draw()};input.onfocus=suggest;clear.onclick=()=>{input.value='';sug.hidden=true;draw();input.focus()};body.querySelectorAll('[data-stats-filter]').forEach(x=>x.onclick=()=>{statsFilter=x.dataset.statsFilter;renderStats()});draw();
+  input.oninput=()=>{suggest();draw()};input.onfocus=suggest;clear.onclick=()=>{input.value='';sug.hidden=true;draw();input.focus()};body.querySelectorAll('[data-stats-filter]').forEach(x=>x.onclick=()=>{statsFilter=x.dataset.statsFilter;renderStats()});bindStatsSeason();draw();
 }
 function statsResultCard(key){
   const f=fixtures[key]||{}, st=statsFixtureStatus(key), r=f.result||{};
@@ -1910,6 +1938,7 @@ async function saveStatsResult(key){
   });
   f.result={
     ...old,
+    season:statsSeason,
     status:'completed',
     homeScore:Number(document.getElementById('statsHomeScore').value||0),
     awayScore:Number(document.getElementById('statsAwayScore').value||0),
@@ -1934,8 +1963,9 @@ async function cancelStatsFixture(key){
 }
 
 function renderStatsPlayers(){
-  const body=document.getElementById('statsContent'), completed=statsFixtureKeys().filter(k=>statsFixtureStatus(k)==='completed');
-  const rows=roster.map(name=>{
+  const body=document.getElementById('statsContent'), completed=statsSeasonKeys().filter(k=>statsFixtureStatus(k)==='completed');
+  let sortKey='ga',sortDir='desc';
+  const calc=()=>roster.map(name=>{
     let apps=0,goals=0,assists=0,motm=0,ppotm=0;
     completed.forEach(k=>{
       const r=fixtures[k].result||{}, x=(r.players||{})[name]||{};
@@ -1944,23 +1974,35 @@ function renderStatsPlayers(){
       if((r.motm||[]).includes(name))motm++;
       if((r.ppotm||[]).includes(name))ppotm++;
     });
-    return `<tr><td><strong>${statsEsc(name)}</strong></td><td>${apps}</td><td>${goals}</td><td>${assists}</td><td>${motm}</td><td>${ppotm}</td></tr>`;
-  }).join('');
-  body.innerHTML=`<div class="hint">Statistics are calculated from completed matches only.</div>
-    <div style="overflow-x:auto"><table class="stats-player-table"><thead><tr><th>Player</th><th>Apps</th><th>⚽ Goals</th><th>🅰️ Assists</th><th>🏆 MOTM</th><th>⭐ PPOTM</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    return {name,apps,goals,assists,ga:goals+assists,motm,ppotm};
+  });
+  const total=()=>{const r=calc();return {apps:r.reduce((n,x)=>n+x.apps,0),goals:r.reduce((n,x)=>n+x.goals,0),assists:r.reduce((n,x)=>n+x.assists,0),motm:r.reduce((n,x)=>n+x.motm,0),ppotm:r.reduce((n,x)=>n+x.ppotm,0),ga:r.reduce((n,x)=>n+x.ga,0)}};
+  body.innerHTML=`<div class="stats-page-head"><div><div class="stats-page-title">Player stats</div><div class="stats-page-note">Completed matches · ${statsEsc(statsSeason)}</div></div>${statsSeasonControl()}</div><div id="statsPlayersTableWrap"></div>`;
+  const val=(x,k)=>k==='player'?x.name.toLowerCase():x[k];
+  function table(){
+    const rows=calc();
+    rows.sort((a,b)=>{const av=val(a,sortKey),bv=val(b,sortKey);return typeof av==='string'?(sortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av)):(sortDir==='asc'?av-bv:bv-av)});
+    const t=total();
+    const ownGoals=completed.reduce((n,k)=>n+Number((fixtures[k].result||{}).ownGoals||0),0);
+    const totalGoals=t.goals+ownGoals;
+    document.getElementById('statsPlayersTableWrap').innerHTML=`<div class="stats-table-wrap"><table class="stats-player-table stats-players-compact"><thead><tr><th data-ps="player">Player</th><th data-ps="apps">Apps</th><th data-ps="goals">⚽ Goals</th><th data-ps="assists">🅰 Assists</th><th data-ps="motm">🏆 MOTM</th><th data-ps="ppotm">⭐ PPOTM</th><th data-ps="ga">G+A</th></tr></thead><tbody>${rows.map(x=>`<tr><td><strong>${statsEsc(x.name)}</strong></td><td>${x.apps}</td><td>${x.goals}</td><td>${x.assists}</td><td>${x.motm}</td><td>${x.ppotm}</td><td><strong>${x.ga}</strong></td></tr>`).join('')}<tr class="stats-own-goals-row"><td><strong>Own Goals</strong></td><td>—</td><td><strong>${ownGoals}</strong></td><td>—</td><td>—</td><td>—</td><td>—</td></tr><tr class="stats-total-row"><td><strong>Total</strong></td><td><strong>${t.apps}</strong></td><td><strong>${totalGoals}</strong></td><td><strong>${t.assists}</strong></td><td><strong>${t.motm}</strong></td><td><strong>${t.ppotm}</strong></td><td><strong>${t.ga}</strong></td></tr></tbody></table></div>`;
+    document.querySelectorAll('[data-ps]').forEach(x=>x.onclick=()=>{const k=x.dataset.ps;if(sortKey===k)sortDir=sortDir==='asc'?'desc':'asc';else{sortKey=k;sortDir=k==='player'?'asc':'desc'}table()});
+  }
+  bindStatsSeason(); table();
 }
 
 function renderStatsOpponents(){
-  const body=document.getElementById('statsContent'),done=statsFixtureKeys().filter(k=>statsFixtureStatus(k)==='completed'),map={};
+  const body=document.getElementById('statsContent'),done=statsSeasonKeys().filter(k=>statsFixtureStatus(k)==='completed'),map={};
   done.forEach(k=>{const f=fixtures[k]||{},o=String(f.opponent||'').trim(),r=f.result||{};if(!o)return;const h=+r.homeScore||0,a=+r.awayScore||0,x=map[o]||(map[o]={name:o,fixtures:0,wins:0,draws:0,losses:0,gf:0,ga:0});x.fixtures++;x.gf+=h;x.ga+=a;if(h>a)x.wins++;else if(h===a)x.draws++;else x.losses++;});
   let rows=Object.values(map),sortKey='winRate',sortDir='desc';
-  body.innerHTML=`<div class="stats-performance"><div class="stats-performance-kicker">Season performance</div><div class="stats-performance-title">Opponent record · 2026/27</div><div class="stats-performance-record">Completed fixtures by opponent</div></div><div class="stats-search-wrap"><input id="statsOpponentSearch" class="stats-search-input" type="search" autocomplete="off" placeholder="Search opponent..."><button id="statsOpponentSearchClear" class="stats-search-clear" type="button">×</button><div id="statsOpponentSuggestions" class="stats-suggestions" hidden></div></div><div id="statsOpponentSearchMeta" class="stats-search-meta"></div><div id="statsOpponentTableWrap"></div>`;
+  body.innerHTML=`<div class="stats-page-head"><div><div class="stats-page-title">Opponents</div><div class="stats-page-note">Completed matches · ${statsEsc(statsSeason)}</div></div>${statsSeasonControl()}</div><div class="stats-search-wrap"><input id="statsOpponentSearch" class="stats-search-input" type="search" autocomplete="off" placeholder="Search opponent..."><button id="statsOpponentSearchClear" class="stats-search-clear" type="button">×</button><div id="statsOpponentSuggestions" class="stats-suggestions" hidden></div></div><div id="statsOpponentSearchMeta" class="stats-search-meta"></div><div id="statsOpponentTableWrap"></div>`;
   const input=document.getElementById('statsOpponentSearch'),clear=document.getElementById('statsOpponentSearchClear'),sug=document.getElementById('statsOpponentSuggestions'),meta=document.getElementById('statsOpponentSearchMeta'),names=rows.map(x=>x.name).sort((a,b)=>a.localeCompare(b));
   const val=(x,k)=>k==='opponent'?x.name.toLowerCase():k==='winRate'?x.wins/x.fixtures:x[k];
   function table(){const q=input.value.trim().toLowerCase(),filtered=rows.filter(x=>!q||x.name.toLowerCase().includes(q));filtered.sort((a,b)=>{const av=val(a,sortKey),bv=val(b,sortKey);return typeof av==='string'?(sortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av)):(sortDir==='asc'?av-bv:bv-av)});document.getElementById('statsOpponentTableWrap').innerHTML=filtered.length?`<div class="stats-table-wrap"><table class="stats-player-table stats-opponent-table"><thead><tr><th data-os="opponent">Opponent</th><th data-os="fixtures">Fixtures</th><th data-os="wins">W</th><th data-os="losses">L</th><th data-os="draws">D</th><th data-os="winRate">Win %</th><th data-os="gf">GF</th><th data-os="ga">GA</th></tr></thead><tbody>${filtered.map(x=>`<tr><td><strong>${statsEsc(x.name)}</strong></td><td>${x.fixtures}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.draws}</td><td>${Math.round(x.wins/x.fixtures*100)}%</td><td>${x.gf}</td><td>${x.ga}</td></tr>`).join('')}</tbody></table></div>`:'<div class="hint">No opponents match this search.</div>';document.querySelectorAll('[data-os]').forEach(x=>x.onclick=()=>{const k=x.dataset.os;if(sortKey===k)sortDir=sortDir==='asc'?'desc':'asc';else{sortKey=k;sortDir=k==='opponent'?'asc':'desc'}table()});meta.textContent=q?`${filtered.length} opponent${filtered.length===1?'':'s'} matching “${input.value.trim()}”`:'';}
   function suggest(){const q=input.value.trim().toLowerCase();clear.style.display=q?'block':'none';if(!q){sug.hidden=true;return}const m=names.filter(x=>x.toLowerCase().includes(q)).slice(0,8);sug.innerHTML=m.map(x=>`<button type="button" class="stats-suggestion" data-opp="${escapeAttr(x)}">${statsEsc(x)}</button>`).join('');sug.hidden=!m.length;sug.querySelectorAll('[data-opp]').forEach(x=>x.onclick=()=>{input.value=x.dataset.opp;sug.hidden=true;table();input.focus()})}
-  input.oninput=()=>{suggest();table()};input.onfocus=suggest;clear.onclick=()=>{input.value='';sug.hidden=true;table();input.focus()};table();
+  input.oninput=()=>{suggest();table()};input.onfocus=suggest;clear.onclick=()=>{input.value='';sug.hidden=true;table();input.focus()};bindStatsSeason();table();
 }
+
 // ---- Init ----
 render(); // instant paint (login screen or defaults) before Firebase responds
 
