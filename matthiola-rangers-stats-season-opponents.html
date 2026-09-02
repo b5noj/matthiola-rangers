@@ -356,6 +356,20 @@
 
 .stats-season-row{display:flex;justify-content:flex-end;margin:-4px 0 8px}.stats-season-control{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:900;color:var(--ink-soft)}.stats-season-control select{min-width:92px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:#fff;font:700 11px inherit;color:var(--ink)}.stats-page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:9px}.stats-page-title{font-family:'Bebas Neue';font-size:25px;line-height:1;color:var(--brand-deep)}.stats-page-note{font-size:10px;color:var(--ink-soft);margin-top:3px}.stats-players-compact{min-width:0!important}.stats-players-compact th,.stats-players-compact td{padding:6px 2px;font-size:10px}.stats-players-compact th{cursor:pointer;white-space:nowrap}.stats-players-compact th:first-child,.stats-players-compact td:first-child{width:29%}.stats-own-goals-row td{border-top:1px solid var(--border);font-style:italic}.stats-total-row td{border-top:2px solid var(--ink);font-weight:900;background:rgba(0,0,0,.025)}@media(max-width:519px){.stats-page-title{font-size:23px}.stats-page-head .stats-season-control select{min-width:84px}.stats-players-compact th,.stats-players-compact td{font-size:9.5px;padding:6px 1px}}
 .stats-subtabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.stats-subtab{text-align:center;min-width:0}.stats-search-wrap{position:relative;margin:9px 0 10px}.stats-search-input{width:100%;box-sizing:border-box;padding:10px 34px 10px 11px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font:600 13px inherit}.stats-search-clear{display:none;position:absolute;right:6px;top:4px;width:28px;height:28px;border:0;background:none;color:var(--ink-soft);font-size:21px}.stats-suggestions{position:absolute;z-index:50;left:0;right:0;top:100%;background:#fff;border:1px solid var(--border);border-radius:9px;box-shadow:0 8px 20px rgba(0,0,0,.14);overflow:hidden}.stats-suggestion{display:block;width:100%;padding:10px 11px;border:0;border-bottom:1px solid var(--border);background:#fff;text-align:left;font:600 12px inherit;color:var(--ink);cursor:pointer}.stats-suggestion:hover{background:#fff4e8}.stats-search-meta{font-size:10px;color:var(--ink-soft);margin:-3px 0 9px}.stats-performance{background:linear-gradient(135deg,#fff 0%,#fff6ea 58%,#f3ebe3 100%);border:1.5px solid var(--border);border-radius:16px;padding:14px;margin-bottom:13px;box-shadow:0 5px 18px rgba(58,23,7,.10)}.stats-performance-kicker{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.09em;color:var(--brand)}.stats-performance-title{font-family:'Bebas Neue';font-size:25px;line-height:1;color:var(--brand-deep);margin-top:2px}.stats-performance-record{display:flex;gap:6px;align-items:center;margin-top:5px;font-size:11px;font-weight:800}.stats-record-win{color:var(--good)}.stats-record-draw{color:#9b7200}.stats-record-loss{color:var(--red)}.stats-performance-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:12px}.stats-performance-stat{background:rgba(255,255,255,.86);border:1px solid rgba(120,80,50,.15);border-radius:9px;padding:8px 3px;text-align:center}.stats-performance-stat b{display:block;font-family:'Bebas Neue';font-size:22px;line-height:1;color:var(--brand)}.stats-performance-stat span{display:block;font-size:8px;font-weight:900;color:var(--ink-soft);text-transform:uppercase;margin-top:3px}.stats-secondary-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:7px}.stats-secondary-stat{text-align:center;font-size:8.5px;font-weight:800;color:var(--ink-soft)}.stats-secondary-stat b{font-size:12px;color:var(--ink)}.stats-opponent-table{width:100%;table-layout:fixed}.stats-opponent-table th,.stats-opponent-table td{font-size:10px;padding:7px 1px;text-align:center}.stats-opponent-table th:first-child,.stats-opponent-table td:first-child{text-align:left;width:30%}.stats-opponent-table th{cursor:pointer;white-space:nowrap}@media(max-width:519px){.stats-performance-title{font-size:23px}.stats-performance-stat b{font-size:20px}}
+
+/* Stats table fit refinements */
+.stats-players-compact{min-width:0!important;width:100%}
+.stats-players-compact th,.stats-players-compact td{padding:7px 3px;font-size:10px}
+.stats-players-compact th:first-child,.stats-players-compact td:first-child{width:38%}
+.stats-opponent-table{min-width:0!important;width:100%;table-layout:fixed}
+.stats-opponent-table th,.stats-opponent-table td{padding:6px 1px;font-size:9px;white-space:nowrap}
+.stats-opponent-table th:first-child,.stats-opponent-table td:first-child{width:25%;text-align:left}
+@media(max-width:519px){
+  .stats-players-compact th,.stats-players-compact td{font-size:9.5px;padding:7px 2px}
+  .stats-players-compact th:first-child,.stats-players-compact td:first-child{width:38%}
+  .stats-opponent-table th,.stats-opponent-table td{font-size:8.5px;padding:6px 0}
+  .stats-opponent-table th:first-child,.stats-opponent-table td:first-child{width:25%}
+}
 </style>
 </head>
 <body>
@@ -1409,9 +1423,11 @@ function renderAdminTab(){
   let html = `<div class="section-label">Admin</div>`;
   html += `<div class="admin-subtabs">
     <div class="admin-subtab ${adminSubTab==='squad'?'active':''}" data-subtab="squad">Squad</div>
+      <div class="admin-subtab ${adminSubTab==='settings'?'active':''}" data-subtab="settings">Team Settings</div>
     <div class="admin-subtab ${adminSubTab==='parents'?'active':''}" data-subtab="parents">Parents &amp; Admins</div>
     <div class="admin-subtab ${adminSubTab==='extra'?'active':''}" data-subtab="extra">Extra Fixtures</div>
     <div class="admin-subtab ${adminSubTab==='weekly'?'active':''}" data-subtab="weekly">Weekly Comms</div>
+     <div class="admin-subtab ${adminSubTab==='bulkTraining'?'active':''}" data-subtab="bulkTraining">Bulk Training</div>
   </div>`;
 
   if(adminSubTab === 'squad'){
@@ -1449,8 +1465,76 @@ function renderAdminTab(){
       <input id="newPlayerInput" placeholder="Add a player to the squad…" maxlength="40"/>
       <button class="btn btn-amber" id="addPlayerBtn">Add</button>
     </div>`;
+
+  } else if(adminSubTab === 'settings'){
+    html += `<div class="hint">Team-wide settings used by the squad, availability summaries, Weekly Comms and new schedule dates.</div>`;
+
+    html += `<div class="admin-form">
+      <div class="admin-label-sm">Team name</div>
+      <input id="teamNameSettingsInput" value="${escapeAttr(teamName)}" placeholder="Team name" maxlength="80"/>
+    </div>`;
+
+    html += `<div class="admin-form" style="margin-top:12px;">
+      <div class="admin-label-sm">Minimum players required</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="min-width:0;">
+          <div class="admin-label-sm" style="margin-bottom:4px;">Match</div>
+          <input id="settingsMatchMinPlayers" type="number" min="1" max="30" step="1" value="${SHEETS.match.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
+        </div>
+        <div style="min-width:0;">
+          <div class="admin-label-sm" style="margin-bottom:4px;">Training</div>
+          <input id="settingsTrainingMinPlayers" type="number" min="1" max="30" step="1" value="${SHEETS.training.threshold}" style="box-sizing:border-box;width:100%;margin:0;"/>
+        </div>
+      </div>
+    </div>`;
+
+    html += `<div class="admin-form" style="margin-top:12px;">
+      <div class="admin-label-sm">Default match schedule</div>
+      <div class="admin-label-sm" style="margin-top:8px;">Match day</div>
+      <select id="settingsMatchDay" class="fx-input" style="width:100%;"><option value="1" ${scheduleConfig.match.dayOfWeek==1?"selected":""}>Monday</option><option value="2" ${scheduleConfig.match.dayOfWeek==2?"selected":""}>Tuesday</option><option value="3" ${scheduleConfig.match.dayOfWeek==3?"selected":""}>Wednesday</option><option value="4" ${scheduleConfig.match.dayOfWeek==4?"selected":""}>Thursday</option><option value="5" ${scheduleConfig.match.dayOfWeek==5?"selected":""}>Friday</option><option value="6" ${scheduleConfig.match.dayOfWeek==6?"selected":""}>Saturday</option><option value="0" ${scheduleConfig.match.dayOfWeek==0?"selected":""}>Sunday</option></select>
+      <div class="admin-label-sm" style="margin-top:10px;">Match time slots</div>
+      <div id="settingsMatchSlots"></div>
+      <button class="btn btn-ghost" id="settingsAddMatchSlot" type="button">+ Add match time slot</button>
+    </div>`;
+
+    html += `<div class="admin-form" style="margin-top:12px;">
+      <div class="admin-label-sm">Default training schedule</div>
+      <div class="admin-label-sm" style="margin-top:8px;">Training day</div>
+      <select id="settingsTrainingDay" class="fx-input" style="width:100%;"><option value="1" ${scheduleConfig.training.dayOfWeek==1?"selected":""}>Monday</option><option value="2" ${scheduleConfig.training.dayOfWeek==2?"selected":""}>Tuesday</option><option value="3" ${scheduleConfig.training.dayOfWeek==3?"selected":""}>Wednesday</option><option value="4" ${scheduleConfig.training.dayOfWeek==4?"selected":""}>Thursday</option><option value="5" ${scheduleConfig.training.dayOfWeek==5?"selected":""}>Friday</option><option value="6" ${scheduleConfig.training.dayOfWeek==6?"selected":""}>Saturday</option><option value="0" ${scheduleConfig.training.dayOfWeek==0?"selected":""}>Sunday</option></select>
+      <div class="admin-label-sm" style="margin-top:10px;">Training time slots</div>
+      <div id="settingsTrainingSlots"></div>
+      <button class="btn btn-ghost" id="settingsAddTrainingSlot" type="button">+ Add training time slot</button>
+    </div>`;
+
+    html += `<button class="btn btn-amber" id="saveTeamSettingsBtn" style="width:100%;margin-top:12px;">Save team settings</button>`;
   } else if(adminSubTab === 'parents'){
+    const childParentMap = {};
+    roster.forEach(child => { childParentMap[child] = []; });
+    Object.keys(parents).forEach(email => {
+      const p = parents[email] || {};
+      if(p.child && childParentMap[p.child]) childParentMap[p.child].push(p.name || email);
+    });
+    const linkedChildren = roster.filter(child => childParentMap[child].length > 0).length;
+    const allChildrenLinked = linkedChildren === roster.length && roster.length > 0;
+
     html += `<div class="hint">Link each parent's login email to their child, and mark which parents are admins. A parent only ever sees and updates their own child's availability.</div>`;
+    html += `<div class="parent-link-summary">
+      <div class="parent-link-summary-head">
+        <div class="parent-link-summary-title">Parent Link Check</div>
+        <div class="parent-link-summary-count ${allChildrenLinked ? 'good' : 'warn'}">${linkedChildren}/${roster.length} children linked</div>
+      </div>
+      ${roster.map(child => {
+        const linked = childParentMap[child] || [];
+        const hasParent = linked.length > 0;
+        return `<div class="parent-link-child">
+          <div>
+            <span class="parent-link-child-name">${escapeHtml(child)}</span>
+            ${hasParent ? `<span class="parent-link-parent-names">(${linked.map(escapeHtml).join(', ')})</span>` : ''}
+          </div>
+          <div class="parent-link-child-status ${hasParent ? 'good' : 'warn'}">${hasParent ? `✓ ${linked.length} parent${linked.length===1?'':'s'}` : '⚠ No parent linked'}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
     html += `<div class="admin-list">`;
     Object.keys(parents).forEach(email => {
       const p = parents[email];
@@ -1510,7 +1594,7 @@ function renderAdminTab(){
         <button type="button" class="reason-chip extra-type-chip ${adminExtraType==='training'?'selected':''}" data-extratype="training">Training</button>
       </div>
       <div class="admin-label-sm">Date:</div>
-      <input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/>
+      <div class="admin-date-wrapper"><input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="box-sizing:border-box;min-width:0;max-width:100%;width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:12px;"/></div>
       <div class="admin-label-sm">Time slot(s):</div>
       <input id="extraSlotsInput" placeholder="e.g. 6-7pm, or 5-6pm, 6-7pm for more than one" value="${escapeAttr(adminExtraSlotsRaw)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
       <div class="hint" style="margin:0 0 12px;">Separate with commas if there's more than one slot. Leave blank for a single unlabelled session.</div>
@@ -1535,6 +1619,10 @@ function renderAdminTab(){
     </div>`;
   }
 
+  if(adminSubTab === 'bulkTraining') {
+    renderBulkTrainingTab();
+    return;
+  }
   if(adminSubTab === 'weekly') {
     renderWeeklyCommsTab();
     return;
@@ -1546,12 +1634,25 @@ function renderAdminTab(){
     el.addEventListener('click', () => { adminSubTab = el.dataset.subtab; render(); });
   });
 
+
+  // Team Settings
+  if(adminSubTab === 'settings'){
+    renderTeamSettingsEditor();
+    const saveTeamSettingsBtn=document.getElementById('saveTeamSettingsBtn');
+    if(saveTeamSettingsBtn) saveTeamSettingsBtn.addEventListener('click',async()=>{
+      saveTeamSettingsBtn.disabled=true;
+      await saveTeamSettingsFromAdmin();
+      saveTeamSettingsBtn.disabled=false;
+      render();
+    });
+  }
+
   // Squad
   const addBtn = document.getElementById('addPlayerBtn');
   if(addBtn) addBtn.addEventListener('click', addPlayer);
   const newInput = document.getElementById('newPlayerInput');
   if(newInput) newInput.addEventListener('keydown', e => { if(e.key==='Enter') addPlayer(); });
-  panel.querySelectorAll('[data-removeplayer]').forEach(el => {
+panel.querySelectorAll('[data-removeplayer]').forEach(el => {
     el.addEventListener('click', () => removePlayer(el.dataset.removeplayer));
   });
   panel.querySelectorAll('[data-editplayer]').forEach(el => {
