@@ -440,35 +440,36 @@
   .stats-suggestions{position:absolute;left:0;right:0;top:100%;z-index:20;background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 8px 8px;box-shadow:0 6px 14px rgba(58,23,7,.12);overflow:hidden;}
   .stats-suggestion{padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;border-top:1px solid var(--line);}
   .stats-suggestion:hover{background:var(--ok-soft);}
-  .stats-hero{background:#fff;color:var(--ink);border:1.5px solid var(--border);border-radius:13px;padding:11px 12px;margin-bottom:12px;box-shadow:0 3px 10px rgba(58,23,7,.07);overflow:hidden;}
+  .stats-hero{position:relative;background:#fffdf9;color:var(--ink);border:1.5px solid var(--border);border-radius:14px;padding:10px 12px 11px;margin-bottom:12px;box-shadow:0 6px 18px rgba(58,23,7,.12),0 0 0 2px rgba(226,99,27,.06);overflow:hidden;}
+  .stats-hero::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:var(--brand);border-radius:14px 14px 0 0;}
   .stats-hero-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:5px;}
   .stats-hero-title-wrap{display:flex;align-items:center;gap:9px;min-width:0;}
   .stats-hero-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:var(--amber-soft);color:var(--brand);flex:none;}
   .stats-hero-icon svg{width:20px;height:20px;display:block;}
   .stats-hero-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:.03em;color:var(--ink);line-height:1;}
-  .stats-performance-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:10px;padding:3px 2px 8px;}
+  .stats-performance-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:9px;padding:2px 2px 6px;}
   .stats-donut-wrap{display:flex;justify-content:center;align-items:center;min-width:0;}
-  .stats-donut{width:150px;height:150px;border-radius:50%;position:relative;display:grid;place-items:center;background:conic-gradient(var(--ok) 0deg var(--win-angle), #9b9b9b var(--win-angle) var(--draw-angle), var(--red) var(--draw-angle) 360deg);box-shadow:inset 0 0 0 1px rgba(0,0,0,.03);}
+  .stats-donut{width:142px;height:142px;border-radius:50%;position:relative;display:grid;place-items:center;background:conic-gradient(var(--ok) 0deg var(--win-angle), #9b9b9b var(--win-angle) var(--draw-angle), var(--red) var(--draw-angle) 360deg);box-shadow:inset 0 0 0 1px rgba(0,0,0,.03);}
   .stats-donut::before{content:'';position:absolute;inset:14px;border-radius:50%;background:#fff;}
   .stats-donut-center{position:relative;z-index:1;text-align:center;}
   .stats-donut-value{font-family:'Bebas Neue';font-size:34px;line-height:.9;color:var(--brand);}
   .stats-donut-label{font-size:9px;text-transform:uppercase;letter-spacing:.06em;font-weight:900;color:var(--ink);margin-top:5px;}
   .stats-outcome-list{min-width:0;}
-  .stats-outcome-row{display:grid;grid-template-columns:13px 1fr auto;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line);}
+  .stats-outcome-row{display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:7px;padding:5px 2px;border-bottom:1px solid var(--line);}
   .stats-outcome-row:last-child{border-bottom:0;padding-bottom:3px;}
-  .stats-outcome-dot{width:12px;height:12px;border-radius:50%;display:block;}
-  .stats-outcome-dot.win{background:var(--ok);}
+  .stats-outcome-dot{width:11px;height:11px;border-radius:50%;display:block;justify-self:center;}
+  .stats-outcome-dot.win{background:var(--good);}
   .stats-outcome-dot.draw{background:#9b9b9b;}
   .stats-outcome-dot.loss{background:var(--red);}
   .stats-outcome-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink) !important;}
   .stats-outcome-value{font-family:'Bebas Neue';font-size:23px;line-height:1;color:var(--ink) !important;}
-  .stats-outcome-row.win .stats-outcome-dot{background:var(--ok) !important;}
+  .stats-outcome-row.win .stats-outcome-dot{background:var(--good) !important;}
   .stats-outcome-row.draw .stats-outcome-dot{background:#9b9b9b !important;}
   .stats-outcome-row.loss .stats-outcome-dot{background:var(--red) !important;}
-  .stats-outcome-row.win .stats-outcome-value{color:var(--ok) !important;}
+  .stats-outcome-row.win .stats-outcome-value{color:var(--good) !important;}
   .stats-outcome-row.draw .stats-outcome-value{color:#777 !important;}
   .stats-outcome-row.loss .stats-outcome-value{color:var(--red) !important;}
-  .stats-played-icon{width:18px;height:18px;display:grid;place-items:center;color:var(--ink);}
+  .stats-played-icon{width:18px;height:18px;display:grid;place-items:center;color:var(--ink);justify-self:center;}
   .stats-played-icon svg{width:18px;height:18px;display:block;}
   .stats-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--border);border-radius:12px;background:#fff;overflow:hidden;box-shadow:0 2px 7px rgba(58,23,7,.05);}
   .stats-metric{background:#fff;border:0;border-right:1px solid var(--border);border-radius:0;padding:7px 3px 7px;text-align:center;min-width:0;}
@@ -486,11 +487,11 @@
     .stats-hero-icon svg{width:19px;height:19px;}
     .stats-filter-btn{padding:6px 9px;font-size:10px;}
     .stats-performance-main{grid-template-columns:1fr 1fr;gap:5px;padding-top:1px;padding-bottom:5px;}
-    .stats-donut{width:126px;height:126px;}
-    .stats-donut::before{inset:12px;}
+    .stats-donut{width:118px;height:118px;}
+    .stats-donut::before{inset:11px;}
     .stats-donut-value{font-size:28px;}
     .stats-donut-label{font-size:8px;}
-    .stats-outcome-row{padding:5px 1px;gap:6px;}
+    .stats-outcome-row{grid-template-columns:18px 1fr auto;padding:4px 1px;gap:6px;}
     .stats-outcome-dot{width:10px;height:10px;}
     .stats-outcome-label{font-size:8.5px;}
     .stats-outcome-value{font-size:20px;}
@@ -556,7 +557,7 @@
   .stats-own-goal{display:flex;justify-content:space-between;align-items:center;padding:8px 0;margin-top:8px;border-top:1px dashed var(--border);font-size:11px;font-weight:800;color:var(--red);}
   @media(max-width:519px){
     .stats-metric-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
-    .stats-metric{padding:6px 1px 6px;}
+    .stats-metric{padding:5px 1px 5px;}
     .stats-metric-icon{height:19px;margin-bottom:1px;}
     .stats-metric-icon svg{width:19px;height:19px;}
     .stats-metric-value{font-size:19px;}
