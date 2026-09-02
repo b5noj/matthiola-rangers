@@ -415,6 +415,12 @@
   /* Final mobile containment rule for Admin navigation */
   .admin-subtabs > .admin-subtab{flex:none !important;}
   @media (max-width:700px){
+    .stats-metric-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;}
+    .stats-metric{padding:5px 1px;}
+    .stats-metric-value{font-size:17px;}
+    .stats-metric-label{font-size:6.5px;}
+    .stats-record,.stats-win-rate-value{font-size:22px;}
+
     .admin-subtabs{grid-template-columns:repeat(3,minmax(0,1fr)) !important;}
     .admin-subtab{font-size:12px;padding-left:4px;padding-right:4px;}
   }
@@ -438,12 +444,18 @@
   .stats-suggestions{position:absolute;left:0;right:0;top:100%;z-index:20;background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 8px 8px;box-shadow:0 6px 14px rgba(58,23,7,.12);overflow:hidden;}
   .stats-suggestion{padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;border-top:1px solid var(--line);}
   .stats-suggestion:hover{background:var(--ok-soft);}
-  .stats-hero{background:var(--brand-deep);color:#fff;border-radius:11px;padding:13px;margin-bottom:12px;}
-  .stats-hero-title{font-family:'Bebas Neue';font-size:17px;letter-spacing:.04em;color:var(--amber);margin-bottom:8px;}
-  .stats-metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
-  .stats-metric{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:7px;padding:7px 3px;text-align:center;min-width:0;}
-  .stats-metric-value{font-family:'Bebas Neue';font-size:22px;line-height:1;color:#fff;}
-  .stats-metric-label{font-size:8px;text-transform:uppercase;letter-spacing:.03em;color:rgba(255,255,255,.68);font-weight:800;margin-top:2px;white-space:nowrap;}
+  .stats-hero{background:var(--brand-deep);color:#fff;border-radius:11px;padding:11px 12px;margin-bottom:12px;}
+  .stats-hero-title{font-family:'Bebas Neue';font-size:16px;letter-spacing:.04em;color:var(--amber);margin-bottom:6px;}
+  .stats-performance-main{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px;}
+  .stats-record{font-family:'Bebas Neue';font-size:24px;line-height:1;color:#fff;white-space:nowrap;}
+  .stats-record-label{font-size:8px;text-transform:uppercase;letter-spacing:.04em;color:rgba(255,255,255,.62);font-weight:800;margin-top:3px;}
+  .stats-win-rate{text-align:right;white-space:nowrap;}
+  .stats-win-rate-value{font-family:'Bebas Neue';font-size:24px;line-height:1;color:var(--amber);}
+  .stats-win-rate-label{font-size:8px;text-transform:uppercase;letter-spacing:.04em;color:rgba(255,255,255,.62);font-weight:800;margin-top:3px;}
+  .stats-metric-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;}
+  .stats-metric{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:7px;padding:5px 2px;text-align:center;min-width:0;}
+  .stats-metric-value{font-family:'Bebas Neue';font-size:18px;line-height:1;color:#fff;}
+  .stats-metric-label{font-size:7px;text-transform:uppercase;letter-spacing:.02em;color:rgba(255,255,255,.68);font-weight:800;margin-top:2px;white-space:nowrap;}
   .stats-table-wrap{width:100%;max-width:100%;min-width:0;overflow:hidden;background:#fff;border:1.5px solid var(--border);border-radius:10px;}
   .stats-player-table,.stats-opponent-table{width:100%;max-width:100%;min-width:0;border-collapse:collapse;table-layout:fixed;}
   .stats-player-table th,.stats-player-table td,.stats-opponent-table th,.stats-opponent-table td{border-bottom:1px solid var(--line);text-align:center;}
@@ -458,11 +470,11 @@
   .stats-player-table th:nth-child(6),.stats-player-table td:nth-child(6){width:14%;}
   .stats-player-table th:nth-child(7),.stats-player-table td:nth-child(7){width:12%;}
   .stats-opponent-table th:first-child,.stats-opponent-table td:first-child{width:24%;}
-  .stats-opponent-table th:nth-child(2),.stats-opponent-table td:nth-child(2){width:11%;}
+  .stats-opponent-table th:nth-child(2),.stats-opponent-table td:nth-child(2){width:11%;white-space:nowrap;overflow-wrap:normal;}
   .stats-opponent-table th:nth-child(3),.stats-opponent-table td:nth-child(3),.stats-opponent-table th:nth-child(4),.stats-opponent-table td:nth-child(4),.stats-opponent-table th:nth-child(5),.stats-opponent-table td:nth-child(5){width:9%;}
   .stats-opponent-table th:nth-child(6),.stats-opponent-table td:nth-child(6){width:14%;}
   .stats-opponent-table th:nth-child(7),.stats-opponent-table td:nth-child(7),.stats-opponent-table th:nth-child(8),.stats-opponent-table td:nth-child(8){width:12%;}
-  .stats-total-row td{font-weight:900;background:var(--ok-soft);border-bottom:none;}
+  .stats-total-row td{font-weight:900;background:var(--ok-soft);border-bottom:none;border-top:2px solid var(--brand);padding-top:9px;padding-bottom:9px;}
   .stats-own-goals-row td{color:var(--red);font-weight:800;}
   .stats-result-card{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:11px 12px;margin-bottom:9px;}
   .stats-result-head{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;}
@@ -800,13 +812,20 @@ function watchFixtures(){
   }, (err) => { console.error('Fixtures sync error', err); showConnectionWarning(); });
 }
 
+function showStatsSyncError(err, action='read'){
+  console.error(`Stats ${action} error`, err);
+  const code=err?.code||'';
+  if(code==='permission-denied') showConnectionWarning('Stats could not sync because Firebase rules are blocking access to match results.');
+  else showConnectionWarning('Stats could not sync with Firebase. Check your connection and try again.');
+}
+
 function watchResults(){
   onSnapshot(collection(db, 'match_results'), (snap) => {
     const next = {};
     snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
     results = next;
     render();
-  }, (err) => { console.error('Results sync error', err); showConnectionWarning(); });
+  }, (err) => { showStatsSyncError(err, 'read'); });
 }
 
 function watchTrainingInfo(){
@@ -929,7 +948,7 @@ async function saveFixture(dateKey, data){
 }
 async function saveMatchResult(dateKey, data){
   try{ await setDoc(doc(db, 'match_results', dateKey), data); }
-  catch(e){ console.error('Failed to save match result', e); showConnectionWarning(); }
+  catch(e){ showStatsSyncError(e, 'write'); }
 }
 async function saveTrainingInfo(dateKey, data){
   try{ await setDoc(doc(db, 'training_info', dateKey), data); }
@@ -2204,7 +2223,7 @@ function bindStatsCommon(){
 }
 function statsResultCard(key){
   const f=fixtures[key]||{}, r=results[key]||{}, status=statsFixtureStatus(key);
-  const score=(status==='completed') ? `${Number(r.homeScore)||0} – ${Number(r.awayScore)||0}` : 'Pending';
+  const score=(status==='completed') ? `${Number(r.homeScore)||0} – ${Number(r.awayScore)||0}` : '—';
   const date=new Date(key+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   return `<div class="stats-result-card"><div class="stats-result-head"><div style="min-width:0"><div class="stats-result-opponent">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-result-meta">${date}${f.koTime?' · '+escapeHtml(f.koTime):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="text-align:right"><div class="stats-result-score">${score}</div><span class="stats-status-badge ${status}">${status}</span></div></div>${status==='completed' && (r.motm?.length||r.ppotm?.length) ? `<div class="stats-result-meta">${r.motm?.length?`🏆 ${r.motm.map(escapeHtml).join(', ')}`:''}${r.motm?.length&&r.ppotm?.length?' · ':''}${r.ppotm?.length?`⭐ ${r.ppotm.map(escapeHtml).join(', ')}`:''}</div>`:''}${isAdmin ? `<div class="stats-result-actions">${status==='completed'?`<button class="btn btn-ghost" data-edit-stats-result="${key}">Edit Result</button>`:`<button class="btn btn-amber" data-enter-stats-result="${key}">Enter Result</button>`}${status!=='cancelled'?`<button class="btn btn-ghost" data-cancel-stats-result="${key}">Cancel Fixture</button>`:''}</div>`:''}</div>`;
 }
@@ -2216,7 +2235,7 @@ function renderStatsTeam(){
   let played=0,wins=0,losses=0,draws=0,gf=0,ga=0;
   completed.forEach(k=>{const r=results[k]||{};const a=Number(r.homeScore)||0,b=Number(r.awayScore)||0;played++;gf+=a;ga+=b;if(a>b)wins++;else if(a<b)losses++;else draws++;});
   const winPct=played?Math.round(wins/played*100):0, avg=played?(gf/played).toFixed(2):'0.00';
-  return `<div class="stats-page"><div class="stats-page-head"><div><div class="stats-page-title">${escapeHtml(teamName)} · ${escapeHtml(statsSeason)}</div><div class="stats-page-sub">Season performance and match results</div></div>${statsSeasonControl()}</div><div class="stats-nav"><button class="stats-nav-btn active" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button></div><div class="stats-hero"><div class="stats-hero-title">Season performance</div><div class="stats-metric-grid"><div class="stats-metric"><div class="stats-metric-value">${played}</div><div class="stats-metric-label">Played</div></div><div class="stats-metric"><div class="stats-metric-value">${wins}</div><div class="stats-metric-label">Wins</div></div><div class="stats-metric"><div class="stats-metric-value">${losses}</div><div class="stats-metric-label">Losses</div></div><div class="stats-metric"><div class="stats-metric-value">${draws}</div><div class="stats-metric-label">Draws</div></div><div class="stats-metric"><div class="stats-metric-value">${winPct}%</div><div class="stats-metric-label">Win %</div></div><div class="stats-metric"><div class="stats-metric-value">${gf}</div><div class="stats-metric-label">Goals For</div></div><div class="stats-metric"><div class="stats-metric-value">${ga}</div><div class="stats-metric-label">Goals Against</div></div><div class="stats-metric"><div class="stats-metric-value">${gf-ga}</div><div class="stats-metric-label">Goal Diff</div></div><div class="stats-metric"><div class="stats-metric-value">${avg}</div><div class="stats-metric-label">Average For</div></div></div></div><div class="stats-filters">${['completed','pending','all'].map(x=>`<button class="stats-filter-btn ${statsFilter===x?'active':''}" data-stats-filter="${x}">${x==='completed'?'Completed':x==='pending'?'Pending':'All'}</button>`).join('')}</div>${statsSearchBox()}<div>${filtered.length?filtered.map(statsResultCard).join(''):`<div class="empty-state">No ${statsFilter==='all'?'fixtures':statsFilter+' fixtures'}${q?' matching your search':''} for ${escapeHtml(statsSeason)}.</div>`}</div></div>`;
+  return `<div class="stats-page"><div class="stats-page-head"><div><div class="stats-page-title">${escapeHtml(teamName)} · ${escapeHtml(statsSeason)}</div><div class="stats-page-sub">Season performance and match results</div></div>${statsSeasonControl()}</div><div class="stats-nav"><button class="stats-nav-btn active" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button></div><div class="stats-hero"><div class="stats-hero-title">Season performance</div><div class="stats-performance-main"><div><div class="stats-record">${wins}W · ${draws}D · ${losses}L</div><div class="stats-record-label">${played} played</div></div><div class="stats-win-rate"><div class="stats-win-rate-value">${winPct}%</div><div class="stats-win-rate-label">Win rate</div></div></div><div class="stats-metric-grid"><div class="stats-metric"><div class="stats-metric-value">${gf}</div><div class="stats-metric-label">GF</div></div><div class="stats-metric"><div class="stats-metric-value">${ga}</div><div class="stats-metric-label">GA</div></div><div class="stats-metric"><div class="stats-metric-value">${gf-ga}</div><div class="stats-metric-label">GD</div></div><div class="stats-metric"><div class="stats-metric-value">${avg}</div><div class="stats-metric-label">Avg For</div></div><div class="stats-metric"><div class="stats-metric-value">${played}</div><div class="stats-metric-label">Played</div></div></div></div><div class="stats-filters">${['completed','pending','all'].map(x=>`<button class="stats-filter-btn ${statsFilter===x?'active':''}" data-stats-filter="${x}">${x==='completed'?'Completed':x==='pending'?'Pending':'All'}</button>`).join('')}</div>${statsSearchBox()}<div>${filtered.length?filtered.map(statsResultCard).join(''):`<div class="empty-state">No ${statsFilter==='all'?'fixtures':statsFilter+' fixtures'}${q?' matching your search':''} for ${escapeHtml(statsSeason)}.</div>`}</div></div>`;
 }
 function statsPlayerRows(){
   const completed=statsSeasonKeys().filter(k=>statsFixtureStatus(k)==='completed');
