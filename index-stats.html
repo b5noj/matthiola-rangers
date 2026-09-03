@@ -186,13 +186,64 @@
   .fixture-readonly{ font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-bottom:10px; }
   .w3w-link{ color:var(--brand); text-decoration:underline; font-weight:700; }
   .fixture-edit{ margin-bottom:10px; padding:10px; background:var(--ok-soft); border-radius:8px; }
+  /* Unified Admin entry-control appearance */
+  :root{ --admin-control-bg:#f1eee9; }
+  .fx-input,
+  .admin-card input:not([type="checkbox"]):not([type="radio"]),
+  .admin-card select,
+  .admin-card textarea,
+  .admin-form input:not([type="checkbox"]):not([type="radio"]),
+  .admin-form select,
+  .admin-form textarea,
+  #newPlayerInput,
+  #teamNameSettingsInput,
+  #settingsMatchMinPlayers,
+  #settingsTrainingMinPlayers,
+  #settingsMatchDay,
+  #settingsTrainingDay,
+  #parentNameInput,
+  #parentEmailInput,
+  #extraSlotsInput,
+  #extraOpponentInput,
+  #extraKoTimeInput,
+  #extraLocationInput,
+  #extraMatchTypeSelect,
+  #extraW3WInput,
+  #bulkTrainingTime,
+  #bulkTrainingLocation,
+  #bulkTrainingW3W{
+    background:var(--admin-control-bg) !important;
+    color:var(--ink) !important;
+  }
+  .admin-card input:not([type="checkbox"]):not([type="radio"]),
+  .admin-card select,
+  .admin-card textarea,
+  .admin-form input:not([type="checkbox"]):not([type="radio"]),
+  .admin-form select,
+  .admin-form textarea,
+  #newPlayerInput, #teamNameSettingsInput, #settingsMatchMinPlayers,
+  #settingsTrainingMinPlayers, #settingsMatchDay, #settingsTrainingDay,
+  #parentNameInput, #parentEmailInput, #extraSlotsInput, #extraOpponentInput,
+  #extraKoTimeInput, #extraLocationInput, #extraMatchTypeSelect, #extraW3WInput,
+  #bulkTrainingTime, #bulkTrainingLocation, #bulkTrainingW3W{
+    box-sizing:border-box;
+  }
+  select.fx-input,
+  #settingsMatchDay, #settingsTrainingDay, #extraMatchTypeSelect{
+    background:var(--admin-control-bg) !important;
+  }
+  .centred-date-field .date-display{
+    background:var(--admin-control-bg) !important;
+    color:var(--ink) !important;
+  }
+
   .fx-input{
     width:100%; padding:8px 10px; border-radius:6px; border:1.5px solid var(--border);
     font-size:13px; font-family:'Inter'; margin-bottom:6px;
-    background:#f1eee9; color:var(--ink);
+    background:var(--admin-control-bg); color:var(--ink);
   }
   select.fx-input{
-    background:#f1eee9 !important;
+    background:var(--admin-control-bg) !important;
     color:var(--ink) !important;
   }
   .fx-actions{ display:flex; gap:8px; margin-top:4px; }
