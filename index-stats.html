@@ -369,6 +369,17 @@
     min-width:0 !important;
   }
 
+  /* iOS Safari can paint the native date control slightly beyond its CSS box.
+     Keep the Weekly Comms selector a few pixels inside the wrapper so both
+     rounded corners remain visible. */
+  @media(max-width:519px){
+    .weekly-comms-card .admin-date-wrapper input[type="date"]{
+      width:calc(100% - 4px) !important;
+      max-width:calc(100% - 4px) !important;
+      margin-right:4px !important;
+    }
+  }
+
   .parent-link-summary{
     background:#fff;border:1.5px solid var(--border);border-radius:10px;
     padding:14px;margin-bottom:14px;
