@@ -337,23 +337,54 @@
   .weekly-comms-preview{width:100%;min-height:360px;padding:12px;border:1.5px solid var(--border);border-radius:8px;background:#fafaf7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;resize:vertical;}
   .weekly-comms-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:6px 0 0;}
 
-  /* iPhone date controls: use the same content width as the surrounding controls.
-     The inner wrapper is explicitly centred so the visible border has equal gutters. */
+  /* iPhone date controls: fixed-height custom shell with a transparent native
+     date input over the top. This keeps the native iOS date picker functional
+     while giving the closed/empty state a stable height and black text. */
   .centred-date-field{
+    position:relative !important;
     box-sizing:border-box !important;
-    width:calc(100% - 20px) !important;
-    max-width:calc(100% - 20px) !important;
+    width:calc(100% - 16px) !important;
+    max-width:calc(100% - 16px) !important;
     min-width:0 !important;
-    margin-left:auto !important;
-    margin-right:auto !important;
+    height:44px !important;
+    margin:0 auto !important;
+    overflow:visible !important;
+  }
+  .centred-date-field .date-display{
+    position:absolute !important;
+    inset:0 !important;
+    box-sizing:border-box !important;
+    display:flex !important;
+    align-items:center !important;
+    padding:0 10px !important;
+    border:1.5px solid var(--border) !important;
+    border-radius:8px !important;
+    background:#fff !important;
+    color:var(--ink) !important;
+    font-family:'Inter' !important;
+    font-size:13.5px !important;
+    line-height:1 !important;
+    pointer-events:none !important;
+  }
+  .centred-date-field:focus-within .date-display{
+    border-color:var(--brand) !important;
   }
   .centred-date-field input[type="date"]{
+    position:absolute !important;
+    inset:0 !important;
+    z-index:2 !important;
     display:block !important;
     box-sizing:border-box !important;
     width:100% !important;
+    height:44px !important;
     max-width:100% !important;
     min-width:0 !important;
     margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    background:transparent !important;
+    color:transparent !important;
+    opacity:0 !important;
     -webkit-appearance:none !important;
     appearance:none !important;
   }
@@ -364,8 +395,8 @@
       gap:10px !important;
     }
     .bulk-training-date-row > .centred-date-field{
-      width:calc(100% - 20px) !important;
-      max-width:calc(100% - 20px) !important;
+      width:calc(100% - 16px) !important;
+      max-width:calc(100% - 16px) !important;
       margin-left:auto !important;
       margin-right:auto !important;
     }
@@ -1710,7 +1741,7 @@ function renderWeeklyCommsTab(){
     <div class="section-label">Weekly Comms</div>
     <div class="weekly-comms-card">
       <div class="admin-label-sm">Week commencing</div>
-      <div class="centred-date-field"><input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+      <div class="centred-date-field"><div class="date-display" id="weeklyCommsWeekDisplay">${weeklyCommsWeek ? formatAdminDateDisplay(weeklyCommsWeek) : 'Select date'}</div><input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" aria-label="Select date"/></div>
       <div class="weekly-comms-week-buttons">
         <button type="button" class="btn btn-ghost" id="weeklyCommsPrevWeekBtn">‹ Previous Week</button>
         <button type="button" class="btn btn-ghost" id="weeklyCommsThisWeekBtn">This Week</button>
@@ -1775,8 +1806,8 @@ function renderBulkTrainingTab(){
     <div class="section-label">Bulk Training Schedule</div>
     <div class="weekly-comms-card">
       <div class="bulk-training-date-row" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;width:100%;">
-        <div class="centred-date-field"><div class="admin-label-sm">From</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
-        <div class="centred-date-field"><div class="admin-label-sm">To</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+        <div style="min-width:0;width:100%;"><div class="admin-label-sm">From</div><div class="centred-date-field"><div class="date-display" id="bulkTrainingFromDisplay">${bulkTrainingFrom ? formatAdminDateDisplay(bulkTrainingFrom) : 'Select date'}</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" aria-label="From date"/></div></div>
+        <div style="min-width:0;width:100%;"><div class="admin-label-sm">To</div><div class="centred-date-field"><div class="date-display" id="bulkTrainingToDisplay">${bulkTrainingTo ? formatAdminDateDisplay(bulkTrainingTo) : 'Select date'}</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" aria-label="To date"/></div></div>
       </div>
       <div class="admin-label-sm" style="margin-top:10px;">Training day</div>
       <select class="fx-input" id="bulkTrainingDay">
@@ -1801,6 +1832,11 @@ function renderBulkTrainingTab(){
     bulkTrainingTime=document.getElementById('bulkTrainingTime').value;
     bulkTrainingLocation=document.getElementById('bulkTrainingLocation').value;
     bulkTrainingW3W=document.getElementById('bulkTrainingW3W').value;
+  }));
+
+  ['bulkTrainingFrom','bulkTrainingTo'].forEach(id=>document.getElementById(id)?.addEventListener('change',e=>{
+    const display=document.getElementById(id+'Display');
+    if(display) display.textContent=formatAdminDateDisplay(e.target.value);
   }));
 
   document.getElementById('applyBulkTrainingBtn').addEventListener('click',async()=>{
@@ -1836,6 +1872,13 @@ function renderBulkTrainingTab(){
     render();
     alert(`${count} training date${count===1?'':'s'} updated.`);
   });
+}
+
+function formatAdminDateDisplay(value){
+  if(!value) return 'Select date';
+  const parts=String(value).split('-');
+  if(parts.length!==3) return value;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
 function renderAdminTab(){
@@ -2014,7 +2057,7 @@ function renderAdminTab(){
         <button type="button" class="reason-chip extra-type-chip ${adminExtraType==='training'?'selected':''}" data-extratype="training">Training</button>
       </div>
       <div class="admin-label-sm">Date:</div>
-      <div class="centred-date-field"><input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0 0 12px 0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+      <div class="centred-date-field" style="margin-bottom:12px !important;"><div class="date-display" id="extraDateDisplay">${adminExtraDate ? formatAdminDateDisplay(adminExtraDate) : 'Select date'}</div><input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" aria-label="Fixture date"/></div>
       <div class="admin-label-sm">Time slot(s):</div>
       <input id="extraSlotsInput" placeholder="e.g. 6-7pm, or 5-6pm, 6-7pm for more than one" value="${escapeAttr(adminExtraSlotsRaw)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
       <div class="hint" style="margin:0 0 12px;">Separate with commas if there's more than one slot. Leave blank for a single unlabelled session.</div>
@@ -2141,6 +2184,11 @@ panel.querySelectorAll('[data-removeplayer]').forEach(el => {
   });
   panel.querySelectorAll('[data-removeparent]').forEach(el => {
     el.addEventListener('click', async () => { await removeParent(el.dataset.removeparent); render(); });
+  });
+
+  document.getElementById('extraDateInput')?.addEventListener('change',e=>{
+    const display=document.getElementById('extraDateDisplay');
+    if(display) display.textContent=formatAdminDateDisplay(e.target.value);
   });
 
   // Extra fixtures
