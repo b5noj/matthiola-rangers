@@ -337,29 +337,16 @@
   .weekly-comms-preview{width:100%;min-height:360px;padding:12px;border:1.5px solid var(--border);border-radius:8px;background:#fafaf7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;resize:vertical;}
   .weekly-comms-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:6px 0 0;}
 
-  /* Keep native iOS/Safari date controls inside their cards */
-  input[type="date"]{
-    box-sizing:border-box !important;
-    max-width:100% !important;
-  }
-
-  @media(max-width:519px){
-    .bulk-training-date-row{
-      grid-template-columns:1fr !important;
-      gap:10px !important;
-    }
-    input[type="date"]{
-      width:calc(100% - 10px) !important;
-      max-width:calc(100% - 10px) !important;
-      margin-right:10px !important;
-    }
-  }
-
+  /* Keep native iOS/Safari date controls visually inside their cards.
+     The wrapper provides the safety gutter; the input itself stays at 100%
+     of the wrapper's content box. This also fixes Extra Fixtures. */
   .admin-date-wrapper{
     width:100%;
     max-width:100%;
     min-width:0;
+    box-sizing:border-box;
     overflow:hidden;
+    padding-right:12px;
   }
   .admin-date-wrapper input[type="date"]{
     display:block !important;
@@ -367,16 +354,21 @@
     width:100% !important;
     max-width:100% !important;
     min-width:0 !important;
+    margin-right:0 !important;
   }
 
-  /* iOS Safari can paint the native date control slightly beyond its CSS box.
-     Keep the Weekly Comms selector a few pixels inside the wrapper so both
-     rounded corners remain visible. */
   @media(max-width:519px){
-    .weekly-comms-card .admin-date-wrapper input[type="date"]{
-      width:calc(100% - 4px) !important;
-      max-width:calc(100% - 4px) !important;
-      margin-right:4px !important;
+    .bulk-training-date-row{
+      grid-template-columns:1fr !important;
+      gap:10px !important;
+    }
+    .bulk-training-date-row input[type="date"]{
+      display:block !important;
+      box-sizing:border-box !important;
+      width:calc(100% - 12px) !important;
+      max-width:calc(100% - 12px) !important;
+      min-width:0 !important;
+      margin-right:0 !important;
     }
   }
 
