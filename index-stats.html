@@ -337,12 +337,12 @@
   .weekly-comms-preview{width:100%;min-height:360px;padding:12px;border:1.5px solid var(--border);border-radius:8px;background:#fafaf7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;resize:vertical;}
   .weekly-comms-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:6px 0 0;}
 
-  /* Centre the visible date-control border itself. The wrapper stays full width;
-     the input gets equal 8px gutters on both sides. */
+  /* iPhone date controls: use the same content width as the surrounding controls.
+     The inner wrapper is explicitly centred so the visible border has equal gutters. */
   .centred-date-field{
     box-sizing:border-box !important;
-    width:calc(100% - 16px) !important;
-    max-width:calc(100% - 16px) !important;
+    width:calc(100% - 20px) !important;
+    max-width:calc(100% - 20px) !important;
     min-width:0 !important;
     margin-left:auto !important;
     margin-right:auto !important;
@@ -354,6 +354,8 @@
     max-width:100% !important;
     min-width:0 !important;
     margin:0 !important;
+    -webkit-appearance:none !important;
+    appearance:none !important;
   }
 
   @media(max-width:519px){
@@ -361,11 +363,9 @@
       grid-template-columns:1fr !important;
       gap:10px !important;
     }
-    .bulk-training-date-row > div{
-      box-sizing:border-box !important;
-      width:calc(100% - 16px) !important;
-      max-width:calc(100% - 16px) !important;
-      min-width:0 !important;
+    .bulk-training-date-row > .centred-date-field{
+      width:calc(100% - 20px) !important;
+      max-width:calc(100% - 20px) !important;
       margin-left:auto !important;
       margin-right:auto !important;
     }
