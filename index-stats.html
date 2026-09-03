@@ -337,9 +337,23 @@
   .weekly-comms-preview{width:100%;min-height:360px;padding:12px;border:1.5px solid var(--border);border-radius:8px;background:#fafaf7;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;white-space:pre-wrap;resize:vertical;}
   .weekly-comms-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:6px 0 0;}
 
-  /* Keep native iOS/Safari date controls visually inside their cards.
-     The wrapper provides the safety gutter; the input itself stays at 100%
-     of the wrapper's content box. This also fixes Extra Fixtures. */
+  /* Centre the visible date-control border itself. The wrapper stays full width;
+     the input gets equal 8px gutters on both sides. */
+  .centred-date-field{
+    box-sizing:border-box !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+  }
+  .centred-date-field input[type="date"]{
+    display:block !important;
+    box-sizing:border-box !important;
+    width:calc(100% - 16px) !important;
+    max-width:calc(100% - 16px) !important;
+    min-width:0 !important;
+    margin-left:8px !important;
+    margin-right:8px !important;
+  }
 
   @media(max-width:519px){
     .bulk-training-date-row{
@@ -348,19 +362,11 @@
     }
     .bulk-training-date-row > div{
       box-sizing:border-box !important;
-      width:calc(100% - 16px) !important;
-      max-width:calc(100% - 16px) !important;
-      min-width:0 !important;
-      margin-left:auto !important;
-      margin-right:auto !important;
-    }
-    .bulk-training-date-row input[type="date"]{
-      display:block !important;
-      box-sizing:border-box !important;
       width:100% !important;
       max-width:100% !important;
       min-width:0 !important;
-      margin:0 !important;
+      margin-left:0 !important;
+      margin-right:0 !important;
     }
   }
 
@@ -1703,7 +1709,7 @@ function renderWeeklyCommsTab(){
     <div class="section-label">Weekly Comms</div>
     <div class="weekly-comms-card">
       <div class="admin-label-sm">Week commencing</div>
-      <div style="box-sizing:border-box;width:calc(100% - 16px);max-width:calc(100% - 16px);min-width:0;margin:0 auto;"><input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+      <div class="centred-date-field"><input type="date" id="weeklyCommsWeekInput" value="${escapeAttr(weeklyCommsWeek)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
       <div class="weekly-comms-week-buttons">
         <button type="button" class="btn btn-ghost" id="weeklyCommsPrevWeekBtn">‹ Previous Week</button>
         <button type="button" class="btn btn-ghost" id="weeklyCommsThisWeekBtn">This Week</button>
@@ -1768,8 +1774,8 @@ function renderBulkTrainingTab(){
     <div class="section-label">Bulk Training Schedule</div>
     <div class="weekly-comms-card">
       <div class="bulk-training-date-row" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;width:100%;">
-        <div style="box-sizing:border-box;min-width:0;width:calc(100% - 16px);max-width:calc(100% - 16px);margin:0 auto;"><div class="admin-label-sm">From</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
-        <div style="box-sizing:border-box;min-width:0;width:calc(100% - 16px);max-width:calc(100% - 16px);margin:0 auto;"><div class="admin-label-sm">To</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+        <div class="centred-date-field"><div class="admin-label-sm">From</div><input type="date" id="bulkTrainingFrom" value="${escapeAttr(bulkTrainingFrom)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+        <div class="centred-date-field"><div class="admin-label-sm">To</div><input type="date" id="bulkTrainingTo" value="${escapeAttr(bulkTrainingTo)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
       </div>
       <div class="admin-label-sm" style="margin-top:10px;">Training day</div>
       <select class="fx-input" id="bulkTrainingDay">
@@ -2007,7 +2013,7 @@ function renderAdminTab(){
         <button type="button" class="reason-chip extra-type-chip ${adminExtraType==='training'?'selected':''}" data-extratype="training">Training</button>
       </div>
       <div class="admin-label-sm">Date:</div>
-      <div style="box-sizing:border-box;width:calc(100% - 16px);max-width:calc(100% - 16px);min-width:0;margin:0 auto;"><input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0 0 12px 0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
+      <div class="centred-date-field"><input type="date" id="extraDateInput" value="${escapeAttr(adminExtraDate)}" style="box-sizing:border-box;display:block;width:100%;max-width:100%;min-width:0;margin:0 0 12px 0;padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);font-family:Inter;"/></div>
       <div class="admin-label-sm">Time slot(s):</div>
       <input id="extraSlotsInput" placeholder="e.g. 6-7pm, or 5-6pm, 6-7pm for more than one" value="${escapeAttr(adminExtraSlotsRaw)}" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid var(--border); font-size:13.5px; font-family:'Inter'; margin-bottom:6px;"/>
       <div class="hint" style="margin:0 0 12px;">Separate with commas if there's more than one slot. Leave blank for a single unlabelled session.</div>
