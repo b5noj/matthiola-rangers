@@ -1774,11 +1774,13 @@ function generateWeeklyCommsMessage(){
   });
 
   const sections=[`📅 ${teamName.toUpperCase()} — WEEK COMMENCING ${formatLongDateKey(isoDate(monday))}`,''];
-  if(matchKeys.length) matchKeys.forEach(k=>sections.push(weeklyMatchSection(k)));
-  else sections.push('*⚽ MATCH*','', 'No match scheduled this week.');
-  sections.push('');
-  if(trainingKeys.length) trainingKeys.forEach(k=>sections.push(weeklyTrainingSection(k)));
+  // Natural weekly flow: training first, then matches, with clear separators.
+  sections.push('━━━━━━━━━━━━━━━━━━━━');
+  if(trainingKeys.length) trainingKeys.forEach((k,i)=>{ if(i>0) sections.push('', '────────────'); sections.push(weeklyTrainingSection(k)); });
   else sections.push('*🏃 TRAINING*','', 'No training scheduled this week.');
+  sections.push('', '━━━━━━━━━━━━━━━━━━━━');
+  if(matchKeys.length) matchKeys.forEach((k,i)=>{ if(i>0) sections.push('', '────────────'); sections.push(weeklyMatchSection(k)); });
+  else sections.push('*⚽ MATCH*','', 'No match scheduled this week.');
   return sections.join('\n');
 }
 function renderWeeklyCommsTab(){
