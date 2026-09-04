@@ -656,6 +656,10 @@
     .stats-awards{grid-template-columns:1fr;}
   }
 
+
+    .season-setting-row{display:grid;grid-template-columns:1.15fr 1fr 1fr auto;gap:10px;align-items:end;padding:10px 0;border-top:1px solid var(--border);}
+    .season-setting-end .season-end-display{height:44px;display:flex;align-items:center;box-sizing:border-box;padding:0 10px;border:1.5px solid var(--border);border-radius:8px;background:#f1eee9;color:var(--ink);font-size:13.5px;}
+    @media(max-width:700px){.season-setting-row{grid-template-columns:1fr 1fr;}.season-setting-end{grid-column:1/2}.season-setting-row > .btn{grid-column:2;align-self:end;}}
 </style>
 </head>
 <body>
@@ -715,6 +719,7 @@ const SHEETS = {
 
 let roster = DEFAULT_ROSTER.slice();
 let scheduleConfig = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+let seasons = [{name:'2026/27',start:'2026-08-01'}];
 let teamName = DEFAULT_TEAM_NAME;
 let availability = {match:{}, training:{}};
 let availabilityMeta = {match:{}, training:{}}; // type -> name -> {updatedAt, updatedBy}
@@ -763,6 +768,33 @@ let statsSortKey = 'ga';
 let statsSortDir = 'desc';
 
 roster.forEach(name => { availability.match[name] = {}; availability.training[name] = {}; });
+
+// ---- Season helpers ----
+function normaliseSeasons(list){
+  const out=(Array.isArray(list)?list:[]).map(x=>({name:String(x?.name||'').trim(),start:String(x?.start||'').trim()})).filter(x=>x.name&&/^\d{4}-\d{2}-\d{2}$/.test(x.start));
+  const seen=new Set();
+  return out.filter(x=>{const k=x.name+'|'+x.start;if(seen.has(k))return false;seen.add(k);return true;}).sort((a,b)=>a.start.localeCompare(b.start));
+}
+function getSeasonForDate(dateKey){
+  const list=normaliseSeasons(seasons);
+  let match=null;
+  for(const season of list){ if(season.start<=dateKey) match=season; else break; }
+  return match ? match.name : null;
+}
+function getSeasonEndDate(index){
+  const list=normaliseSeasons(seasons);
+  if(!list[index]) return null;
+  if(list[index+1]){ const d=new Date(list[index+1].start+'T00:00:00'); d.setDate(d.getDate()-1); return isoDate(d); }
+  return null;
+}
+function getDashboardSeason(){
+  const today=new Date();
+  const key=isoDate(new Date(today.getFullYear(),today.getMonth(),today.getDate()));
+  return getSeasonForDate(key) || normaliseSeasons(seasons)[normaliseSeasons(seasons).length-1]?.name || '2026/27';
+}
+function seasonOptions(){
+  return normaliseSeasons(seasons).map(x=>x.name);
+}
 
 // ---- Date helpers ----
 
@@ -882,7 +914,7 @@ async function ensureSettingsSeeded(){
   const ref = doc(db, 'team_config', 'settings');
   const snap = await getDoc(ref);
   if(!snap.exists()){
-    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER, matchMinPlayers: 7, trainingMinPlayers: 7, scheduleConfig: DEFAULT_SCHEDULE });
+    await setDoc(ref, { teamName: DEFAULT_TEAM_NAME, roster: DEFAULT_ROSTER, matchMinPlayers: 7, trainingMinPlayers: 7, scheduleConfig: DEFAULT_SCHEDULE, seasons: [{name:'2026/27',start:'2026-08-01'}] });
   }
 }
 
@@ -891,6 +923,9 @@ function watchSettings(){
     if(snap.exists()){
       const data = snap.data();
       teamName = data.teamName || DEFAULT_TEAM_NAME;
+      seasons = normaliseSeasons(data.seasons);
+      if(!seasons.length) seasons = [{name:'2026/27',start:'2026-08-01'}];
+      statsSeason = getDashboardSeason();
       roster = Array.isArray(data.roster) && data.roster.length ? data.roster : DEFAULT_ROSTER.slice();
       const matchMin = Number(data.matchMinPlayers);
       const trainingMin = Number(data.trainingMinPlayers);
@@ -1056,6 +1091,13 @@ async function saveTeamSettingsFromAdmin(){
     if(scheduleConfig[type]?.slots[index]) scheduleConfig[type].slots[index].label=input.value.trim() || 'Slot';
   });
 
+  const seasonRows=[...document.querySelectorAll('[data-season-index]')].map(row=>({
+    name:(row.querySelector('[data-season-name]')?.value||'').trim(),
+    start:row.querySelector('[data-season-start]')?.value||''
+  })).filter(x=>x.name&&x.start);
+  seasons=normaliseSeasons(seasonRows);
+  if(!seasons.length) seasons=[{name:'2026/27',start:'2026-08-01'}];
+  statsSeason=getDashboardSeason();
   teamName=name || DEFAULT_TEAM_NAME;
   SHEETS.match.threshold=matchMin;
   SHEETS.training.threshold=trainingMin;
@@ -1069,7 +1111,8 @@ async function saveTeamSettingsFromAdmin(){
       teamName,
       matchMinPlayers:matchMin,
       trainingMinPlayers:trainingMin,
-      scheduleConfig
+      scheduleConfig,
+      seasons
     },{merge:true});
   }catch(e){
     console.error('Failed to save team settings',e);
@@ -1078,11 +1121,11 @@ async function saveTeamSettingsFromAdmin(){
 }
 
 async function saveFixture(dateKey, data){
-  try{ await setDoc(doc(db, 'fixtures', dateKey), data); }
+  try{ await setDoc(doc(db, 'fixtures', dateKey), {...data, season:getSeasonForDate(dateKey)}); }
   catch(e){ console.error('Failed to save fixture', e); showConnectionWarning(); }
 }
 async function saveMatchResult(dateKey, data){
-  try{ await setDoc(doc(db, 'match_results', dateKey), data); }
+  try{ await setDoc(doc(db, 'match_results', dateKey), {...data, season:data.season || fixtures[dateKey]?.season || getSeasonForDate(dateKey)}); }
   catch(e){ showStatsSyncError(e,'write'); }
 }
 async function saveTrainingInfo(dateKey, data){
@@ -1115,7 +1158,7 @@ async function removeParent(email){
   catch(e){ console.error('Failed to remove parent', e); showConnectionWarning(); }
 }
 async function saveExtraDate(type, dateKey, slots){
-  try{ await setDoc(doc(db, 'extra_dates', `${type}__${dateKey}`), { type, date: dateKey, slots: slots || [] }); }
+  try{ await setDoc(doc(db, 'extra_dates', `${type}__${dateKey}`), { type, date: dateKey, season:getSeasonForDate(dateKey), slots: slots || [] }); }
   catch(e){ console.error('Failed to add extra date', e); showConnectionWarning(); }
 }
 async function removeExtraDate(type, dateKey){
@@ -1368,6 +1411,7 @@ function wireFixtureEditing(panel){
         matchType: container.querySelector('[data-field="matchType"]').value,
         what3words: container.querySelector('[data-field="what3words"]').value.trim()
       };
+      data.season=getSeasonForDate(dateKey);
       fixtures[dateKey] = data;
       editingFixture = null;
       render();
@@ -2028,6 +2072,13 @@ function renderAdminTab(){
     </div>`;
 
     html += `<button class="btn btn-amber" id="saveTeamSettingsBtn" style="width:100%;margin-top:12px;">Save team settings</button>`;
+
+    html += `<div class="admin-form season-settings-card" style="margin-top:12px;">
+      <div class="admin-label-sm">Seasons</div>
+      <div class="hint" style="margin:6px 0 10px;">Add each season's start date. The end date is calculated automatically as the day before the next season starts.</div>
+      <div id="seasonSettingsRows">${normaliseSeasons(seasons).map((x,i)=>{const end=getSeasonEndDate(i);return `<div class="season-setting-row" data-season-index="${i}"><div><div class="admin-label-sm">Season name</div><input class="fx-input" data-season-name value="${escapeAttr(x.name)}" placeholder="2026/27"/></div><div><div class="admin-label-sm">Starts</div><div class="centred-date-field"><div class="date-display">${formatAdminDateDisplay(x.start)}</div><input type="date" data-season-start value="${escapeAttr(x.start)}" aria-label="Season start date"/></div></div><div class="season-setting-end"><div class="admin-label-sm">Ends</div><div class="season-end-display">${end?formatAdminDateDisplay(end):'Ongoing'}</div></div><button type="button" class="btn btn-ghost" data-season-remove="${i}" ${normaliseSeasons(seasons).length<=1?'disabled':''}>Remove</button></div>`;}).join('')}</div>
+      <button class="btn btn-ghost" id="addSeasonBtn" type="button" style="margin-top:8px;">+ Add season</button>
+    </div>`;
   } else if(adminSubTab === 'parents'){
     const childParentMap = {};
     roster.forEach(child => { childParentMap[child] = []; });
@@ -2159,6 +2210,14 @@ function renderAdminTab(){
   // Team Settings
   if(adminSubTab === 'settings'){
     renderTeamSettingsEditor();
+    document.querySelectorAll('[data-season-remove]').forEach(b=>b.addEventListener('click',()=>{
+      const list=normaliseSeasons(seasons); if(list.length<=1)return; list.splice(Number(b.dataset.seasonRemove),1); seasons=list; render();
+    }));
+    document.getElementById('addSeasonBtn')?.addEventListener('click',()=>{
+      const list=normaliseSeasons(seasons); let d=list.length?new Date(list[list.length-1].start+'T00:00:00'):new Date('2026-08-01T00:00:00'); d.setFullYear(d.getFullYear()+1);
+      list.push({name:`${d.getFullYear()}/${String(d.getFullYear()+1).slice(-2)}`,start:isoDate(d)}); seasons=normaliseSeasons(list); render();
+    });
+    document.querySelectorAll('[data-season-start]').forEach(inp=>inp.addEventListener('change',()=>{const row=inp.closest('[data-season-index]');const disp=row?.querySelector('.date-display');if(disp)disp.textContent=formatAdminDateDisplay(inp.value);}));
     const saveTeamSettingsBtn=document.getElementById('saveTeamSettingsBtn');
     if(saveTeamSettingsBtn) saveTeamSettingsBtn.addEventListener('click',async()=>{
       saveTeamSettingsBtn.disabled=true;
@@ -2312,7 +2371,8 @@ panel.querySelectorAll('[data-removeplayer]').forEach(el => {
         koTime: adminExtraKoTime.trim(),
         location: adminExtraLocation.trim(),
         matchType: adminExtraMatchType,
-        what3words: adminExtraW3W.trim()
+        what3words: adminExtraW3W.trim(),
+        season: getSeasonForDate(dateVal)
       };
       if(fixtureData.opponent || fixtureData.koTime || fixtureData.location || fixtureData.matchType || fixtureData.what3words){
         fixtures[dateVal] = fixtureData;
@@ -2338,15 +2398,12 @@ function statsFixtureKeys(){
 function statsFixtureSeason(key){
   const f=fixtures[key]||{};
   if(f.season) return String(f.season);
-  const d=new Date(key+'T00:00:00');
-  if(Number.isNaN(d.getTime())) return 'Unknown';
-  const y=d.getFullYear(), m=d.getMonth()+1;
-  return m>=8 ? `${y}/${String(y+1).slice(-2)}` : `${y-1}/${String(y).slice(-2)}`;
+  return getSeasonForDate(key) || 'Unknown';
 }
 function statsSeasons(){
-  const set=new Set(statsFixtureKeys().map(statsFixtureSeason));
-  set.add('2026/27');
-  return [...set].filter(x=>x!=='Unknown').sort((a,b)=>Number(b.slice(0,4))-Number(a.slice(0,4)));
+  const set=new Set(seasonOptions());
+  statsFixtureKeys().map(statsFixtureSeason).forEach(x=>{if(x!=='Unknown')set.add(x);});
+  return [...set].sort((a,b)=>Number(b.slice(0,4))-Number(a.slice(0,4)));
 }
 function statsSeasonKeys(){ return statsFixtureKeys().filter(k=>statsFixtureSeason(k)===statsSeason); }
 function statsFixtureStatus(key){
@@ -2458,8 +2515,9 @@ function openStatsResultEntry(key){
     const own=Number(document.getElementById('ownGoalVal').textContent)||0;
     const goalTotal=playerData.reduce((n,p)=>n+p.goals,0)+own;
     if(goalTotal!==home){alert(`Goals entered (${goalTotal}) must equal ${teamName} score (${home}).`);return;}
-    const newResult={...r,status:'completed',season:statsSeason,homeScore:home,awayScore:away,ownGoals:own,players:playerData,motm:players.filter((p,i)=>document.querySelector(`[data-motm="${i}"]`).checked).map(p=>p.name),ppotm:players.filter((p,i)=>document.querySelector(`[data-ppotm="${i}"]`).checked).map(p=>p.name)};
-    results[key]=newResult; fixtures[key]={...f,season:statsSeason};
+    const season=getSeasonForDate(key) || f.season || r.season || statsSeason;
+    const newResult={...r,status:'completed',season,homeScore:home,awayScore:away,ownGoals:own,players:playerData,motm:players.filter((p,i)=>document.querySelector(`[data-motm="${i}"]`).checked).map(p=>p.name),ppotm:players.filter((p,i)=>document.querySelector(`[data-ppotm="${i}"]`).checked).map(p=>p.name)};
+    results[key]=newResult; fixtures[key]={...f,season};
     await saveFixture(key,fixtures[key]);await saveMatchResult(key,newResult);render();
   };
 }
