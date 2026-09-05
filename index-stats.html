@@ -602,11 +602,11 @@
   .stats-player-table th:nth-child(5),.stats-player-table td:nth-child(5){width:13%;}
   .stats-player-table th:nth-child(6),.stats-player-table td:nth-child(6){width:14%;}
   .stats-player-table th:nth-child(7),.stats-player-table td:nth-child(7){width:12%;}
-  .stats-opponent-table th:first-child,.stats-opponent-table td:first-child{width:34%;}
-  .stats-opponent-table th:nth-child(2),.stats-opponent-table td:nth-child(2){width:8%;white-space:nowrap;overflow-wrap:normal;}
-  .stats-opponent-table th:nth-child(3),.stats-opponent-table td:nth-child(3),.stats-opponent-table th:nth-child(4),.stats-opponent-table td:nth-child(4),.stats-opponent-table th:nth-child(5),.stats-opponent-table td:nth-child(5){width:7%;}
-  .stats-opponent-table th:nth-child(6),.stats-opponent-table td:nth-child(6){width:13%;}
-  .stats-opponent-table th:nth-child(7),.stats-opponent-table td:nth-child(7),.stats-opponent-table th:nth-child(8),.stats-opponent-table td:nth-child(8){width:12%;}
+  .stats-opponent-table th:first-child,.stats-opponent-table td:first-child{width:40%;}
+  .stats-opponent-table th:nth-child(2),.stats-opponent-table td:nth-child(2){width:7%;white-space:nowrap;overflow-wrap:normal;}
+  .stats-opponent-table th:nth-child(3),.stats-opponent-table td:nth-child(3),.stats-opponent-table th:nth-child(4),.stats-opponent-table td:nth-child(4),.stats-opponent-table th:nth-child(5),.stats-opponent-table td:nth-child(5){width:6%;}
+  .stats-opponent-table th:nth-child(6),.stats-opponent-table td:nth-child(6){width:12%;}
+  .stats-opponent-table th:nth-child(7),.stats-opponent-table td:nth-child(7),.stats-opponent-table th:nth-child(8),.stats-opponent-table td:nth-child(8){width:10%;}
   .stats-total-row td{font-weight:900;background:var(--ok-soft);border-bottom:none;}
   .stats-own-goals-row td{color:var(--red);font-weight:800;}
   .stats-result-card{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:11px 12px;margin-bottom:9px;}
@@ -2479,7 +2479,7 @@ function renderStatsOpponents(){
   let rows=Object.values(map).filter(x=>!q||x.name.toLowerCase().includes(q)).map(x=>({...x,winRate:x.fixtures?Math.round(x.wins/x.fixtures*100):0}));
   rows.sort((a,b)=>{let av=a[statsSortKey],bv=b[statsSortKey];if(statsSortKey==='opponent'){av=a.name.toLowerCase();bv=b.name.toLowerCase();}return (av>bv?1:av<bv?-1:0)*statsSortDir;});
   const head=(key,label)=>`<th data-stats-opponent-sort="${key}">${label}${statsSortKey===key?(statsSortDir>0?' ▲':' ▼'):''}</th>`;
-  return `<div class="stats-page"><div class="stats-page-head"><div><div class="stats-page-title">Opponent stats</div><div class="stats-page-sub">Completed fixtures · ${escapeHtml(statsSeason)}</div></div>${statsSeasonControl()}</div><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn active" data-stats-view="opponents">Opponents</button></div>${statsSearchBox(statsSearch, 'Search opponent…')}<div class="stats-table-wrap"><table class="stats-opponent-table"><thead><tr>${head('opponent','Opponent')}${head('fixtures','Fixtures')}${head('wins','W')}${head('losses','L')}${head('draws','D')}${head('winRate','Win %')}${head('gf','GF')}${head('ga','GA')}</tr></thead><tbody>${rows.length?rows.map(x=>`<tr><td>${escapeHtml(x.name)}</td><td>${x.fixtures}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.draws}</td><td>${x.winRate}%</td><td>${x.gf}</td><td>${x.ga}</td></tr>`).join(''):`<tr><td colspan="8" style="padding:22px;color:var(--ink-soft);">No opponent data found.</td></tr>`}</tbody></table></div></div>`;
+  return `<div class="stats-page"><div class="stats-page-head"><div><div class="stats-page-title">Opponent stats</div><div class="stats-page-sub">Completed fixtures · ${escapeHtml(statsSeason)}</div></div>${statsSeasonControl()}</div><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn active" data-stats-view="opponents">Opponents</button></div>${statsSearchBox(statsSearch, 'Search opponent…')}<div class="stats-table-wrap"><table class="stats-opponent-table"><thead><tr>${head('opponent','Opponent')}${head('fixtures','PLD')}${head('wins','W')}${head('losses','L')}${head('draws','D')}${head('winRate','Win %')}${head('gf','GF')}${head('ga','GA')}</tr></thead><tbody>${rows.length?rows.map(x=>`<tr><td>${escapeHtml(x.name)}</td><td>${x.fixtures}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.draws}</td><td>${x.winRate}%</td><td>${x.gf}</td><td>${x.ga}</td></tr>`).join(''):`<tr><td colspan="8" style="padding:22px;color:var(--ink-soft);">No opponent data found.</td></tr>`}</tbody></table></div></div>`;
 }
 function renderStatsCurrentContent(){
   const c=document.getElementById('statsContent'); if(!c)return;
