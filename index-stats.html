@@ -631,6 +631,17 @@
   .stats-detail-row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-top:1px solid var(--line);font-size:11px;font-weight:700;}
   .stats-detail-row:first-of-type{border-top:0;}
   .stats-detail-empty{font-size:11px;color:var(--ink-soft);font-weight:600;}
+  .stats-detail-player-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .stats-detail-player-list{min-width:0;}
+  .stats-detail-player-list-title{font-size:10px;font-weight:900;text-transform:uppercase;margin-bottom:4px;}
+  .stats-detail-player-list-title.played{color:var(--good);}
+  .stats-detail-player-list-title.did-not-play{color:var(--ink-soft);}
+  .stats-detail-player-name{font-size:11px;font-weight:700;padding:3px 0;border-top:1px solid var(--line);}
+  .stats-detail-player-name:first-child{border-top:0;}
+  @media(max-width:519px){
+    .stats-detail-player-cols{grid-template-columns:1fr;gap:8px;}
+  }
+
   .stats-nav{margin-bottom:12px;}
 
   .stats-result-head{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;}
@@ -2473,15 +2484,22 @@ function openStatsResultDetail(key){
   const f=fixtures[key]||{}, r=results[key]||{}, status=statsFixtureStatus(key);
   const date=new Date(key+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const score=status==='completed'?`${Number(r.homeScore)||0} – ${Number(r.awayScore)||0}`:'—';
-  const players=(r.players||[]).filter(p=>p&&p.name);
-  const goalRows=players.filter(p=>(Number(p.goals)||0)>0).map(p=>`<div class="stats-detail-row"><span>${escapeHtml(p.name)}</span><strong>${Number(p.goals)} goal${Number(p.goals)===1?'':'s'}</strong></div>`);
+  const recordedPlayers=(r.players||[]).filter(p=>p&&p.name);
+  const recordedByName=new Map(recordedPlayers.map(p=>[p.name,p]));
+  const playedNames=roster.filter(name=>{
+    const p=recordedByName.get(name);
+    return !!p && p.played!==false;
+  });
+  const didNotPlayNames=roster.filter(name=>!playedNames.includes(name));
+  const playerCols=`<div class="stats-detail-player-cols"><div class="stats-detail-player-list"><div class="stats-detail-player-list-title played">Played (${playedNames.length})</div>${playedNames.length?playedNames.map(name=>`<div class="stats-detail-player-name">${escapeHtml(name)}</div>`).join(''):`<div class="stats-detail-empty">None</div>`}</div><div class="stats-detail-player-list"><div class="stats-detail-player-list-title did-not-play">Did not play (${didNotPlayNames.length})</div>${didNotPlayNames.length?didNotPlayNames.map(name=>`<div class="stats-detail-player-name">${escapeHtml(name)}</div>`).join(''):`<div class="stats-detail-empty">None</div>`}</div></div>`;
+  const goalRows=recordedPlayers.filter(p=>(Number(p.goals)||0)>0).map(p=>`<div class="stats-detail-row"><span>${escapeHtml(p.name)}</span><strong>${Number(p.goals)} goal${Number(p.goals)===1?'':'s'}</strong></div>`);
   const own=Number(r.ownGoals)||0;
   if(own) goalRows.push(`<div class="stats-detail-row"><span>Own Goal</span><strong>${own}</strong></div>`);
-  const assistRows=players.filter(p=>(Number(p.assists)||0)>0).map(p=>`<div class="stats-detail-row"><span>${escapeHtml(p.name)}</span><strong>${Number(p.assists)} assist${Number(p.assists)===1?'':'s'}</strong></div>`);
+  const assistRows=recordedPlayers.filter(p=>(Number(p.assists)||0)>0).map(p=>`<div class="stats-detail-row"><span>${escapeHtml(p.name)}</span><strong>${Number(p.assists)} assist${Number(p.assists)===1?'':'s'}</strong></div>`);
   const motm=r.motm||[],ppotm=r.ppotm||[];
   const modal=document.createElement('div');
   modal.className='stats-detail-overlay';
-  modal.innerHTML=`<div class="stats-detail-modal" role="dialog" aria-modal="true" aria-label="${escapeAttr(f.opponent||'Match result')} details"><div class="stats-detail-head"><div><div class="stats-detail-title">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-detail-meta">${date}${f.koTime?' · '+escapeHtml(f.koTime):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="display:flex;align-items:flex-start;gap:8px"><div class="stats-detail-score">${score}</div><button class="stats-detail-close" aria-label="Close">×</button></div></div>${status==='completed'?`<div class="stats-detail-section"><div class="stats-detail-section-title">Goals</div>${goalRows.length?goalRows.join(''):`<div class="stats-detail-empty">No goals recorded.</div>`}</div><div class="stats-detail-section"><div class="stats-detail-section-title">Assists</div>${assistRows.length?assistRows.join(''):`<div class="stats-detail-empty">No assists recorded.</div>`}</div><div class="stats-detail-section"><div class="stats-detail-section-title">Awards</div><div class="stats-detail-row"><span>🏆 MOTM</span><strong>${motm.length?motm.map(escapeHtml).join(', '):'None'}</strong></div><div class="stats-detail-row"><span>⭐ PPOTM</span><strong>${ppotm.length?ppotm.map(escapeHtml).join(', '):'None'}</strong></div></div>`:`<div class="stats-detail-section"><div class="stats-detail-empty">${status==='cancelled'?'This fixture was cancelled.':'The result has not been entered yet.'}</div></div>`}</div>`;
+  modal.innerHTML=`<div class="stats-detail-modal" role="dialog" aria-modal="true" aria-label="${escapeAttr(f.opponent||'Match result')} details"><div class="stats-detail-head"><div><div class="stats-detail-title">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-detail-meta">${date}${f.koTime?' · '+escapeHtml(f.koTime):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="display:flex;align-items:flex-start;gap:8px"><div class="stats-detail-score">${score}</div><button class="stats-detail-close" aria-label="Close">×</button></div></div>${status==='completed'?`<div class="stats-detail-section"><div class="stats-detail-section-title">Players</div>${playerCols}</div><div class="stats-detail-section"><div class="stats-detail-section-title">Goals</div>${goalRows.length?goalRows.join(''):`<div class="stats-detail-empty">No goals recorded.</div>`}</div><div class="stats-detail-section"><div class="stats-detail-section-title">Assists</div>${assistRows.length?assistRows.join(''):`<div class="stats-detail-empty">No assists recorded.</div>`}</div><div class="stats-detail-section"><div class="stats-detail-section-title">Awards</div><div class="stats-detail-row"><span>🏆 MOTM</span><strong>${motm.length?motm.map(escapeHtml).join(', '):'None'}</strong></div><div class="stats-detail-row"><span>⭐ PPOTM</span><strong>${ppotm.length?ppotm.map(escapeHtml).join(', '):'None'}</strong></div></div>`:`<div class="stats-detail-section"><div class="stats-detail-empty">${status==='cancelled'?'This fixture was cancelled.':'The result has not been entered yet.'}</div></div>`}</div>`;
   document.body.appendChild(modal);
   const close=()=>modal.remove();
   modal.querySelector('.stats-detail-close').onclick=close;
@@ -2556,7 +2574,7 @@ function wireStats(){
 function openStatsResultEntry(key){
   if(!isAdmin)return;
   const f={...(fixtures[key]||{})}, r={...(results[key]||{})};
-  const players=roster.map(name=>{const old=(r.players||[]).find(x=>x.name===name)||{};return{name,goals:Number(old.goals)||0,assists:Number(old.assists)||0,played:old.played!==false};});
+  const players=roster.map(name=>{const old=(r.players||[]).find(x=>x.name===name);return{name,goals:Number(old?.goals)||0,assists:Number(old?.assists)||0,played:old ? old.played!==false : r.status!=='completed'};});
   const motm=new Set(r.motm||[]),ppotm=new Set(r.ppotm||[]);let ownGoals=Number(r.ownGoals)||0;
   const panel=document.getElementById('panel');
   panel.innerHTML=`<div class="stats-entry"><div class="stats-entry-title">${r.status==='completed'?'Edit':'Enter'} result · ${escapeHtml(f.opponent||'Fixture')}</div><div class="stats-entry-note">${escapeHtml(key)}${f.koTime?' · '+escapeHtml(f.koTime):''}. Enter the final score, then record player goals/assists and the award winners.</div><div class="stats-score-section"><div class="stats-score-section-title">MATCH RESULT</div><div class="stats-score-row"><div class="stats-score-team"><div class="stats-score-team-label">${escapeHtml(teamName)}</div><input id="statsHomeScore" type="number" min="0" step="1" value="${Number(r.homeScore)||0}" aria-label="${escapeAttr(teamName)} score"></div><div class="stats-score-team"><div class="stats-score-team-label">${escapeHtml(f.opponent||'Opponent')}</div><input id="statsAwayScore" type="number" min="0" step="1" value="${Number(r.awayScore)||0}" aria-label="${escapeAttr(f.opponent||'Opponent')} score"></div></div></div><div class="stats-table-wrap"><table class="stats-entry-table"><thead><tr><th>Player</th><th>Played</th><th>⚽ Goals</th><th>🅰 Assists</th><th>Awards</th></tr></thead><tbody>${players.map((p,i)=>`<tr><td>${escapeHtml(p.name)}</td><td><input class="stats-check" type="checkbox" data-played="${i}" ${p.played?'checked':''}></td><td><div class="stats-stepper"><button type="button" data-goal-minus="${i}">−</button><span id="goalVal${i}">${p.goals}</span><button type="button" data-goal-plus="${i}">+</button></div></td><td><div class="stats-stepper"><button type="button" data-assist-minus="${i}">−</button><span id="assistVal${i}">${p.assists}</span><button type="button" data-assist-plus="${i}">+</button></div></td><td style="text-align:left"><label class="stats-award-player"><input class="stats-check" type="checkbox" data-motm="${i}" ${motm.has(p.name)?'checked':''}>MOTM</label><label class="stats-award-player"><input class="stats-check" type="checkbox" data-ppotm="${i}" ${ppotm.has(p.name)?'checked':''}>PPOTM</label></td></tr>`).join('')}</tbody></table></div><div class="stats-own-goal"><span>Own Goals</span><div class="stats-stepper"><button type="button" id="ownGoalMinus">−</button><span id="ownGoalVal">${ownGoals}</span><button type="button" id="ownGoalPlus">+</button></div></div><div class="stats-actions-row"><button class="btn btn-amber" id="saveStatsResultBtn">Save Result</button><button class="btn btn-ghost" id="cancelStatsEntryBtn">Back</button></div></div>`;
