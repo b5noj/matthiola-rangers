@@ -631,6 +631,22 @@
   .stats-detail-row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-top:1px solid var(--line);font-size:11px;font-weight:700;}
   .stats-detail-row:first-of-type{border-top:0;}
   .stats-detail-empty{font-size:11px;color:var(--ink-soft);font-weight:600;}
+  .stats-detail-table-wrap{width:100%;overflow:hidden;border:1px solid var(--border);border-radius:9px;background:#fff;}
+  .stats-detail-player-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  .stats-detail-player-table th,.stats-detail-player-table td{border-bottom:1px solid var(--line);text-align:center;}
+  .stats-detail-player-table th{padding:6px 2px;font-size:8.5px;line-height:1.05;font-weight:800;color:var(--ink-soft);text-transform:uppercase;}
+  .stats-detail-player-table td{padding:6px 2px;font-size:10px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .stats-detail-player-table th:first-child,.stats-detail-player-table td:first-child{text-align:left;padding-left:7px;width:34%;}
+  .stats-detail-player-table th:nth-child(2),.stats-detail-player-table td:nth-child(2){width:11%;}
+  .stats-detail-player-table th:nth-child(3),.stats-detail-player-table td:nth-child(3),
+  .stats-detail-player-table th:nth-child(4),.stats-detail-player-table td:nth-child(4),
+  .stats-detail-player-table th:nth-child(5),.stats-detail-player-table td:nth-child(5),
+  .stats-detail-player-table th:nth-child(6),.stats-detail-player-table td:nth-child(6){width:9%;}
+  .stats-detail-player-table th:nth-child(7),.stats-detail-player-table td:nth-child(7){width:19%;}
+  .stats-detail-played.yes{color:var(--good);font-size:14px;line-height:1;}
+  .stats-detail-played.no{color:var(--red);font-size:14px;line-height:1;}
+  .stats-detail-player-table tr:last-child td{border-bottom:0;}
+
   .stats-detail-player-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .stats-detail-player-list{min-width:0;}
   .stats-detail-player-list-title{font-size:10px;font-weight:900;text-transform:uppercase;margin-bottom:4px;}
@@ -2484,22 +2500,26 @@ function openStatsResultDetail(key){
   const f=fixtures[key]||{}, r=results[key]||{}, status=statsFixtureStatus(key);
   const date=new Date(key+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const score=status==='completed'?`${Number(r.homeScore)||0} – ${Number(r.awayScore)||0}`:'—';
-  const recordedPlayers=(r.players||[]).filter(p=>p&&p.name);
-  const recordedByName=new Map(recordedPlayers.map(p=>[p.name,p]));
-  const playedNames=roster.filter(name=>{
-    const p=recordedByName.get(name);
-    return !!p && p.played!==false;
-  });
-  const didNotPlayNames=roster.filter(name=>!playedNames.includes(name));
-  const playerCols=`<div class="stats-detail-player-cols"><div class="stats-detail-player-list"><div class="stats-detail-player-list-title played">Played (${playedNames.length})</div>${playedNames.length?playedNames.map(name=>`<div class="stats-detail-player-name">${escapeHtml(name)}</div>`).join(''):`<div class="stats-detail-empty">None</div>`}</div><div class="stats-detail-player-list"><div class="stats-detail-player-list-title did-not-play">Did not play (${didNotPlayNames.length})</div>${didNotPlayNames.length?didNotPlayNames.map(name=>`<div class="stats-detail-player-name">${escapeHtml(name)}</div>`).join(''):`<div class="stats-detail-empty">None</div>`}</div></div>`;
-  const goalRows=recordedPlayers.filter(p=>(Number(p.goals)||0)>0).map(p=>`<div class="stats-detail-row"><span>${escapeHtml(p.name)}</span><strong>${Number(p.goals)} goal${Number(p.goals)===1?'':'s'}</strong></div>`);
-  const own=Number(r.ownGoals)||0;
-  if(own) goalRows.push(`<div class="stats-detail-row"><span>Own Goal</span><strong>${own}</strong></div>`);
-  const assistRows=recordedPlayers.filter(p=>(Number(p.assists)||0)>0).map(p=>`<div class="stats-detail-row"><span>${escapeHtml(p.name)}</span><strong>${Number(p.assists)} assist${Number(p.assists)===1?'':'s'}</strong></div>`);
+  const recordedPlayers=r.players||[];
   const motm=r.motm||[],ppotm=r.ppotm||[];
+  const playerRows=roster.map(name=>{
+    const p=recordedPlayers.find(x=>x&&x.name===name)||{};
+    const played=p.played===true;
+    const goals=Number(p.goals)||0, assists=Number(p.assists)||0;
+    const motmCount=motm.includes(name)?1:0, ppotmCount=ppotm.includes(name)?1:0;
+    return {name,played,goals,assists,motm:motmCount,ppotm:ppotmCount,ga:goals+assists,awards:motmCount+ppotmCount};
+  });
+  playerRows.sort((a,b)=>{
+    if(b.ga!==a.ga)return b.ga-a.ga;
+    if(b.awards!==a.awards)return b.awards-a.awards;
+    if(b.goals!==a.goals)return b.goals-a.goals;
+    if(b.assists!==a.assists)return b.assists-a.assists;
+    return a.name.localeCompare(b.name);
+  });
+  const playerTable=`<div class="stats-detail-table-wrap"><table class="stats-detail-player-table"><thead><tr><th>Player</th><th>Played</th><th>⚽ G</th><th>🅰 A</th><th>🏆 MOTM</th><th>⭐ PPOTM</th><th>G+A</th></tr></thead><tbody>${playerRows.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td><span class="stats-detail-played ${p.played?'yes':'no'}" aria-label="${p.played?'Played':'Did not play'}">${p.played?'✓':'✕'}</span></td><td>${p.goals||'–'}</td><td>${p.assists||'–'}</td><td>${p.motm||'–'}</td><td>${p.ppotm||'–'}</td><td>${p.ga||'–'}</td></tr>`).join('')}${Number(r.ownGoals)?`<tr><td>Own Goal</td><td>–</td><td>${Number(r.ownGoals)}</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>`:''}</tbody></table></div>`;
   const modal=document.createElement('div');
   modal.className='stats-detail-overlay';
-  modal.innerHTML=`<div class="stats-detail-modal" role="dialog" aria-modal="true" aria-label="${escapeAttr(f.opponent||'Match result')} details"><div class="stats-detail-head"><div><div class="stats-detail-title">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-detail-meta">${date}${f.koTime?' · '+escapeHtml(f.koTime):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="display:flex;align-items:flex-start;gap:8px"><div class="stats-detail-score">${score}</div><button class="stats-detail-close" aria-label="Close">×</button></div></div>${status==='completed'?`<div class="stats-detail-section"><div class="stats-detail-section-title">Players</div>${playerCols}</div><div class="stats-detail-section"><div class="stats-detail-section-title">Goals</div>${goalRows.length?goalRows.join(''):`<div class="stats-detail-empty">No goals recorded.</div>`}</div><div class="stats-detail-section"><div class="stats-detail-section-title">Assists</div>${assistRows.length?assistRows.join(''):`<div class="stats-detail-empty">No assists recorded.</div>`}</div><div class="stats-detail-section"><div class="stats-detail-section-title">Awards</div><div class="stats-detail-row"><span>🏆 MOTM</span><strong>${motm.length?motm.map(escapeHtml).join(', '):'None'}</strong></div><div class="stats-detail-row"><span>⭐ PPOTM</span><strong>${ppotm.length?ppotm.map(escapeHtml).join(', '):'None'}</strong></div></div>`:`<div class="stats-detail-section"><div class="stats-detail-empty">${status==='cancelled'?'This fixture was cancelled.':'The result has not been entered yet.'}</div></div>`}</div>`;
+  modal.innerHTML=`<div class="stats-detail-modal" role="dialog" aria-modal="true" aria-label="${escapeAttr(f.opponent||'Match result')} details"><div class="stats-detail-head"><div><div class="stats-detail-title">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-detail-meta">${date}${f.koTime?' · '+escapeHtml(f.koTime):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="display:flex;align-items:flex-start;gap:8px"><div class="stats-detail-score">${score}</div><button class="stats-detail-close" aria-label="Close">×</button></div></div>${status==='completed'?`<div class="stats-detail-section"><div class="stats-detail-section-title">Match stats</div>${playerTable}</div>`:`<div class="stats-detail-section"><div class="stats-detail-empty">${status==='cancelled'?'This fixture was cancelled.':'The result has not been entered yet.'}</div></div>`}</div>`;
   document.body.appendChild(modal);
   const close=()=>modal.remove();
   modal.querySelector('.stats-detail-close').onclick=close;
