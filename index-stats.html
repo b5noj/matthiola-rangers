@@ -584,8 +584,11 @@
     .stats-outcome-dot{width:10px;height:10px;}
     .stats-outcome-label{font-size:8.5px;}
     .stats-outcome-value{font-size:20px;}
-    .stats-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .stats-metric-grid{grid-template-columns:repeat(6,minmax(0,1fr));}
     .stats-metric{padding:7px 1px;}
+    .stats-metric:nth-child(1),.stats-metric:nth-child(2),.stats-metric:nth-child(3){grid-column:span 2;}
+    .stats-metric:nth-child(4),.stats-metric:nth-child(5){grid-column:span 3;}
+    .stats-metric:nth-child(3){border-right:0;}
     .stats-metric-value{font-size:21px;}
     .stats-metric-label{font-size:6.5px;}
   }
@@ -701,8 +704,11 @@
   .stats-actions-row .btn{flex:1;min-width:0;}
   .stats-own-goal{display:flex;justify-content:space-between;align-items:center;padding:8px 0;margin-top:8px;border-top:1px dashed var(--border);font-size:11px;font-weight:800;color:var(--red);}
   @media(max-width:519px){
-    .stats-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .stats-metric-grid{grid-template-columns:repeat(6,minmax(0,1fr));}
     .stats-metric{padding:5px 1px 5px;}
+    .stats-metric:nth-child(1),.stats-metric:nth-child(2),.stats-metric:nth-child(3){grid-column:span 2;}
+    .stats-metric:nth-child(4),.stats-metric:nth-child(5){grid-column:span 3;}
+    .stats-metric:nth-child(3){border-right:0;}
     .stats-metric:nth-child(-n+3){border-bottom:1px solid var(--border);}
     .stats-metric-icon{height:19px;margin-bottom:1px;}
     .stats-metric-icon svg{width:19px;height:19px;}
