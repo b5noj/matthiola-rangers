@@ -634,15 +634,16 @@
   .stats-detail-table-wrap{width:100%;overflow:hidden;border:1px solid var(--border);border-radius:9px;background:#fff;}
   .stats-detail-player-table{width:100%;border-collapse:collapse;table-layout:fixed;}
   .stats-detail-player-table th,.stats-detail-player-table td{border-bottom:1px solid var(--line);text-align:center;}
-  .stats-detail-player-table th{padding:6px 2px;font-size:8.5px;line-height:1.05;font-weight:800;color:var(--ink-soft);text-transform:uppercase;}
+  .stats-detail-player-table th{padding:6px 2px;font-size:8.5px;line-height:1.05;font-weight:800;color:var(--ink-soft);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;user-select:none;}
+  .stats-detail-player-table th:hover{color:var(--ink);}
   .stats-detail-player-table td{padding:6px 2px;font-size:10px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .stats-detail-player-table th:first-child,.stats-detail-player-table td:first-child{text-align:left;padding-left:7px;width:34%;}
-  .stats-detail-player-table th:nth-child(2),.stats-detail-player-table td:nth-child(2){width:11%;}
+  .stats-detail-player-table th:first-child,.stats-detail-player-table td:first-child{text-align:left;padding-left:7px;width:19%;}
+  .stats-detail-player-table th:nth-child(2),.stats-detail-player-table td:nth-child(2){width:10%;}
   .stats-detail-player-table th:nth-child(3),.stats-detail-player-table td:nth-child(3),
-  .stats-detail-player-table th:nth-child(4),.stats-detail-player-table td:nth-child(4),
+  .stats-detail-player-table th:nth-child(4),.stats-detail-player-table td:nth-child(4){width:9%;}
   .stats-detail-player-table th:nth-child(5),.stats-detail-player-table td:nth-child(5),
-  .stats-detail-player-table th:nth-child(6),.stats-detail-player-table td:nth-child(6){width:9%;}
-  .stats-detail-player-table th:nth-child(7),.stats-detail-player-table td:nth-child(7){width:19%;}
+  .stats-detail-player-table th:nth-child(6),.stats-detail-player-table td:nth-child(6){width:18%;}
+  .stats-detail-player-table th:nth-child(7),.stats-detail-player-table td:nth-child(7){width:17%;}
   .stats-detail-played.yes{color:var(--good);font-size:14px;line-height:1;}
   .stats-detail-played.no{color:var(--red);font-size:14px;line-height:1;}
   .stats-detail-player-table tr:last-child td{border-bottom:0;}
@@ -2502,29 +2503,61 @@ function openStatsResultDetail(key){
   const score=status==='completed'?`${Number(r.homeScore)||0} – ${Number(r.awayScore)||0}`:'—';
   const recordedPlayers=r.players||[];
   const motm=r.motm||[],ppotm=r.ppotm||[];
-  const playerRows=roster.map(name=>{
+  const ownGoals=Number(r.ownGoals)||0;
+  const baseRows=roster.map(name=>{
     const p=recordedPlayers.find(x=>x&&x.name===name)||{};
     const played=p.played===true;
     const goals=Number(p.goals)||0, assists=Number(p.assists)||0;
     const motmCount=motm.includes(name)?1:0, ppotmCount=ppotm.includes(name)?1:0;
     return {name,played,goals,assists,motm:motmCount,ppotm:ppotmCount,ga:goals+assists,awards:motmCount+ppotmCount};
   });
-  playerRows.sort((a,b)=>{
-    if(b.ga!==a.ga)return b.ga-a.ga;
-    if(b.awards!==a.awards)return b.awards-a.awards;
-    if(b.goals!==a.goals)return b.goals-a.goals;
-    if(b.assists!==a.assists)return b.assists-a.assists;
-    return a.name.localeCompare(b.name);
-  });
-  const playerTable=`<div class="stats-detail-table-wrap"><table class="stats-detail-player-table"><thead><tr><th>Player</th><th>Played</th><th>⚽ G</th><th>🅰 A</th><th>🏆 MOTM</th><th>⭐ PPOTM</th><th>G+A</th></tr></thead><tbody>${playerRows.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td><span class="stats-detail-played ${p.played?'yes':'no'}" aria-label="${p.played?'Played':'Did not play'}">${p.played?'✓':'✕'}</span></td><td>${p.goals||'–'}</td><td>${p.assists||'–'}</td><td>${p.motm||'–'}</td><td>${p.ppotm||'–'}</td><td>${p.ga||'–'}</td></tr>`).join('')}${Number(r.ownGoals)?`<tr><td>Own Goal</td><td>–</td><td>${Number(r.ownGoals)}</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>`:''}</tbody></table></div>`;
+  const totals=baseRows.reduce((acc,p)=>{acc.played+=p.played?1:0;acc.goals+=p.goals;acc.assists+=p.assists;acc.motm+=p.motm;acc.ppotm+=p.ppotm;acc.ga+=p.ga;return acc;},{played:0,goals:0,assists:0,motm:0,ppotm:0,ga:0});
+  let detailSortKey=null, detailSortDir=-1;
+  function sortedRows(){
+    const rows=baseRows.slice();
+    if(!detailSortKey){
+      rows.sort((a,b)=>{
+        if(b.ga!==a.ga)return b.ga-a.ga;
+        if(b.awards!==a.awards)return b.awards-a.awards;
+        if(b.goals!==a.goals)return b.goals-a.goals;
+        if(b.assists!==a.assists)return b.assists-a.assists;
+        return a.name.localeCompare(b.name);
+      });
+    } else {
+      rows.sort((a,b)=>{
+        let av=a[detailSortKey], bv=b[detailSortKey];
+        if(detailSortKey==='name'){av=a.name.toLowerCase();bv=b.name.toLowerCase();}
+        else if(detailSortKey==='played'){av=a.played?1:0;bv=b.played?1:0;}
+        if(av===bv)return a.name.localeCompare(b.name);
+        return (av>bv?1:-1)*detailSortDir;
+      });
+    }
+    return rows;
+  }
+  const detailHead=(k,label)=>`<th data-stats-detail-sort="${k}">${label}${detailSortKey===k?(detailSortDir>0?' ▲':' ▼'):''}</th>`;
+  function buildTable(){
+    const rows=sortedRows();
+    return `<div class="stats-detail-table-wrap"><table class="stats-detail-player-table"><thead><tr>${detailHead('name','Player')}${detailHead('played','Played')}${detailHead('goals','⚽ G')}${detailHead('assists','🅰 A')}${detailHead('motm','🏆 MOTM')}${detailHead('ppotm','⭐ PPOTM')}${detailHead('ga','G+A')}</tr></thead><tbody>${rows.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td><span class="stats-detail-played ${p.played?'yes':'no'}" aria-label="${p.played?'Played':'Did not play'}">${p.played?'✓':'✕'}</span></td><td>${p.goals||'–'}</td><td>${p.assists||'–'}</td><td>${p.motm||'–'}</td><td>${p.ppotm||'–'}</td><td>${p.ga||'–'}</td></tr>`).join('')}${ownGoals?`<tr class="stats-own-goals-row"><td>Own Goal</td><td>–</td><td>${ownGoals}</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>`:''}<tr class="stats-total-row"><td>Total</td><td>${totals.played}</td><td>${totals.goals+ownGoals}</td><td>${totals.assists}</td><td>${totals.motm}</td><td>${totals.ppotm}</td><td>${totals.ga}</td></tr></tbody></table></div>`;
+  }
   const modal=document.createElement('div');
   modal.className='stats-detail-overlay';
-  modal.innerHTML=`<div class="stats-detail-modal" role="dialog" aria-modal="true" aria-label="${escapeAttr(f.opponent||'Match result')} details"><div class="stats-detail-head"><div><div class="stats-detail-title">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-detail-meta">${date}${f.koTime?' · '+escapeHtml(f.koTime):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="display:flex;align-items:flex-start;gap:8px"><div class="stats-detail-score">${score}</div><button class="stats-detail-close" aria-label="Close">×</button></div></div>${status==='completed'?`<div class="stats-detail-section"><div class="stats-detail-section-title">Match stats</div>${playerTable}</div>`:`<div class="stats-detail-section"><div class="stats-detail-empty">${status==='cancelled'?'This fixture was cancelled.':'The result has not been entered yet.'}</div></div>`}</div>`;
+  modal.innerHTML=`<div class="stats-detail-modal" role="dialog" aria-modal="true" aria-label="${escapeAttr(f.opponent||'Match result')} details"><div class="stats-detail-head"><div><div class="stats-detail-title">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-detail-meta">${date}${f.koTime?' · '+escapeHtml(f.koTime):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="display:flex;align-items:flex-start;gap:8px"><div class="stats-detail-score">${score}</div><button class="stats-detail-close" aria-label="Close">×</button></div></div>${status==='completed'?`<div class="stats-detail-section"><div class="stats-detail-section-title">Match stats</div>${buildTable()}</div>`:`<div class="stats-detail-section"><div class="stats-detail-empty">${status==='cancelled'?'This fixture was cancelled.':'The result has not been entered yet.'}</div></div>`}</div>`;
   document.body.appendChild(modal);
   const close=()=>modal.remove();
   modal.querySelector('.stats-detail-close').onclick=close;
   modal.addEventListener('click',e=>{if(e.target===modal)close();});
   document.addEventListener('keydown',function esc(e){if(e.key==='Escape'){close();document.removeEventListener('keydown',esc);}});
+  if(status==='completed'){
+    function bindSort(){
+      modal.querySelectorAll('[data-stats-detail-sort]').forEach(el=>el.addEventListener('click',()=>{
+        const k=el.dataset.statsDetailSort;
+        if(detailSortKey===k)detailSortDir*=-1;else{detailSortKey=k;detailSortDir=-1;}
+        modal.querySelector('.stats-detail-table-wrap').outerHTML=buildTable();
+        bindSort();
+      }));
+    }
+    bindSort();
+  }
 }
 function renderStatsTeam(){
   const keys=statsSeasonKeys();
