@@ -638,12 +638,12 @@
   .stats-detail-player-table th:hover{color:var(--ink);}
   .stats-detail-player-table td{padding:6px 2px;font-size:10px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .stats-detail-player-table th:first-child,.stats-detail-player-table td:first-child{text-align:left;padding-left:7px;width:19%;}
-  .stats-detail-player-table th:nth-child(2),.stats-detail-player-table td:nth-child(2){width:10%;}
+  .stats-detail-player-table th:nth-child(2),.stats-detail-player-table td:nth-child(2){width:15%;}
   .stats-detail-player-table th:nth-child(3),.stats-detail-player-table td:nth-child(3),
   .stats-detail-player-table th:nth-child(4),.stats-detail-player-table td:nth-child(4){width:9%;}
   .stats-detail-player-table th:nth-child(5),.stats-detail-player-table td:nth-child(5),
-  .stats-detail-player-table th:nth-child(6),.stats-detail-player-table td:nth-child(6){width:18%;}
-  .stats-detail-player-table th:nth-child(7),.stats-detail-player-table td:nth-child(7){width:17%;}
+  .stats-detail-player-table th:nth-child(6),.stats-detail-player-table td:nth-child(6){width:16%;}
+  .stats-detail-player-table th:nth-child(7),.stats-detail-player-table td:nth-child(7){width:16%;}
   .stats-detail-played.yes{color:var(--good);font-size:14px;line-height:1;}
   .stats-detail-played.no{color:var(--red);font-size:14px;line-height:1;}
   .stats-detail-player-table tr:last-child td{border-bottom:0;}
@@ -2537,7 +2537,7 @@ function openStatsResultDetail(key){
   const detailHead=(k,label)=>`<th data-stats-detail-sort="${k}">${label}${detailSortKey===k?(detailSortDir>0?' ▲':' ▼'):''}</th>`;
   function buildTable(){
     const rows=sortedRows();
-    return `<div class="stats-detail-table-wrap"><table class="stats-detail-player-table"><thead><tr>${detailHead('name','Player')}${detailHead('played','Played')}${detailHead('goals','⚽ G')}${detailHead('assists','🅰 A')}${detailHead('motm','🏆 MOTM')}${detailHead('ppotm','⭐ PPOTM')}${detailHead('ga','G+A')}</tr></thead><tbody>${rows.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td><span class="stats-detail-played ${p.played?'yes':'no'}" aria-label="${p.played?'Played':'Did not play'}">${p.played?'✓':'✕'}</span></td><td>${p.goals||'–'}</td><td>${p.assists||'–'}</td><td>${p.motm||'–'}</td><td>${p.ppotm||'–'}</td><td>${p.ga||'–'}</td></tr>`).join('')}${ownGoals?`<tr class="stats-own-goals-row"><td>Own Goal</td><td>–</td><td>${ownGoals}</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>`:''}<tr class="stats-total-row"><td>Total</td><td>${totals.played}</td><td>${totals.goals+ownGoals}</td><td>${totals.assists}</td><td>${totals.motm}</td><td>${totals.ppotm}</td><td>${totals.ga}</td></tr></tbody></table></div>`;
+    return `<div class="stats-detail-table-wrap"><table class="stats-detail-player-table"><thead><tr>${detailHead('name','Player')}${detailHead('played','Pld')}${detailHead('goals','⚽ G')}${detailHead('assists','🅰 A')}${detailHead('motm','🏆 MOTM')}${detailHead('ppotm','⭐ PPOTM')}${detailHead('ga','G+A')}</tr></thead><tbody>${rows.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td><span class="stats-detail-played ${p.played?'yes':'no'}" aria-label="${p.played?'Played':'Did not play'}">${p.played?'✓':'✕'}</span></td><td>${p.goals||'–'}</td><td>${p.assists||'–'}</td><td>${p.motm||'–'}</td><td>${p.ppotm||'–'}</td><td>${p.ga||'–'}</td></tr>`).join('')}${ownGoals?`<tr class="stats-own-goals-row"><td>Own Goal</td><td>–</td><td>${ownGoals}</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>`:''}<tr class="stats-total-row"><td>Total</td><td>${totals.played}</td><td>${totals.goals+ownGoals}</td><td>${totals.assists}</td><td>${totals.motm}</td><td>${totals.ppotm}</td><td>${totals.ga}</td></tr></tbody></table></div>`;
   }
   const modal=document.createElement('div');
   modal.className='stats-detail-overlay';
