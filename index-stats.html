@@ -2503,29 +2503,23 @@ function openStatsResultDetail(key){
     const played=p.played===true;
     const goals=Number(p.goals)||0, assists=Number(p.assists)||0;
     const motmCount=motm.includes(name)?1:0, ppotmCount=ppotm.includes(name)?1:0;
-    return {name,played,goals,assists,motm:motmCount,ppotm:ppotmCount,ga:goals+assists,awards:motmCount+ppotmCount};
+    return {name,played,goals,assists,motm:motmCount,ppotm:ppotmCount,ga:goals+assists};
   });
   const totals=baseRows.reduce((acc,p)=>{acc.played+=p.played?1:0;acc.goals+=p.goals;acc.assists+=p.assists;acc.motm+=p.motm;acc.ppotm+=p.ppotm;acc.ga+=p.ga;return acc;},{played:0,goals:0,assists:0,motm:0,ppotm:0,ga:0});
-  let detailSortKey=null, detailSortDir=-1;
+  let detailSortKey='ga', detailSortDir=-1;
+  const detailTieBreak=['goals','assists','motm','ppotm'];
   function sortedRows(){
     const rows=baseRows.slice();
-    if(!detailSortKey){
-      rows.sort((a,b)=>{
-        if(b.ga!==a.ga)return b.ga-a.ga;
-        if(b.awards!==a.awards)return b.awards-a.awards;
-        if(b.goals!==a.goals)return b.goals-a.goals;
-        if(b.assists!==a.assists)return b.assists-a.assists;
-        return a.name.localeCompare(b.name);
-      });
-    } else {
-      rows.sort((a,b)=>{
-        let av=a[detailSortKey], bv=b[detailSortKey];
-        if(detailSortKey==='name'){av=a.name.toLowerCase();bv=b.name.toLowerCase();}
-        else if(detailSortKey==='played'){av=a.played?1:0;bv=b.played?1:0;}
-        if(av===bv)return a.name.localeCompare(b.name);
-        return (av>bv?1:-1)*detailSortDir;
-      });
-    }
+    rows.sort((a,b)=>{
+      const keys=[detailSortKey,...detailTieBreak.filter(k=>k!==detailSortKey)];
+      for(const k of keys){
+        let av=a[k],bv=b[k];
+        if(k==='name'){av=a.name.toLowerCase();bv=b.name.toLowerCase();}
+        else if(k==='played'){av=a.played?1:0;bv=b.played?1:0;}
+        if(av!==bv)return (av>bv?1:-1)*detailSortDir;
+      }
+      return a.name.localeCompare(b.name);
+    });
     return rows;
   }
   const detailHead=(k,label)=>`<th data-stats-detail-sort="${k}">${label}${detailSortKey===k?(detailSortDir>0?' ▲':' ▼'):''}</th>`;
@@ -2593,7 +2587,17 @@ function renderStatsOpponents(){
   const map={};
   statsSeasonKeys().forEach(k=>{if(statsFixtureStatus(k)!=='completed')return;const o=fixtures[k]?.opponent;if(!o)return;const r=results[k]||{};const gf=Number(r.homeScore)||0,ga=Number(r.awayScore)||0;if(!map[o])map[o]={name:o,fixtures:0,wins:0,losses:0,draws:0,gf:0,ga:0};const x=map[o];x.fixtures++;x.gf+=gf;x.ga+=ga;if(gf>ga)x.wins++;else if(gf<ga)x.losses++;else x.draws++;});
   let rows=Object.values(map).filter(x=>!q||x.name.toLowerCase().includes(q)).map(x=>({...x,winRate:x.fixtures?Math.round(x.wins/x.fixtures*100):0}));
-  rows.sort((a,b)=>{let av=a[statsSortKey],bv=b[statsSortKey];if(statsSortKey==='opponent'){av=a.name.toLowerCase();bv=b.name.toLowerCase();}return (av>bv?1:av<bv?-1:0)*statsSortDir;});
+  const oppInvert={ga:true,losses:true};
+  const oppTieBreak=['winRate','wins','gf','ga','draws','losses','fixtures'];
+  rows.sort((a,b)=>{
+    const keys=[statsSortKey,...oppTieBreak.filter(k=>k!==statsSortKey)];
+    for(const k of keys){
+      let av=a[k],bv=b[k];
+      if(k==='opponent'){av=a.name.toLowerCase();bv=b.name.toLowerCase();}
+      if(av!==bv){const dir=(oppInvert[k]?-1:1)*statsSortDir;return (av>bv?1:-1)*dir;}
+    }
+    return a.name.localeCompare(b.name);
+  });
   const head=(key,label)=>`<th data-stats-opponent-sort="${key}">${label}${statsSortKey===key?(statsSortDir>0?' ▲':' ▼'):''}</th>`;
   return `<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn active" data-stats-view="opponents">Opponents</button></div><div class="stats-page-head"><div><div class="stats-page-title">Opponent stats</div></div>${statsSeasonControl()}</div>${statsSearchBox(statsSearch, 'Search opponent…')}<div class="stats-table-wrap"><table class="stats-opponent-table"><thead><tr>${head('opponent','Opponent')}${head('fixtures','PLD')}${head('wins','W')}${head('losses','L')}${head('draws','D')}${head('winRate','Win %')}${head('gf','GF')}${head('ga','GA')}</tr></thead><tbody>${rows.length?rows.map(x=>`<tr><td>${escapeHtml(x.name)}</td><td>${x.fixtures}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.draws}</td><td>${x.winRate}%</td><td>${x.gf}</td><td>${x.ga}</td></tr>`).join(''):`<tr><td colspan="8" style="padding:22px;color:var(--ink-soft);">No opponent data found.</td></tr>`}</tbody></table></div></div>`;
 }
