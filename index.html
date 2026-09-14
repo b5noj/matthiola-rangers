@@ -910,7 +910,8 @@ function getDatesForSheet(type){
   return all;
 }
 function isExtraDate(type, dateKey){
-  return !!(extraDates[type] && extraDates[type][dateKey]);
+  const isRegularDay = new Date(dateKey+'T00:00:00').getDay() === SHEETS[type].dayOfWeek;
+  return !!(extraDates[type] && extraDates[type][dateKey]) && !isRegularDay;
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
