@@ -247,6 +247,7 @@
     color:var(--ink) !important;
   }
   .fx-actions{ display:flex; gap:8px; margin-top:4px; }
+  .fx-hint{font-size:11.5px; color:var(--ink-soft); line-height:1.4; margin:2px 0 8px;}
   .fx-actions .btn{ flex:1; padding:7px; font-size:12px; }
   .slot-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
   .slot-btn{
@@ -318,6 +319,14 @@
   .slot-detail b{ color:var(--ink); }
   .slot-detail .not-avail b{ color:var(--red); }
   .slot-detail .avail b{ color:var(--good); }
+  .avail-chip-row{display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;}
+  .avail-chip{
+    font-family:inherit; font-size:11.5px; font-weight:700; padding:4px 9px; border-radius:20px;
+    border:1.5px solid var(--border); background:#fff; color:var(--ink); cursor:pointer; line-height:1.3;
+  }
+  .avail-chip.out{ border-color:var(--red-soft); background:var(--red-soft); color:var(--red); }
+  .avail-chip.in{ border-color:var(--good-soft); background:var(--good-soft); color:var(--good); }
+  .avail-chip:active{ transform:scale(0.96); }
   .flag-pill{
     font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;
     color:var(--red); background:#fff; border:1.5px solid var(--red);
@@ -1215,6 +1224,29 @@ async function saveExtraDate(type, dateKey, slots){
   try{ await setDoc(doc(db, 'extra_dates', `${type}__${dateKey}`), { type, date: dateKey, season:getSeasonForDate(dateKey), slots: slots || [] }); }
   catch(e){ console.error('Failed to add extra date', e); showConnectionWarning(); }
 }
+// Builds a slots array from comma-separated label text, reusing the id of any
+// existing slot on that date whose label matches (so previously recorded
+// player availability stays linked to the right slot instead of being
+// orphaned under a freshly generated id every time slots are edited).
+function buildSlotsPreservingIds(type, dateKey, rawText, idPrefix){
+  const labels = String(rawText||'').split(',').map(s => s.trim()).filter(Boolean);
+  const existingSlots = slotsForDate(type, dateKey);
+  const usedIds = new Set();
+  let nextIdNum = 1;
+  function freshId(){
+    let id;
+    do { id = `${idPrefix}${nextIdNum++}`; } while(usedIds.has(id));
+    return id;
+  }
+  return labels.length
+    ? labels.map(label => {
+        const match = existingSlots.find(s => !usedIds.has(s.id) && s.label.trim().toLowerCase() === label.toLowerCase());
+        const id = match ? match.id : freshId();
+        usedIds.add(id);
+        return { id, label };
+      })
+    : [{ id: existingSlots[0]?.id || `${idPrefix}1`, label: 'Session' }];
+}
 async function removeExtraDate(type, dateKey){
   try{ await deleteDoc(doc(db, 'extra_dates', `${type}__${dateKey}`)); }
   catch(e){ console.error('Failed to remove extra date', e); showConnectionWarning(); }
@@ -1397,6 +1429,9 @@ function renderFixtureLine(dateKey){
   if(activeSheet === 'match'){
     const f = fixtures[dateKey] || {};
     if(isAdmin && editingFixture === dateKey){
+      const currentSlots = slotsForDate('match', dateKey);
+      const slotsValue = currentSlots.map(s => s.label).join(', ');
+      const defaultLabel = SHEETS.match.slots.map(s => s.label).join(', ');
       return `<div class="fixture-edit">
         <input class="fx-input" data-field="opponent" placeholder="Opponent" value="${escapeAttr(f.opponent||'')}"/>
         <input class="fx-input" data-field="koTime" placeholder="KO time e.g. 10:00am" value="${escapeAttr(f.koTime||'')}"/>
@@ -1409,6 +1444,8 @@ function renderFixtureLine(dateKey){
           <option value="Friendly" ${f.matchType==='Friendly'?'selected':''}>Friendly</option>
         </select>
         <input class="fx-input" data-field="what3words" placeholder="what3words e.g. filled.count.soap" value="${escapeAttr(f.what3words||'')}"/>
+        <input class="fx-input" data-field="slots" placeholder="Time slots, comma separated" value="${escapeAttr(slotsValue)}"/>
+        <div class="fx-hint">Time slots for this match only. Leave a slot's wording exactly as-is to keep players' existing answers for it. Set to "${escapeHtml(defaultLabel)}" to go back to the standard slots.</div>
         <div class="fx-actions">
           <button class="btn btn-amber fx-save-match" data-datekey="${dateKey}">Save</button>
           <button class="btn btn-ghost fx-cancel">Cancel</button>
@@ -1467,9 +1504,20 @@ function wireFixtureEditing(panel){
       };
       data.season=getSeasonForDate(dateKey);
       fixtures[dateKey] = data;
+      const slotsRaw = container.querySelector('[data-field="slots"]').value;
+      const typedLabels = slotsRaw.split(',').map(s => s.trim()).filter(Boolean);
+      const defaultLabels = SHEETS.match.slots.map(s => s.label);
+      const isDefault = typedLabels.length === defaultLabels.length &&
+        typedLabels.every((l,i) => l.toLowerCase() === defaultLabels[i].toLowerCase());
       editingFixture = null;
       render();
       await saveFixture(dateKey, data);
+      if(isDefault){
+        if(extraDates.match && extraDates.match[dateKey]) await removeExtraDate('match', dateKey);
+      } else {
+        const slots = buildSlotsPreservingIds('match', dateKey, slotsRaw, 'e');
+        await saveExtraDate('match', dateKey, slots);
+      }
     });
   });
   panel.querySelectorAll('.fx-save-training').forEach(el => {
@@ -1646,14 +1694,20 @@ function renderSummaryTab(){
         <div class="count-row"><span class="count">${available}</span><span class="avail-suffix">available</span></div>
       </div>`;
       if(isExpanded){
-        const missingDetailed = missing.map(name => {
-          const rt = reasonText(activeSheet, name, key);
-          return rt ? `${name} (${escapeHtml(rt)})` : name;
-        });
+        const chip = (name, cls) => {
+          const rt = cls==='out' ? reasonText(activeSheet, name, key) : '';
+          const label = rt ? `${escapeHtml(name)} (${escapeHtml(rt)})` : escapeHtml(name);
+          return isAdmin
+            ? `<button type="button" class="avail-chip ${cls}" data-toggleavail="${escapeAttr(activeSheet)}|${escapeAttr(name)}|${escapeAttr(key)}|${escapeAttr(s.id)}">${label}</button>`
+            : `<span class="avail-chip ${cls}">${label}</span>`;
+        };
+        const missingChips = missing.map(name => chip(name, 'out'));
+        const availableChips = availableNames.map(name => chip(name, 'in'));
         detailHtml += `<div class="slot-detail">
           ${multiSlot ? `<div style="font-weight:800; margin-bottom:6px;">${s.label}</div>` : ''}
-          <div class="detail-block not-avail"><b>Not available (${missing.length})</b>: ${missing.length ? missingDetailed.join(', ') : 'None — full squad available'}</div>
-          <div class="detail-block avail"><b>Available (${availableNames.length})</b>: ${availableNames.length ? availableNames.join(', ') : 'None'}</div>
+          <div class="detail-block not-avail"><b>Not available (${missing.length})</b>${missing.length ? `<div class="avail-chip-row">${missingChips.join('')}</div>` : ' — full squad available'}</div>
+          <div class="detail-block avail"><b>Available (${availableNames.length})</b>${availableNames.length ? `<div class="avail-chip-row">${availableChips.join('')}</div>` : ': None'}</div>
+          ${isAdmin ? `<div class="fx-hint">Tap a name to toggle their availability for this slot.</div>` : ''}
         </div>`;
       }
     });
@@ -1705,6 +1759,12 @@ function wireSummaryFilterAndExpand(panel){
       const key = el.dataset.slotkey;
       expandedSlot = (expandedSlot === key) ? null : key;
       render();
+    });
+  });
+  panel.querySelectorAll('[data-toggleavail]').forEach(el => {
+    el.addEventListener('click', () => {
+      const [type, name, dateKey, slotId] = el.dataset.toggleavail.split('|');
+      toggleSlot(type, name, dateKey, slotId);
     });
   });
 }
@@ -2403,10 +2463,7 @@ panel.querySelectorAll('[data-removeplayer]').forEach(el => {
     captureExtraForm();
     const dateVal = adminExtraDate;
     if(!dateVal) return;
-    const labels = adminExtraSlotsRaw.split(',').map(s => s.trim()).filter(Boolean);
-    const slots = labels.length
-      ? labels.map((label, i) => ({ id: `e${i+1}`, label }))
-      : [{ id: 'e1', label: 'Session' }];
+    const slots = buildSlotsPreservingIds(adminExtraType, dateVal, adminExtraSlotsRaw, 'e');
 
     const newKey = `${adminExtraType}__${dateVal}`;
     if(adminExtraOriginalKey && adminExtraOriginalKey !== newKey){
