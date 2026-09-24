@@ -2259,8 +2259,12 @@ function renderAdminTab(){
   } else if(adminSubTab === 'extra') {
     html += `<div class="hint">Add a one-off fixture or session that falls outside the usual Saturday/Thursday slot — it'll appear alongside the regular dates, marked "Extra". Specify the time slot(s) that apply — if you only give one, there's no "mark out all" button since there's nothing to group.</div>`;
     html += `<div class="admin-list">`;
+    const extraNow = new Date();
+    const extraTodayKey = isoDate(new Date(extraNow.getFullYear(), extraNow.getMonth(), extraNow.getDate()));
+    let upcomingExtraCount = 0;
     ['match','training'].forEach(type => {
-      Object.keys(extraDates[type] || {}).sort().forEach(dateKey => {
+      Object.keys(extraDates[type] || {}).filter(dateKey => dateKey >= extraTodayKey).sort().forEach(dateKey => {
+        upcomingExtraCount++;
         const slotLabels = (extraDates[type][dateKey].slots || []).map(s => s.label).join(', ');
         html += `<div class="admin-list-row">
           <span>${SHEETS[type].label}: ${escapeHtml(dateKey)}${slotLabels ? ` (${escapeHtml(slotLabels)})` : ''}</span>
@@ -2271,7 +2275,7 @@ function renderAdminTab(){
         </div>`;
       });
     });
-    if(!Object.keys(extraDates.match||{}).length && !Object.keys(extraDates.training||{}).length){
+    if(!upcomingExtraCount){
       html += `<div class="hint" style="margin:0;">No extra fixtures added yet.</div>`;
     }
     html += `</div>`;
