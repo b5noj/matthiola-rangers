@@ -679,6 +679,9 @@
   .stats-status-badge{font-size:9px;font-weight:900;text-transform:uppercase;padding:3px 7px;border-radius:12px;background:var(--ok-soft);color:var(--ink-soft);}
   .stats-status-badge.pending{background:var(--red-soft);color:var(--red);}
   .stats-status-badge.cancelled{background:#eee;color:#777;}
+  .stats-status-badge.win{background:var(--good-soft);color:var(--good);}
+  .stats-status-badge.draw{background:#ececec;color:#6b6b6b;}
+  .stats-status-badge.loss{background:var(--red-soft);color:var(--red);}
   .stats-entry{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;}
   .stats-entry-title{font-family:'Bebas Neue';font-size:19px;color:var(--brand-deep);margin-bottom:2px;}
   .stats-entry-note{font-size:11px;color:var(--ink-soft);line-height:1.45;margin-bottom:10px;}
@@ -2554,7 +2557,13 @@ function statsResultCard(key){
   const f=fixtures[key]||{}, r=results[key]||{}, status=statsFixtureStatus(key);
   const score=(status==='completed') ? `${Number(r.homeScore)||0} – ${Number(r.awayScore)||0}` : '—';
   const date=new Date(key+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-  return `<div class="stats-result-card" data-stats-result-detail="${escapeAttr(key)}" tabindex="0" role="button" aria-label="View result details for ${escapeAttr(f.opponent||'Unknown opponent')}"><div class="stats-result-head"><div style="min-width:0"><div class="stats-result-opponent">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-result-meta">${date}${f.matchType?' · '+escapeHtml(f.matchType):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="text-align:right"><div class="stats-result-score">${score}</div><span class="stats-status-badge ${status}">${status}</span></div></div>${isAdmin ? `<div class="stats-result-actions">${status==='completed'?`<button class="btn btn-ghost" data-edit-stats-result="${key}">Edit Result</button>`:`<button class="btn btn-amber" data-enter-stats-result="${key}">Enter Result</button>`}${status!=='cancelled'?`<button class="btn btn-ghost" data-cancel-stats-result="${key}">Cancel Fixture</button>`:''}</div>`:''}</div>`;
+  let badgeClass=status, badgeText=status;
+  if(status==='completed'){
+    const hs=Number(r.homeScore)||0, as=Number(r.awayScore)||0;
+    badgeClass = hs>as?'win':hs<as?'loss':'draw';
+    badgeText = hs>as?'W':hs<as?'L':'D';
+  }
+  return `<div class="stats-result-card" data-stats-result-detail="${escapeAttr(key)}" tabindex="0" role="button" aria-label="View result details for ${escapeAttr(f.opponent||'Unknown opponent')}"><div class="stats-result-head"><div style="min-width:0"><div class="stats-result-opponent">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-result-meta">${date}${f.matchType?' · '+escapeHtml(f.matchType):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="text-align:right"><div class="stats-result-score">${score}</div><span class="stats-status-badge ${badgeClass}">${badgeText}</span></div></div>${isAdmin ? `<div class="stats-result-actions">${status==='completed'?`<button class="btn btn-ghost" data-edit-stats-result="${key}">Edit Result</button>`:`<button class="btn btn-amber" data-enter-stats-result="${key}">Enter Result</button>`}${status!=='cancelled'?`<button class="btn btn-ghost" data-cancel-stats-result="${key}">Cancel Fixture</button>`:''}</div>`:''}</div>`;
 }
 function openStatsResultDetail(key){
   const f=fixtures[key]||{}, r=results[key]||{}, status=statsFixtureStatus(key);
