@@ -465,6 +465,39 @@
       margin-left:auto !important;
       margin-right:auto !important;
     }
+  
+    .weekly-comms-week-buttons{gap:5px}
+    .weekly-comms-week-buttons .btn{font-size:9.5px;padding:8px 3px}
+  
+    .stats-hero{padding:9px 10px;}
+    .stats-hero-top{align-items:flex-start;}
+    .stats-hero-title{font-size:18px;}
+    .stats-hero-icon{width:30px;height:30px;}
+    .stats-hero-icon svg{width:19px;height:19px;}
+    .stats-filter-btn{padding:6px 9px;font-size:10px;}
+    .stats-performance-main{grid-template-columns:1fr 1fr;gap:5px;padding-top:1px;padding-bottom:5px;}
+    .stats-donut{width:118px;height:118px;}
+    .stats-donut::before{inset:11px;}
+    .stats-donut-value{font-size:28px;}
+    .stats-donut-label{font-size:8px;}
+    .stats-outcome-row{grid-template-columns:18px 1fr auto;padding:4px 1px;gap:6px;}
+    .stats-outcome-dot{width:10px;height:10px;}
+    .stats-outcome-label{font-size:8.5px;}
+    .stats-outcome-value{font-size:20px;}
+    .stats-metric-value{font-size:21px;}
+    .stats-metric-label{font-size:6.5px;}
+  
+    .stats-detail-player-cols{grid-template-columns:1fr;gap:8px;}
+  
+    .stats-metric{padding:5px 1px 5px;}
+    .stats-player-table th,.stats-player-table td{padding-left:1px;padding-right:1px;}
+    .stats-opponent-table th,.stats-opponent-table td{padding-left:1px;padding-right:1px;font-size:8.5px;}
+    .stats-entry-table th:first-child,.stats-entry-table td:first-child{width:22%;}
+    .stats-entry-table th:nth-child(2),.stats-entry-table td:nth-child(2){width:12%;}
+    .stats-entry-table th:nth-child(3),.stats-entry-table td:nth-child(3){width:19%;}
+    .stats-entry-table th:nth-child(4),.stats-entry-table td:nth-child(4){width:19%;}
+    .stats-entry-table th:nth-child(5),.stats-entry-table td:nth-child(5){width:28%;}
+    .stats-awards{grid-template-columns:1fr;}
   }
 
   .parent-link-summary{
@@ -495,10 +528,7 @@
 
   .weekly-comms-week-buttons{display:flex;gap:7px;margin-top:8px}
   .weekly-comms-week-buttons .btn{flex:1;min-width:0;padding:8px 5px;font-size:10.5px}
-  @media(max-width:519px){
-    .weekly-comms-week-buttons{gap:5px}
-    .weekly-comms-week-buttons .btn{font-size:9.5px;padding:8px 3px}
-  }
+  
 
   .schedule-slot-row{display:flex;gap:8px;align-items:center;margin:6px 0;min-width:0}.schedule-slot-row input{flex:1;min-width:0}.schedule-slot-row button{flex:0 0 auto}
 
@@ -578,26 +608,7 @@
   .stats-metric-value.positive{color:var(--good);}
   .stats-metric-value.negative{color:var(--red);}
   .stats-metric-label{font-size:7px;text-transform:uppercase;letter-spacing:0;color:var(--ink-soft);font-weight:600;margin-top:4px;white-space:normal;line-height:1.15;}
-  @media(max-width:519px){
-    .stats-hero{padding:9px 10px;}
-    .stats-hero-top{align-items:flex-start;}
-    .stats-hero-title{font-size:18px;}
-    .stats-hero-icon{width:30px;height:30px;}
-    .stats-hero-icon svg{width:19px;height:19px;}
-    .stats-filter-btn{padding:6px 9px;font-size:10px;}
-    .stats-performance-main{grid-template-columns:1fr 1fr;gap:5px;padding-top:1px;padding-bottom:5px;}
-    .stats-donut{width:118px;height:118px;}
-    .stats-donut::before{inset:11px;}
-    .stats-donut-value{font-size:28px;}
-    .stats-donut-label{font-size:8px;}
-    .stats-outcome-row{grid-template-columns:18px 1fr auto;padding:4px 1px;gap:6px;}
-    .stats-outcome-dot{width:10px;height:10px;}
-    .stats-outcome-label{font-size:8.5px;}
-    .stats-outcome-value{font-size:20px;}
-    .stats-metric{padding:7px 1px;}
-    .stats-metric-value{font-size:21px;}
-    .stats-metric-label{font-size:6.5px;}
-  }
+  
   .stats-table-wrap{width:100%;max-width:100%;min-width:0;overflow:hidden;background:#fff;border:1.5px solid var(--border);border-radius:10px;}
   .stats-player-table,.stats-opponent-table{width:100%;max-width:100%;min-width:0;border-collapse:collapse;table-layout:fixed;}
   .stats-player-table th,.stats-player-table td,.stats-opponent-table th,.stats-opponent-table td{border-bottom:1px solid var(--line);text-align:center;}
@@ -664,9 +675,7 @@
   .stats-detail-player-list-title.did-not-play{color:var(--ink-soft);}
   .stats-detail-player-name{font-size:11px;font-weight:700;padding:3px 0;border-top:1px solid var(--line);}
   .stats-detail-player-name:first-child{border-top:0;}
-  @media(max-width:519px){
-    .stats-detail-player-cols{grid-template-columns:1fr;gap:8px;}
-  }
+  
 
   .stats-nav{margin-bottom:12px;}
 
@@ -712,18 +721,7 @@
   .stats-actions-row{display:flex;gap:7px;margin-top:10px;}
   .stats-actions-row .btn{flex:1;min-width:0;}
   .stats-own-goal{display:flex;justify-content:space-between;align-items:center;padding:8px 0;margin-top:8px;border-top:1px dashed var(--border);font-size:11px;font-weight:800;color:var(--red);}
-  @media(max-width:519px){
-    .stats-metric{padding:5px 1px 5px;}
-    .stats-metric-value{font-size:21px;}
-    .stats-player-table th,.stats-player-table td{padding-left:1px;padding-right:1px;}
-    .stats-opponent-table th,.stats-opponent-table td{padding-left:1px;padding-right:1px;font-size:8.5px;}
-    .stats-entry-table th:first-child,.stats-entry-table td:first-child{width:22%;}
-    .stats-entry-table th:nth-child(2),.stats-entry-table td:nth-child(2){width:12%;}
-    .stats-entry-table th:nth-child(3),.stats-entry-table td:nth-child(3){width:19%;}
-    .stats-entry-table th:nth-child(4),.stats-entry-table td:nth-child(4){width:19%;}
-    .stats-entry-table th:nth-child(5),.stats-entry-table td:nth-child(5){width:28%;}
-    .stats-awards{grid-template-columns:1fr;}
-  }
+  
 
 
     .season-setting-head{display:grid;grid-template-columns:.78fr 1.15fr 1.15fr 38px;gap:8px;align-items:center;padding:0 0 5px;color:var(--ink-soft);font-size:11px;font-weight:800;letter-spacing:.02em;}.season-setting-row{display:grid;grid-template-columns:.78fr 1.15fr 1.15fr 38px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--border);}.season-setting-row .fx-input{height:38px !important;min-height:38px !important;margin-bottom:0 !important;padding:0 8px !important;font-size:13px !important;} .season-setting-row [data-season-name]{font-size:12px !important;font-weight:700 !important;}.season-setting-row .centred-date-field{height:38px !important;margin-bottom:0 !important;}.season-setting-row .date-display{height:38px !important;padding:0 9px !important;font-size:13px !important;}.season-setting-row .centred-date-field input[type="date"]{height:38px !important;}.season-setting-end .season-end-display{height:38px;display:flex;align-items:center;box-sizing:border-box;padding:0 9px;border:1.5px solid var(--border);border-radius:8px;background:#f1eee9;color:var(--ink);font-size:13px;white-space:nowrap;}.season-remove-btn{width:38px !important;min-width:38px !important;height:38px !important;padding:0 !important;font-size:20px !important;line-height:1 !important;display:flex !important;align-items:center !important;justify-content:center !important;}
