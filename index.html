@@ -1869,7 +1869,8 @@ function weeklyAvailabilitySummary(type, dateKey, slotId){
 function weeklyMatchSection(dateKey){
   const f = fixtures[dateKey] || {};
   const cancelled = isCancelled('match', dateKey);
-  const lines = [`*⚽ MATCH${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
+  if(cancelled) return [`*⚽ MATCH CANCELLED*`, formatLongDateKey(dateKey)].join('\n');
+  const lines = [`*⚽ MATCH*`, formatLongDateKey(dateKey)];
   if(f.matchType) lines.push(`Type: ${f.matchType}`);
   if(f.opponent) lines.push(`🆚 ${f.opponent}`);
   if(f.koTime) lines.push(`🕐 ${f.koTime}`);
@@ -1878,7 +1879,6 @@ function weeklyMatchSection(dateKey){
     const clean = String(f.what3words).replace(/^\/+/, '').trim();
     if(clean) lines.push(`🗺️ https://what3words.com/${encodeURIComponent(clean)}`);
   }
-  if(cancelled) return lines.join('\n') + '\n🚫 *CANCELLED*';
 
   const slot = getRelevantMatchSlot(dateKey);
   if(slot){
@@ -1891,14 +1891,14 @@ function weeklyMatchSection(dateKey){
 function weeklyTrainingSection(dateKey){
   const t = trainingInfo[dateKey] || {};
   const cancelled = isCancelled('training', dateKey);
-  const lines = [`*🏃 TRAINING${cancelled ? ' — CANCELLED' : ''}*`, formatLongDateKey(dateKey)];
+  if(cancelled) return [`*🏃 TRAINING CANCELLED*`, formatLongDateKey(dateKey)].join('\n');
+  const lines = [`*🏃 TRAINING*`, formatLongDateKey(dateKey)];
   if(t.time) lines.push(`🕐 ${t.time}`);
   if(t.location) lines.push(`📍 ${t.location}`);
   if(t.what3words){
     const clean = String(t.what3words).replace(/^\/+/, '').trim();
     if(clean) lines.push(`🗺️ https://what3words.com/${encodeURIComponent(clean)}`);
   }
-  if(cancelled) return lines.join('\n') + '\n🚫 *CANCELLED*';
 
   const slots = slotsForDate('training', dateKey);
   if(slots.length){
