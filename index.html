@@ -933,14 +933,62 @@ function escapeAttr(s){ return escapeHtml(s); }
 
 // ---- Auth ----
 
-function doSignIn(provider){
-  signInWithPopup(auth, provider).catch((e) => {
-    console.error('Popup sign-in failed, falling back to redirect', e);
-    signInWithRedirect(auth, provider);
-  });
+function getFriendlyErrorMessage(error, context='general'){
+  const code = String(error?.code || '');
+  const messages = {
+    'auth/missing-initial-state': 'Your sign-in was interrupted. Please try again. If it happens again, close this tab, reopen the Matthiola Rangers app and try signing in again.',
+    'auth/network-request-failed': 'We couldn’t connect to Google. Check your internet connection and try again.',
+    'auth/popup-blocked': 'Your browser blocked the Google sign-in window. Please allow pop-ups for this site or try opening the app in Safari or Chrome.',
+    'auth/popup-closed-by-user': 'The sign-in window was closed before sign-in finished. Please try again when you’re ready.',
+    'auth/cancelled-popup-request': 'Another sign-in attempt is already in progress. Please wait a moment and try again.',
+    'auth/unauthorized-domain': 'This app’s sign-in address hasn’t been authorised. Please contact the team manager.',
+    'auth/operation-not-allowed': 'Google sign-in is temporarily unavailable. Please contact the team manager.',
+    'auth/web-storage-unsupported': 'Your browser couldn’t complete sign-in. Please try again in a normal browser tab, or use Safari or Chrome.',
+    'permission-denied': 'You don’t have permission to access this information. If you think this is a mistake, contact the team manager.',
+    'unavailable': 'The squad service is temporarily unavailable. Please wait a moment and try again.',
+    'deadline-exceeded': 'The request took too long. Check your connection and try again.',
+    'resource-exhausted': 'The app is temporarily busy. Please wait a moment and try again.'
+  };
+  if(messages[code]) return messages[code];
+  if(context === 'signin') return 'We couldn’t sign you in just now. Please try again. If the problem continues, close this tab, reopen the app and contact the team manager.';
+  if(context === 'save') return 'Your change couldn’t be saved. Please check your connection and try again. If it continues, contact the team manager.';
+  if(context === 'load') return 'We couldn’t load the latest squad information. Check your connection and refresh the app.';
+  return 'Something went wrong. Please try again. If the problem continues, contact the team manager.';
+}
+function showLoginError(message){
+  const el = document.getElementById('loginError');
+  if(!el) { showConnectionWarning(message, 9000); return; }
+  el.textContent = message;
+  el.style.display = 'block';
+}
+async function doSignIn(provider){
+  const button = document.getElementById('googleSignInBtn');
+  if(button){ button.disabled = true; button.textContent = 'Signing in…'; }
+  try{
+    await signInWithPopup(auth, provider);
+  }catch(e){
+    console.error('Popup sign-in failed', {code:e?.code, message:e?.message, error:e});
+    if(e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request'){
+      showLoginError(getFriendlyErrorMessage(e, 'signin'));
+      if(button){ button.disabled = false; button.textContent = 'Sign in with Google'; }
+      return;
+    }
+    if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment','auth/web-storage-unsupported'].includes(e?.code)){
+      try{
+        await signInWithRedirect(auth, provider);
+        return;
+      }catch(redirectError){
+        console.error('Redirect sign-in failed', {code:redirectError?.code, message:redirectError?.message, error:redirectError});
+        showLoginError(getFriendlyErrorMessage(redirectError, 'signin'));
+      }
+    }else{
+      showLoginError(getFriendlyErrorMessage(e, 'signin'));
+    }
+    if(button){ button.disabled = false; button.textContent = 'Sign in with Google'; }
+  }
 }
 function doSignInGoogle(){ doSignIn(googleProvider); }
-function doSignOut(){ signOut(auth); }
+function doSignOut(){ signOut(auth).catch(e => { console.error('Sign-out failed', e); showConnectionWarning(getFriendlyErrorMessage(e)); }); }
 
 function computeIsAdmin(){
   if(!currentUser || !parentRecordLoaded){ isAdmin = false; return; }
@@ -1051,10 +1099,8 @@ function watchFixtures(){
 }
 
 function showStatsSyncError(err, action='read'){
-  console.error(`Stats ${action} error`, err);
-  const code=err?.code||'';
-  if(code==='permission-denied') showConnectionWarning('Stats could not sync because Firebase rules are blocking access to match results.');
-  else showConnectionWarning('Stats could not sync with Firebase. Check your connection and try again.');
+  console.error(`Stats ${action} error`, {code:err?.code, message:err?.message, error:err});
+  showConnectionWarning(getFriendlyErrorMessage(err, action==='write' ? 'save' : 'load'));
 }
 function watchResults(){
   onSnapshot(collection(db, 'match_results'), (snap) => {
@@ -1257,18 +1303,20 @@ async function removeExtraDate(type, dateKey){
 }
 
 let warnTimer = null;
-function showConnectionWarning(){
+function showConnectionWarning(message="We couldn’t sync with the squad service. Check your connection and try again.", duration=7000){
   let el = document.getElementById('connWarning');
   if(!el){
     el = document.createElement('div');
     el.id = 'connWarning';
-    el.style.cssText = 'position:fixed; left:12px; right:12px; bottom:12px; background:#A62639; color:#fff; padding:10px 14px; border-radius:8px; font-family:Inter,sans-serif; font-size:12.5px; font-weight:600; z-index:999; box-shadow:0 4px 12px rgba(0,0,0,0.3);';
-    el.textContent = "Couldn't sync with the server — check your connection and try again.";
+    el.setAttribute('role','status');
+    el.setAttribute('aria-live','polite');
+    el.style.cssText = 'position:fixed; left:12px; right:12px; bottom:12px; background:#A62639; color:#fff; padding:12px 14px; border-radius:8px; font-family:Inter,sans-serif; font-size:13px; font-weight:600; line-height:1.45; z-index:999; box-shadow:0 4px 12px rgba(0,0,0,0.3);';
     document.body.appendChild(el);
   }
+  el.textContent = message;
   el.style.display = 'block';
   clearTimeout(warnTimer);
-  warnTimer = setTimeout(() => { el.style.display = 'none'; }, 5000);
+  warnTimer = setTimeout(() => { el.style.display = 'none'; }, duration);
 }
 
 // ---- Local state helpers ----
@@ -1548,6 +1596,7 @@ function renderLoginScreen(){
   panel.innerHTML = `<div class="login-screen">
     <div class="login-title">Sign in to view the squad sheet</div>
     <div class="login-sub">Use the Google account your team admin has linked to you.</div>
+    <div id="loginError" role="alert" aria-live="assertive" style="display:none; margin:14px 0; padding:12px 14px; border-radius:8px; background:#F7DEE0; color:#7D1B2A; font-size:13px; line-height:1.5; font-weight:600;"></div>
     <button class="btn btn-amber login-btn" id="googleSignInBtn">Sign in with Google</button>
   </div>`;
   document.getElementById('googleSignInBtn').addEventListener('click', doSignInGoogle);
@@ -2884,7 +2933,8 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 getRedirectResult(auth).catch((e) => {
-  console.error('Redirect sign-in error', e);
+  console.error('Redirect sign-in error', {code:e?.code, message:e?.message, error:e});
+  showLoginError(getFriendlyErrorMessage(e, 'signin'));
 });
 </script>
 </body>
