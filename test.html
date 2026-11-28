@@ -621,7 +621,21 @@
   .att-type.training{background:#e8f2ff;color:#174b83;}
   .att-type.match{background:#fff0df;color:#8b4a12;}
   .attendance-detail-totals{font-size:11px;margin-top:10px;padding:9px;background:#fff;border-radius:7px;}
-  @media(max-width:520px){.stats-nav{gap:4px;}.stats-nav-btn{font-size:10px;padding:8px 1px;}.attendance-detail-head,.attendance-detail-item{grid-template-columns:minmax(0,.9fr) minmax(0,.75fr) minmax(0,.55fr) minmax(0,.55fr) minmax(0,1.2fr);gap:4px;font-size:9px;}.attendance-detail-item .att-rag{white-space:normal;}.attendance-detail-totals span{display:none;}}
+  @media(max-width:520px){
+    .stats-nav{gap:4px;}.stats-nav-btn{font-size:10px;padding:8px 1px;}
+    .attendance-detail-panel{padding:9px 8px;}
+    .attendance-detail-head{display:none;}
+    .attendance-detail-item{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px 7px;padding:9px 2px;font-size:10px;align-items:start;}
+    .attendance-detail-item>span{display:block;min-width:0;overflow-wrap:anywhere;}
+    .attendance-detail-item>span:nth-child(1){grid-column:span 3;font-weight:800;}
+    .attendance-detail-item>span:nth-child(2){grid-column:span 3;text-align:right;}
+    .attendance-detail-item>span:nth-child(3),.attendance-detail-item>span:nth-child(4),.attendance-detail-item>span:nth-child(5){grid-column:span 2;font-size:9px;}
+    .attendance-detail-item>span:nth-child(3)::before{content:'Available';display:block;font-size:8px;font-weight:800;color:var(--ink-soft);margin-bottom:3px;}
+    .attendance-detail-item>span:nth-child(4)::before{content:'Attended';display:block;font-size:8px;font-weight:800;color:var(--ink-soft);margin-bottom:3px;}
+    .attendance-detail-item>span:nth-child(5)::before{content:'Outcome';display:block;font-size:8px;font-weight:800;color:var(--ink-soft);margin-bottom:3px;}
+    .attendance-detail-item .att-rag{white-space:normal;max-width:100%;box-sizing:border-box;}
+    .attendance-detail-totals span{display:none;}
+  }
 
   .stats-nav-btn{min-width:0;padding:9px 4px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--ink-soft);font:800 12px Inter,sans-serif;cursor:pointer;}
   .stats-nav-btn.active{background:var(--brand);border-color:var(--brand);color:#fff;}
