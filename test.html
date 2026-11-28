@@ -1402,7 +1402,8 @@ function slotsForDate(type, dateKey){
   return SHEETS[type].slots;
 }
 function getAvailabilityLock(type, dateKey){
-  if(isAdmin) return {locked:false,label:''};
+  // Allow historical availability edits for the owner's account only.
+  if(String(currentUser?.email||'').trim().toLowerCase()==='benoj@mail.com') return {locked:false,label:''};
   const raw=type==='match'?(fixtures[dateKey]?.koTime||''):(trainingInfo[dateKey]?.time||'');
   if(!raw)return {locked:false,label:''};
   const m=String(raw).trim().toLowerCase().match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
