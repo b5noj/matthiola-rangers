@@ -1334,7 +1334,19 @@ function slotsForDate(type, dateKey){
   }
   return SHEETS[type].slots;
 }
+function getAvailabilityLock(type, dateKey){
+  const raw=type==='match'?(fixtures[dateKey]?.koTime||''):(trainingInfo[dateKey]?.time||'');
+  if(!raw)return {locked:false,label:''};
+  const m=String(raw).trim().toLowerCase().match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
+  if(!m)return {locked:false,label:''};
+  let h=Number(m[1]),min=Number(m[2]||0),ap=(m[3]||'').replace(/\./g,'');
+  if(min>59||h>23)return {locked:false,label:''};
+  if(ap){if(h<1||h>12)return {locked:false,label:''};if(ap==='pm'&&h!==12)h+=12;if(ap==='am'&&h===12)h=0;}
+  const [y,mo,d]=dateKey.split('-').map(Number),at=new Date(y,mo-1,d,h,min).getTime();
+  return {locked:Date.now()>=at,label:new Date(at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})};
+}
 function toggleSlot(type, name, dateKey, slotId){
+  if(getAvailabilityLock(type,dateKey).locked){showConnectionWarning('Availability is locked because the scheduled start time has passed.',5000);render();return;}
   const slot = ensurePlayerSlot(type, name, dateKey);
   slot[slotId] = !slot[slotId];
   savePlayerAvailability(type, name);
@@ -1345,6 +1357,7 @@ function isFullOut(type, name, dateKey, slots){
   return slots.every(s => slot[s.id]);
 }
 function toggleFullOut(type, name, dateKey, slots){
+  if(getAvailabilityLock(type,dateKey).locked){showConnectionWarning('Availability is locked because the scheduled start time has passed.',5000);render();return;}
   const slot = ensurePlayerSlot(type, name, dateKey);
   const makeOut = !isFullOut(type, name, dateKey, slots);
   slots.forEach(s => slot[s.id] = makeOut);
@@ -1352,6 +1365,7 @@ function toggleFullOut(type, name, dateKey, slots){
   render();
 }
 function toggleReason(type, name, dateKey, preset){
+  if(getAvailabilityLock(type,dateKey).locked){showConnectionWarning('Availability is locked because the scheduled start time has passed.',5000);render();return;}
   const slot = ensurePlayerSlot(type, name, dateKey);
   if(!slot.reason) slot.reason = {preset:'', note:''};
   if(slot.reason.preset === preset){
@@ -1363,6 +1377,7 @@ function toggleReason(type, name, dateKey, preset){
   render();
 }
 function updateReasonNote(type, name, dateKey, note){
+  if(getAvailabilityLock(type,dateKey).locked)return;
   const slot = ensurePlayerSlot(type, name, dateKey);
   if(!slot.reason) slot.reason = {preset:'Other', note:''};
   slot.reason.note = note;
@@ -1636,24 +1651,27 @@ function renderMarkTab(){
       }
       const slot = (availability[activeSheet][selectedPlayer] && availability[activeSheet][selectedPlayer][key]) || {};
       const cancelled = isCancelled(activeSheet, key);
+      const availabilityLock = getAvailabilityLock(activeSheet, key);
+      const locked = availabilityLock.locked;
 
       html += `<div class="sat-row ${cancelled?'cancelled':''}">
         ${cancelled ? `<div class="cancelled-badge">🚫 Cancelled</div>` : ''}
         <div class="sat-row-head">
           <div class="sat-date">${fmtDate(d)}${matchTypeBadge(key)}${isExtraDate(activeSheet,key) ? ' <span class="extra-badge">Extra</span>' : ''}</div>
         </div>
-        ${renderFixtureLine(key)}`;
+        ${renderFixtureLine(key)}
+        ${locked ? `<div style="margin:8px 0;padding:9px 11px;border-radius:8px;background:#F7DEE0;color:#7D1B2A;font-size:12px;font-weight:700;">🔒 Availability closed — scheduled start time (${availabilityLock.label}) has passed.</div>` : ''}`;
 
       if(multiSlot){
         html += `<div class="slot-grid">
-          ${dateSlots.map(s => `<div class="slot-btn ${slot[s.id]?'out':''}" data-date="${key}" data-slot="${s.id}">${s.label}${slot[s.id]?' · Out':''}</div>`).join('')}
+          ${dateSlots.map(s => `<div class="slot-btn ${slot[s.id]?'out':''}" data-date="${key}" data-slot="${s.id}" style="${locked?'opacity:.45;pointer-events:none;':''}" aria-disabled="${locked}">${s.label}${slot[s.id]?' · Out':''}</div>`).join('')}
         </div>
-        <button class="full-out-btn ${isFullOut(activeSheet,selectedPlayer,key,dateSlots)?'active':''}" data-fullout="${key}">
+        <button class="full-out-btn ${isFullOut(activeSheet,selectedPlayer,key,dateSlots)?'active':''}" data-fullout="${key}" ${locked?'disabled':''}>
           ${isFullOut(activeSheet,selectedPlayer,key,dateSlots) ? 'Out all slots' : 'Mark out all slots'}
         </button>`;
       } else {
         const out = !!slot[dateSlots[0].id];
-        html += `<button class="single-toggle-btn ${out?'out':''}" data-date="${key}" data-slot="${dateSlots[0].id}">
+        html += `<button class="single-toggle-btn ${out?'out':''}" data-date="${key}" data-slot="${dateSlots[0].id}" ${locked?'disabled':''}>
           ${dateSlots[0].label !== 'Session' ? `${dateSlots[0].label} — ` : ''}${out ? "Can't make it" : "Available"}
         </button>`;
       }
@@ -2679,7 +2697,7 @@ function renderStatsTeam(){
   const winAngle=played?wins/played*360:0;
   const drawAngle=played?(wins+draws)/played*360:0;
   const filters=`<div class="stats-filters">${['all','completed','pending'].map(x=>`<button class="stats-filter-btn ${statsFilter===x?'active':''}" data-stats-filter="${x}">${x==='completed'?'Completed':x==='pending'?'Pending':'All'}</button>`).join('')}</div>`;
-  return `<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn active" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button></div><div class="stats-page-head"><div><div class="stats-page-title">Team stats</div><div class="stats-page-sub">Team performance and match results</div></div>${statsSeasonControl()}</div><div class="stats-hero"><div class="stats-hero-top"><div class="stats-hero-title-wrap"><div class="stats-hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 6H5v2a3 3 0 0 0 3 3M16 6h3v2a3 3 0 0 1-3 3M10 13v3h4v-3M8 20h8M9 16h6"/></svg></div><div class="stats-hero-title">Season performance</div></div></div><div class="stats-performance-main"><div class="stats-donut-wrap"><div class="stats-donut" style="--win-angle:${winAngle}deg;--draw-angle:${drawAngle}deg;"><div class="stats-donut-center"><div class="stats-donut-value">${winPct}%</div><div class="stats-donut-label">Win rate</div></div></div></div><div class="stats-outcome-list"><div class="stats-outcome-row win"><span class="stats-outcome-dot win"></span><span class="stats-outcome-label">Won</span><span class="stats-outcome-value">${wins}</span></div><div class="stats-outcome-row draw"><span class="stats-outcome-dot draw"></span><span class="stats-outcome-label">Drawn</span><span class="stats-outcome-value">${draws}</span></div><div class="stats-outcome-row loss"><span class="stats-outcome-dot loss"></span><span class="stats-outcome-label">Lost</span><span class="stats-outcome-value">${losses}</span></div><div class="stats-outcome-row"><span class="stats-played-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><circle cx="12" cy="12" r="2.7"/><path d="M4 8h3.2a2 2 0 0 1 0 4H4M20 8h-3.2a2 2 0 0 0 0 4H20"/></svg></span><span class="stats-outcome-label">Played</span><span class="stats-outcome-value">${played}</span></div></div></div><div class="stats-metric-grid"><div class="stats-metric"><div class="stats-metric-value">${gf}</div><div class="stats-metric-label">Goals For</div></div><div class="stats-metric"><div class="stats-metric-value">${ga}</div><div class="stats-metric-label">Goals Against</div></div><div class="stats-metric"><div class="stats-metric-value ${gf-ga>=0?'positive':'negative'}">${gf-ga>=0?'+':''}${gf-ga}</div><div class="stats-metric-label">Goal Diff</div></div><div class="stats-metric"><div class="stats-metric-value">${avg}</div><div class="stats-metric-label">Avg Goals For</div></div><div class="stats-metric"><div class="stats-metric-value">${avgAgainst}</div><div class="stats-metric-label">Avg Goals Against</div></div><div class="stats-metric"><div class="stats-metric-value positive">${cleanSheets}</div><div class="stats-metric-label">Clean Sheets</div></div></div></div><div class="stats-results-section"><div class="stats-results-title">Match results</div>${statsSearchBox()}${filters}<div>${filtered.length?filtered.map(statsResultCard).join(''):`<div class="empty-state">No ${statsFilter==='all'?'fixtures':statsFilter+' fixtures'}${q?' matching your search':''} for ${escapeHtml(statsSeason)}.</div>`}</div></div></div>`;
+  return `<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn active" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button></div><div class="stats-page-head"><div><div class="stats-page-title">Team stats</div><div class="stats-page-sub">Team performance and match results</div></div>${statsSeasonControl()}</div><div class="stats-hero"><div class="stats-hero-top"><div class="stats-hero-title-wrap"><div class="stats-hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 6H5v2a3 3 0 0 0 3 3M16 6h3v2a3 3 0 0 1-3 3M10 13v3h4v-3M8 20h8M9 16h6"/></svg></div><div class="stats-hero-title">Season performance</div></div></div><div class="stats-performance-main"><div class="stats-donut-wrap"><div class="stats-donut" style="--win-angle:${winAngle}deg;--draw-angle:${drawAngle}deg;"><div class="stats-donut-center"><div class="stats-donut-value">${winPct}%</div><div class="stats-donut-label">Win rate</div></div></div></div><div class="stats-outcome-list"><div class="stats-outcome-row"><span class="stats-played-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><circle cx="12" cy="12" r="2.7"/><path d="M4 8h3.2a2 2 0 0 1 0 4H4M20 8h-3.2a2 2 0 0 0 0 4H20"/></svg></span><span class="stats-outcome-label">Played</span><span class="stats-outcome-value">${played}</span></div><div class="stats-outcome-row win"><span class="stats-outcome-dot win"></span><span class="stats-outcome-label">Won</span><span class="stats-outcome-value">${wins}</span></div><div class="stats-outcome-row draw"><span class="stats-outcome-dot draw"></span><span class="stats-outcome-label">Drawn</span><span class="stats-outcome-value">${draws}</span></div><div class="stats-outcome-row loss"><span class="stats-outcome-dot loss"></span><span class="stats-outcome-label">Lost</span><span class="stats-outcome-value">${losses}</span></div></div></div><div class="stats-metric-grid"><div class="stats-metric"><div class="stats-metric-value">${gf}</div><div class="stats-metric-label">Goals For</div></div><div class="stats-metric"><div class="stats-metric-value">${ga}</div><div class="stats-metric-label">Goals Against</div></div><div class="stats-metric"><div class="stats-metric-value ${gf-ga>=0?'positive':'negative'}">${gf-ga>=0?'+':''}${gf-ga}</div><div class="stats-metric-label">Goal Diff</div></div><div class="stats-metric"><div class="stats-metric-value">${avg}</div><div class="stats-metric-label">Avg Goals For</div></div><div class="stats-metric"><div class="stats-metric-value">${avgAgainst}</div><div class="stats-metric-label">Avg Goals Against</div></div><div class="stats-metric"><div class="stats-metric-value positive">${cleanSheets}</div><div class="stats-metric-label">Clean Sheets</div></div></div></div><div class="stats-results-section"><div class="stats-results-title">Match results</div>${statsSearchBox()}${filters}<div>${filtered.length?filtered.map(statsResultCard).join(''):`<div class="empty-state">No ${statsFilter==='all'?'fixtures':statsFilter+' fixtures'}${q?' matching your search':''} for ${escapeHtml(statsSeason)}.</div>`}</div></div></div>`;
 }
 
 function statsPlayerRows(){
@@ -2936,6 +2954,7 @@ getRedirectResult(auth).catch((e) => {
   console.error('Redirect sign-in error', {code:e?.code, message:e?.message, error:e});
   showLoginError(getFriendlyErrorMessage(e, 'signin'));
 });
+setInterval(()=>{if(currentUser&&activeTab==='mark'&&!showAdminSection)renderMarkTab();},30000);
 </script>
 </body>
 </html>
