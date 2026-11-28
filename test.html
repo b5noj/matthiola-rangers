@@ -590,6 +590,15 @@
   .attendance-match-head{background:#fff0df;color:#8b4a12;border-bottom:2px solid #e8b47e;}
   .attendance-training-sub{background:#f3f8ff;color:#245987;}
   .attendance-match-sub{background:#fff7ef;color:#985b24;}
+  /* Clear visual grouping between player, training and match columns. */
+  .attendance-stats-table thead tr:first-child th:first-child,
+  .attendance-stats-table thead tr:nth-child(2) th:first-child,
+  .attendance-stats-table tbody tr.attendance-player-row td:first-child{border-right:2px solid #d5dbe3;}
+  .attendance-stats-table thead tr:first-child th.attendance-match-head,
+  .attendance-stats-table thead tr:nth-child(2) th:nth-child(5),
+  .attendance-stats-table tbody tr.attendance-player-row td:nth-child(5){border-left:2px solid #e5c5a5;}
+  .attendance-stats-table tbody tr.attendance-player-row td:nth-child(2){border-left:1px solid #dce9f7;}
+
   .attendance-player-row{cursor:pointer;}
   .attendance-player-row:hover{background:#f7f9fc;}
   .attendance-expand-hint{display:block;font-size:10px;color:var(--ink-soft);font-weight:500;margin-top:2px;}
