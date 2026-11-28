@@ -623,18 +623,17 @@
   .attendance-detail-totals{font-size:11px;margin-top:10px;padding:9px;background:#fff;border-radius:7px;}
   @media(max-width:520px){
     .stats-nav{gap:4px;}.stats-nav-btn{font-size:10px;padding:8px 1px;}
-    .attendance-detail-panel{padding:9px 8px;}
-    .attendance-detail-head{display:none;}
-    .attendance-detail-item{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px 7px;padding:9px 2px;font-size:10px;align-items:start;}
+    .attendance-detail-panel{padding:8px 5px;}
+    .attendance-detail-head,.attendance-detail-item{grid-template-columns:52px 42px 48px 48px minmax(0,1fr);gap:4px;align-items:center;padding-left:2px;padding-right:2px;}
+    .attendance-detail-head{display:grid;font-size:7px;letter-spacing:-.02em;padding-top:5px;padding-bottom:5px;white-space:nowrap;}
+    .attendance-detail-head>span{min-width:0;white-space:nowrap;}
+    .attendance-detail-item{font-size:9px;padding-top:7px;padding-bottom:7px;}
     .attendance-detail-item>span{display:block;min-width:0;overflow-wrap:anywhere;}
-    .attendance-detail-item>span:nth-child(1){grid-column:span 3;font-weight:800;}
-    .attendance-detail-item>span:nth-child(2){grid-column:span 3;text-align:right;}
-    .attendance-detail-item>span:nth-child(3),.attendance-detail-item>span:nth-child(4),.attendance-detail-item>span:nth-child(5){grid-column:span 2;font-size:9px;}
-    .attendance-detail-item>span:nth-child(3)::before{content:'Available';display:block;font-size:8px;font-weight:800;color:var(--ink-soft);margin-bottom:3px;}
-    .attendance-detail-item>span:nth-child(4)::before{content:'Attended';display:block;font-size:8px;font-weight:800;color:var(--ink-soft);margin-bottom:3px;}
-    .attendance-detail-item>span:nth-child(5)::before{content:'Outcome';display:block;font-size:8px;font-weight:800;color:var(--ink-soft);margin-bottom:3px;}
-    .attendance-detail-item .att-rag{white-space:normal;max-width:100%;box-sizing:border-box;}
-    .attendance-detail-totals span{display:none;}
+    .attendance-detail-item>span:first-child{font-weight:800;white-space:nowrap;font-size:8px;}
+    .attendance-detail-item>span:nth-child(2){text-align:center;}
+    .attendance-detail-item .att-type,.attendance-detail-item .att-rag{font-size:7px;padding:2px 3px;max-width:100%;box-sizing:border-box;white-space:normal;line-height:1.2;}
+    .attendance-detail-item>span:nth-child(5){overflow-wrap:anywhere;}
+    .attendance-detail-totals{font-size:10px;line-height:1.5;}
   }
 
   .stats-nav-btn{min-width:0;padding:9px 4px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--ink-soft);font:800 12px Inter,sans-serif;cursor:pointer;}
