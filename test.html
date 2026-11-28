@@ -2740,6 +2740,54 @@ function renderStatsOpponents(){
   const head=(key,label)=>`<th data-stats-opponent-sort="${key}">${label}${statsSortKey===key?(statsSortDir>0?' ▲':' ▼'):''}</th>`;
   return `<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn active" data-stats-view="opponents">Opponents</button></div><div class="stats-page-head"><div><div class="stats-page-title">Opponent stats</div></div>${statsSeasonControl()}</div>${statsSearchBox(statsSearch, 'Search opponent…')}<div class="stats-table-wrap"><table class="stats-opponent-table"><thead><tr>${head('opponent','Opponent')}${head('fixtures','PLD')}${head('wins','W')}${head('losses','L')}${head('draws','D')}${head('winRate','Win %')}${head('gf','GF')}${head('ga','GA')}</tr></thead><tbody>${rows.length?rows.map(x=>`<tr><td>${escapeHtml(x.name)}</td><td>${x.fixtures}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.draws}</td><td>${x.winRate}%</td><td>${x.gf}</td><td>${x.ga}</td></tr>`).join(''):`<tr><td colspan="8" style="padding:22px;color:var(--ink-soft);">No opponent data found.</td></tr>`}</tbody></table></div></div>`;
 }
+
+function trainingAttendanceDates(){
+  const today=isoDate(new Date());
+  const start=normaliseSeasons(seasons).find(x=>x.name===statsSeason)?.start || '2026-08-01';
+  const keys=new Set(); const d=new Date(start+'T00:00:00');
+  while(d<=new Date(today+'T00:00:00')){if(d.getDay()===SHEETS.training.dayOfWeek)keys.add(isoDate(d));d.setDate(d.getDate()+1);}
+  Object.keys(extraDates.training||{}).forEach(k=>{if(k>=start&&k<=today)keys.add(k);});
+  Object.keys(trainingInfo||{}).forEach(k=>{if(k>=start&&k<=today)keys.add(k);});
+  return [...keys].filter(k=>!isCancelled('training',k)).sort((a,b)=>b.localeCompare(a));
+}
+function renderTrainingRegisterTab(){
+  const panel=document.getElementById('panel'), dates=trainingAttendanceDates();
+  if(!attendanceDate||!dates.includes(attendanceDate))attendanceDate=dates.find(k=>!trainingAttendance[k]?.completed)||dates[0]||'';
+  const old=trainingAttendance[attendanceDate]||{};
+  if(attendanceDraft.__date!==attendanceDate){attendanceDraft={...(old.players||{}),__date:attendanceDate};}
+  const states=roster.map(n=>({name:n,status:typeof attendanceDraft[n]==='boolean'?attendanceDraft[n]:null}));
+  const present=states.filter(x=>x.status===true).length, absent=states.filter(x=>x.status===false).length;
+  const opts=dates.map(k=>'<option value="'+k+'" '+(k===attendanceDate?'selected':'')+'>'+new Date(k+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+(trainingAttendance[k]?.completed?' ✓':'')+'</option>').join('');
+  const people=states.map(x=>'<div class="admin-list-row"><b>'+escapeHtml(x.name)+'</b><div style="display:flex;gap:6px;"><button class="btn '+(x.status===true?'btn-amber':'btn-ghost')+'" data-att-player="'+escapeAttr(x.name)+'" data-att-value="1">Present</button><button class="btn '+(x.status===false?'btn-amber':'btn-ghost')+'" data-att-player="'+escapeAttr(x.name)+'" data-att-value="0">Absent</button></div></div>').join('');
+  panel.innerHTML='<div class="hint">Choose a past training session and record who was present or absent. Unrecorded sessions are excluded from the attendance statistics.</div><div class="admin-form"><div class="admin-label-sm">Training session</div><select id="attendanceDateSelect" class="fx-input" style="width:100%;box-sizing:border-box;">'+opts+'</select></div>'+
+    (attendanceDate?'<div class="admin-form"><b>'+new Date(attendanceDate+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</b><div class="fx-hint">'+present+' present · '+absent+' absent · '+(states.length-present-absent)+' unmarked</div><div style="display:flex;gap:8px;margin:12px 0;"><button class="btn btn-ghost" id="attAllPresent">Mark all present</button><button class="btn btn-ghost" id="attClear">Clear</button></div><div class="admin-list">'+people+'</div><button class="btn btn-amber" id="attSave" style="width:100%;margin-top:14px;" '+(states.some(x=>x.status===null)?'disabled':'')+'>Save training register</button>'+(old.completed?'<div class="fx-hint">Saved register — you can amend it and save again.</div>':'')+'</div>':'<div class="empty-state">No past training dates found for this season.</div>');
+  document.getElementById('attendanceDateSelect')?.addEventListener('change',e=>{attendanceDate=e.target.value;attendanceDraft={};renderTrainingRegisterTab();});
+  document.getElementById('attAllPresent')?.addEventListener('click',()=>{roster.forEach(n=>attendanceDraft[n]=true);attendanceDraft.__date=attendanceDate;renderTrainingRegisterTab();});
+  document.getElementById('attClear')?.addEventListener('click',()=>{attendanceDraft={__date:attendanceDate};renderTrainingRegisterTab();});
+  panel.querySelectorAll('[data-att-player]').forEach(el=>el.addEventListener('click',()=>{attendanceDraft[el.dataset.attPlayer]=el.dataset.attValue==='1';attendanceDraft.__date=attendanceDate;renderTrainingRegisterTab();}));
+  document.getElementById('attSave')?.addEventListener('click',async()=>{
+    if(!isAdmin||states.some(x=>x.status===null))return;
+    const data={type:'training',date:attendanceDate,season:getSeasonForDate(attendanceDate)||statsSeason,players:Object.fromEntries(roster.map(n=>[n,attendanceDraft[n]===true])),completed:true,updatedAt:Date.now(),updatedBy:currentUser?.email||''};
+    try{await setDoc(doc(db,'training_attendance',attendanceDate),data);trainingAttendance[attendanceDate]=data;showConnectionWarning('Training attendance saved.',3000);renderTrainingRegisterTab();}
+    catch(e){showStatsSyncError(e,'write');}
+  });
+}
+function attendancePlayerRows(){
+  const matchKeys=statsSeasonKeys().filter(k=>statsFixtureStatus(k)==='completed');
+  const trainKeys=trainingAttendanceDates().filter(k=>trainingAttendance[k]?.completed);
+  return roster.map(name=>{
+    const x={name,trainingAvailable:0,trainingAttended:0,trainingNoShows:0,matchAvailable:0,matchAttended:0,matchNoShows:0};
+    trainKeys.forEach(k=>{const slots=slotsForDate('training',k),a=(availability.training[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),attended=trainingAttendance[k]?.players?.[name]===true;if(available)x.trainingAvailable++;if(attended)x.trainingAttended++;if(available&&!attended)x.trainingNoShows++;});
+    matchKeys.forEach(k=>{const slots=slotsForDate('match',k),a=(availability.match[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),played=(results[k]?.players||[]).some(p=>p.name===name&&p.played);if(available)x.matchAvailable++;if(played)x.matchAttended++;if(available&&!played)x.matchNoShows++;});
+    return x;
+  });
+}
+function renderStatsAttendance(){
+  const rows=attendancePlayerRows().filter(x=>!statsSearch||x.name.toLowerCase().includes(statsSearch.toLowerCase()));
+  const h='<th>Available</th><th>Attended</th><th>No shows</th>';
+  const body=rows.map(x=>'<tr><td>'+escapeHtml(x.name)+'</td><td>'+x.trainingAvailable+'</td><td>'+x.trainingAttended+'</td><td>'+x.trainingNoShows+'</td><td>'+x.matchAvailable+'</td><td>'+x.matchAttended+'</td><td>'+x.matchNoShows+'</td></tr>').join('');
+  return '<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button><button class="stats-nav-btn active" data-stats-view="attendance">Attendance</button></div><div class="stats-page-head"><div><div class="stats-page-title">Attendance</div><div class="stats-page-sub">Availability compared with recorded attendance</div></div>'+statsSeasonControl()+'</div>'+statsSearchBox(statsSearch,'Search player…')+'<div class="stats-table-wrap"><table class="stats-player-table"><thead><tr><th rowspan="2">Player</th><th colspan="3" style="text-align:center;">Training</th><th colspan="3" style="text-align:center;">Matches</th></tr><tr>'+h+h+'</tr></thead><tbody>'+(body||'<tr><td colspan="7">No attendance data found for this season.</td></tr>')+'</tbody></table></div><div class="fx-hint" style="margin-top:10px;">Only completed match results and saved training registers are counted. No shows are events marked available where the player was not recorded as attending.</div></div>';
+}
 function renderStatsCurrentContent(){
   const c=document.getElementById('statsContent'); if(!c)return;
   if(statsView==='team') c.innerHTML=renderStatsTeam();
