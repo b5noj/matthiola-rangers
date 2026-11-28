@@ -555,7 +555,7 @@
   .stats-season-wrap{min-width:115px;}
   .stats-season-wrap label{display:block;font-size:9px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px;letter-spacing:.04em;}
   .stats-season-select{width:100%;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font:700 12px Inter,sans-serif;color:var(--ink);}
-  .stats-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:12px;}
+  .stats-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:12px;} .stats-nav-btn{font-size:11px;padding:9px 2px;}
   .stats-nav-btn{min-width:0;padding:9px 4px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--ink-soft);font:800 12px Inter,sans-serif;cursor:pointer;}
   .stats-nav-btn.active{background:var(--brand);border-color:var(--brand);color:#fff;}
   .stats-filters{display:flex;gap:0;flex-wrap:nowrap;margin:0;}
@@ -829,6 +829,7 @@ let results = {};
 let trainingAttendance = {};
 let attendanceDate = '';
 let attendanceDraft = {};
+let attendanceExpandedPlayer = null;
 let statsView = 'team';
 let statsFilter = 'completed';
 let statsSeason = '2026/27';
@@ -1114,17 +1115,14 @@ function watchResults(){
   }, (err) => { showStatsSyncError(err,'read'); });
 }
 
-function watchTrainingAttendance(){
-  onSnapshot(collection(db, 'training_attendance'), (snap) => {
-    const next = {}; snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
-    trainingAttendance = next; render();
-  }, (err) => { showStatsSyncError(err,'read'); });
-}
 function watchTrainingInfo(){
   onSnapshot(collection(db, 'training_info'), (snap) => {
     const next = {};
     snap.forEach(docSnap => { next[docSnap.id] = docSnap.data(); });
     trainingInfo = next;
+    const attendance = {};
+    Object.entries(next).forEach(([key,data])=>{if(data.attendance?.completed)attendance[key]=data.attendance;});
+    trainingAttendance = attendance;
     render();
   }, (err) => { console.error('Training info sync error', err); showConnectionWarning(); });
 }
@@ -2767,21 +2765,22 @@ function renderTrainingRegisterTab(){
   const panel=document.getElementById('panel'), dates=trainingAttendanceDates();
   if(!attendanceDate||!dates.includes(attendanceDate))attendanceDate=dates.find(k=>!trainingAttendance[k]?.completed)||dates[0]||'';
   const old=trainingAttendance[attendanceDate]||{};
-  if(attendanceDraft.__date!==attendanceDate){attendanceDraft={...(old.players||{}),__date:attendanceDate};}
+  if(attendanceDraft.__date!==attendanceDate){attendanceDraft=old.completed?{...(old.players||{}),__date:attendanceDate}:Object.fromEntries([...roster.map(n=>[n,true]),['__date',attendanceDate]]);}
   const states=roster.map(n=>({name:n,status:typeof attendanceDraft[n]==='boolean'?attendanceDraft[n]:null}));
   const present=states.filter(x=>x.status===true).length, absent=states.filter(x=>x.status===false).length;
   const opts=dates.map(k=>'<option value="'+k+'" '+(k===attendanceDate?'selected':'')+'>'+new Date(k+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+(trainingAttendance[k]?.completed?' ✓':'')+'</option>').join('');
   const people=states.map(x=>'<div class="admin-list-row"><b>'+escapeHtml(x.name)+'</b><div style="display:flex;gap:6px;"><button class="btn '+(x.status===true?'btn-amber':'btn-ghost')+'" data-att-player="'+escapeAttr(x.name)+'" data-att-value="1">Present</button><button class="btn '+(x.status===false?'btn-amber':'btn-ghost')+'" data-att-player="'+escapeAttr(x.name)+'" data-att-value="0">Absent</button></div></div>').join('');
-  panel.innerHTML='<div class="hint">Choose a past training session and record who was present or absent. Unrecorded sessions are excluded from the attendance statistics.</div><div class="admin-form"><div class="admin-label-sm">Training session</div><select id="attendanceDateSelect" class="fx-input" style="width:100%;box-sizing:border-box;">'+opts+'</select></div>'+
+  panel.innerHTML='<div class="section-label">Admin</div><div class="admin-subtabs"><div class="admin-subtab" data-reg-subtab="squad">Squad</div><div class="admin-subtab" data-reg-subtab="settings">Team Settings</div><div class="admin-subtab" data-reg-subtab="parents">Parents &amp; Admins</div><div class="admin-subtab" data-reg-subtab="extra">Extra Fixtures</div><div class="admin-subtab" data-reg-subtab="weekly">Weekly Comms</div><div class="admin-subtab" data-reg-subtab="bulkTraining">Bulk Training</div><div class="admin-subtab active" data-reg-subtab="attendance">Training Register</div></div><div class="hint">New registers start with everyone marked present on screen only. Change absent players, then save. Nothing is written to the database until you press Save.</div><div class="admin-form"><div class="admin-label-sm">Training session</div><select id="attendanceDateSelect" class="fx-input" style="width:100%;box-sizing:border-box;">'+opts+'</select></div>'+
     (attendanceDate?'<div class="admin-form"><b>'+new Date(attendanceDate+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</b><div class="fx-hint">'+present+' present · '+absent+' absent · '+(states.length-present-absent)+' unmarked</div><div style="display:flex;gap:8px;margin:12px 0;"><button class="btn btn-ghost" id="attAllPresent">Mark all present</button><button class="btn btn-ghost" id="attClear">Clear</button></div><div class="admin-list">'+people+'</div><button class="btn btn-amber" id="attSave" style="width:100%;margin-top:14px;" '+(states.some(x=>x.status===null)?'disabled':'')+'>Save training register</button>'+(old.completed?'<div class="fx-hint">Saved register — you can amend it and save again.</div>':'')+'</div>':'<div class="empty-state">No past training dates found for this season.</div>');
+  panel.querySelectorAll('[data-reg-subtab]').forEach(el=>el.addEventListener('click',()=>{adminSubTab=el.dataset.regSubtab;render();}));
   document.getElementById('attendanceDateSelect')?.addEventListener('change',e=>{attendanceDate=e.target.value;attendanceDraft={};renderTrainingRegisterTab();});
   document.getElementById('attAllPresent')?.addEventListener('click',()=>{roster.forEach(n=>attendanceDraft[n]=true);attendanceDraft.__date=attendanceDate;renderTrainingRegisterTab();});
-  document.getElementById('attClear')?.addEventListener('click',()=>{attendanceDraft={__date:attendanceDate};renderTrainingRegisterTab();});
+  document.getElementById('attClear')?.addEventListener('click',()=>{roster.forEach(n=>attendanceDraft[n]=false);attendanceDraft.__date=attendanceDate;renderTrainingRegisterTab();});
   panel.querySelectorAll('[data-att-player]').forEach(el=>el.addEventListener('click',()=>{attendanceDraft[el.dataset.attPlayer]=el.dataset.attValue==='1';attendanceDraft.__date=attendanceDate;renderTrainingRegisterTab();}));
   document.getElementById('attSave')?.addEventListener('click',async()=>{
     if(!isAdmin||states.some(x=>x.status===null))return;
-    const data={type:'training',date:attendanceDate,season:getSeasonForDate(attendanceDate)||statsSeason,players:Object.fromEntries(roster.map(n=>[n,attendanceDraft[n]===true])),completed:true,updatedAt:Date.now(),updatedBy:currentUser?.email||''};
-    try{await setDoc(doc(db,'training_attendance',attendanceDate),data);trainingAttendance[attendanceDate]=data;showConnectionWarning('Training attendance saved.',3000);renderTrainingRegisterTab();}
+    const data={completed:true,season:getSeasonForDate(attendanceDate)||statsSeason,players:Object.fromEntries(roster.map(n=>[n,attendanceDraft[n]===true])),updatedAt:Date.now(),updatedBy:currentUser?.email||''};
+    try{await setDoc(doc(db,'training_info',attendanceDate),{...(trainingInfo[attendanceDate]||{}),attendance:data},{merge:true});trainingAttendance[attendanceDate]=data;showConnectionWarning('Training attendance saved.',3000);renderTrainingRegisterTab();}
     catch(e){showStatsSyncError(e,'write');}
   });
 }
@@ -2799,7 +2798,7 @@ function renderStatsAttendance(){
   const rows=attendancePlayerRows().filter(x=>!statsSearch||x.name.toLowerCase().includes(statsSearch.toLowerCase()));
   const h='<th>Available</th><th>Attended</th><th>No shows</th>';
   const body=rows.map(x=>'<tr><td>'+escapeHtml(x.name)+'</td><td>'+x.trainingAvailable+'</td><td>'+x.trainingAttended+'</td><td>'+x.trainingNoShows+'</td><td>'+x.matchAvailable+'</td><td>'+x.matchAttended+'</td><td>'+x.matchNoShows+'</td></tr>').join('');
-  return '<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button><button class="stats-nav-btn" data-stats-view="attendance">Attendance</button><button class="stats-nav-btn active" data-stats-view="attendance">Attendance</button></div><div class="stats-page-head"><div><div class="stats-page-title">Attendance</div><div class="stats-page-sub">Availability compared with recorded attendance</div></div>'+statsSeasonControl()+'</div>'+'<div class="stats-search-wrap"><input id="statsSearchInput" class="stats-search-input" value="'+escapeAttr(statsSearch)+'" placeholder="Search player…" autocomplete="off"/></div>'+'<div class="stats-table-wrap"><table class="stats-player-table"><thead><tr><th rowspan="2">Player</th><th colspan="3" style="text-align:center;">Training</th><th colspan="3" style="text-align:center;">Matches</th></tr><tr>'+h+h+'</tr></thead><tbody>'+(body||'<tr><td colspan="7">No attendance data found for this season.</td></tr>')+'</tbody></table></div><div class="fx-hint" style="margin-top:10px;">Only completed match results and saved training registers are counted. No shows are events marked available where the player was not recorded as attending.</div></div>';
+  return '<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button><button class="stats-nav-btn active" data-stats-view="attendance">Attendance</button></div><div class="stats-page-head"><div><div class="stats-page-title">Attendance</div><div class="stats-page-sub">Availability compared with recorded attendance</div></div>'+statsSeasonControl()+'</div>'+'<div class="stats-search-wrap"><input id="statsSearchInput" class="stats-search-input" value="'+escapeAttr(statsSearch)+'" placeholder="Search player…" autocomplete="off"/></div>'+'<div class="stats-table-wrap"><table class="stats-player-table"><thead><tr><th rowspan="2">Player</th><th colspan="3" style="text-align:center;">Training</th><th colspan="3" style="text-align:center;">Matches</th></tr><tr>'+h+h+'</tr></thead><tbody>'+(body||'<tr><td colspan="7">No attendance data found for this season.</td></tr>')+'</tbody></table></div><div class="fx-hint" style="margin-top:10px;">Only completed match results and saved training registers are counted. No shows are events marked available where the player was not recorded as attending.</div></div>';
 }
 function renderStatsCurrentContent(){
   const c=document.getElementById('statsContent'); if(!c)return;
@@ -3000,7 +2999,6 @@ onAuthStateChanged(auth, async (user) => {
     watchFixtures();
     watchResults();
     watchTrainingInfo();
-    watchTrainingAttendance();
     // Only admins need the full parents collection. Normal parents only load
     // their own document above, reducing reads and avoiding unnecessary exposure.
     if(isAdmin){
