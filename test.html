@@ -1270,7 +1270,10 @@ async function saveMatchResult(dateKey, data){
   catch(e){ showStatsSyncError(e,'write'); }
 }
 async function saveTrainingInfo(dateKey, data){
-  try{ await setDoc(doc(db, 'training_info', dateKey), data); }
+  try{
+    const existing=trainingInfo[dateKey]||{};
+    await setDoc(doc(db, 'training_info', dateKey), {...data,...(existing.attendance?{attendance:existing.attendance}:{})}, {merge:true});
+  }
   catch(e){ console.error('Failed to save training info', e); showConnectionWarning(); }
 }
 async function savePlayerAvailability(type, name){
