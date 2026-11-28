@@ -2861,14 +2861,21 @@ function renderTrainingRegisterTab(){
     catch(e){showStatsSyncError(e,'write');}
   });
 }
+function isRecordedAvailableForAttendance(type,name,dateKey){
+  const slots=slotsForDate(type,dateKey);
+  const a=(availability[type]?.[name]||{})[dateKey]||{};
+  // Only an explicit available response counts. An unfilled/newly-added slot
+  // must not turn an otherwise unavailable historical response into a no-show.
+  return slots.some(slot=>Object.prototype.hasOwnProperty.call(a,slot.id)&&a[slot.id]===false);
+}
 function attendancePlayerRows(){
   const matchKeys=statsSeasonKeys().filter(k=>statsFixtureStatus(k)==='completed');
   const trainKeys=trainingAttendanceDates().filter(k=>trainingAttendance[k]?.completed);
   return roster.map(name=>{
     const x={name,trainingAvailable:0,trainingAttended:0,trainingNoShows:0,matchAvailable:0,matchAttended:0,matchNoShows:0};
     const startDate=playerAttendanceStartDate(name);
-    trainKeys.filter(k=>k>=startDate).forEach(k=>{const slots=slotsForDate('training',k),a=(availability.training[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),attended=trainingAttendance[k]?.players?.[name]===true;if(available)x.trainingAvailable++;if(attended)x.trainingAttended++;if(available&&!attended)x.trainingNoShows++;});
-    matchKeys.filter(k=>k>=startDate).forEach(k=>{const slots=slotsForDate('match',k),a=(availability.match[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),played=(results[k]?.players||[]).some(p=>p.name===name&&p.played);if(available)x.matchAvailable++;if(played)x.matchAttended++;if(available&&!played)x.matchNoShows++;});
+    trainKeys.filter(k=>k>=startDate).forEach(k=>{const available=isRecordedAvailableForAttendance('training',name,k),attended=trainingAttendance[k]?.players?.[name]===true;if(available)x.trainingAvailable++;if(attended)x.trainingAttended++;if(available&&!attended)x.trainingNoShows++;});
+    matchKeys.filter(k=>k>=startDate).forEach(k=>{const available=isRecordedAvailableForAttendance('match',name,k),played=(results[k]?.players||[]).some(p=>p.name===name&&p.played);if(available)x.matchAvailable++;if(played)x.matchAttended++;if(available&&!played)x.matchNoShows++;});
     return x;
   });
 }
@@ -2876,11 +2883,11 @@ function attendancePlayerRows(){
 function attendanceDetailEvents(name){
   const startDate=playerAttendanceStartDate(name);
   const training=trainingAttendanceDates().filter(k=>k>=startDate&&trainingAttendance[k]?.completed).map(k=>{
-    const slots=slotsForDate('training',k),a=(availability.training[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),attended=trainingAttendance[k]?.players?.[name]===true;
+    const available=isRecordedAvailableForAttendance('training',name,k),attended=trainingAttendance[k]?.players?.[name]===true;
     return {date:k,type:'Training',available,attended,show:attended?'Attended':available?'No show':'Unavailable'};
   });
   const matches=statsSeasonKeys().filter(k=>k>=startDate&&statsFixtureStatus(k)==='completed').map(k=>{
-    const slots=slotsForDate('match',k),a=(availability.match[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),played=(results[k]?.players||[]).some(p=>p.name===name&&p.played);
+    const available=isRecordedAvailableForAttendance('match',name,k),played=(results[k]?.players||[]).some(p=>p.name===name&&p.played);
     return {date:k,type:'Match',available,attended:played,show:played?'Played':available?'No show':'Unavailable',opponent:fixtures[k]?.opponent||''};
   });
   return [...training,...matches].sort((a,b)=>a.date.localeCompare(b.date));
