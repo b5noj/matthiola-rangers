@@ -2717,7 +2717,7 @@ function statsResultCard(key){
     badgeClass = hs>as?'win':hs<as?'loss':'draw';
     badgeText = hs>as?'W':hs<as?'L':'D';
   }
-  return `<div class="stats-result-card" data-stats-result-detail="${escapeAttr(key)}" tabindex="0" role="button" aria-label="View result details for ${escapeAttr(f.opponent||'Unknown opponent')}"><div class="stats-result-head"><div style="min-width:0"><div class="stats-result-opponent">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-result-meta">${date}${f.matchType?' · '+escapeHtml(f.matchType):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="text-align:right"><div class="stats-result-score">${score}</div><span class="stats-status-badge ${badgeClass}">${badgeText}</span></div></div>${isAdmin ? `<div class="stats-result-actions">${status==='completed'?`<button class="btn btn-ghost" data-edit-stats-result="${key}">Edit Result</button>`:`<button class="btn btn-amber" data-enter-stats-result="${key}">Enter Result</button>`}${status!=='cancelled'?`<button class="btn btn-ghost" data-cancel-stats-result="${key}">Cancel Fixture</button>`:''}</div>`:''}</div>`;
+  return `<div class="stats-result-card" data-stats-result-detail="${escapeAttr(key)}" tabindex="0" role="button" aria-label="View result details for ${escapeAttr(f.opponent||'Unknown opponent')}"><div class="stats-result-head"><div style="min-width:0"><div class="stats-result-opponent">${escapeHtml(f.opponent||'Unknown opponent')}</div><div class="stats-result-meta">${date}${f.matchType?' · '+escapeHtml(f.matchType):''}${f.location?' · '+escapeHtml(f.location):''}</div></div><div style="text-align:right"><div class="stats-result-score">${score}</div><span class="stats-status-badge ${badgeClass}">${badgeText}</span></div></div>${isAdmin ? `<div class="stats-result-actions">${status==='cancelled'?'':status==='completed'?`<button class="btn btn-ghost" data-edit-stats-result="${key}">Edit Result</button>`:`<button class="btn btn-amber" data-enter-stats-result="${key}">Enter Result</button>`}${status!=='cancelled'?`<button class="btn btn-ghost" data-cancel-stats-result="${key}">Cancel Fixture</button>`:''}</div>`:''}</div>`;
 }
 function openStatsResultDetail(key){
   const f=fixtures[key]||{}, r=results[key]||{}, status=statsFixtureStatus(key);
@@ -2937,6 +2937,7 @@ function wireStats(){
 }
 function openStatsResultEntry(key){
   if(!isAdmin)return;
+  if(statsFixtureStatus(key)==='cancelled'){showConnectionWarning('This fixture is cancelled. A result cannot be entered against it.');return;}
   const f={...(fixtures[key]||{})}, r={...(results[key]||{})};
   const players=roster.map(name=>{const old=(r.players||[]).find(x=>x.name===name);return{name,goals:Number(old?.goals)||0,assists:Number(old?.assists)||0,played:old ? old.played!==false : r.status!=='completed'};});
   const motm=new Set(r.motm||[]),ppotm=new Set(r.ppotm||[]);let ownGoals=Number(r.ownGoals)||0;
