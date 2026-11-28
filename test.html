@@ -2864,9 +2864,8 @@ function renderTrainingRegisterTab(){
 function isRecordedAvailableForAttendance(type,name,dateKey){
   const slots=slotsForDate(type,dateKey);
   const a=(availability[type]?.[name]||{})[dateKey]||{};
-  // Only an explicit available response counts. An unfilled/newly-added slot
-  // must not turn an otherwise unavailable historical response into a no-show.
-  return slots.some(slot=>Object.prototype.hasOwnProperty.call(a,slot.id)&&a[slot.id]===false);
+  // Unanswered/newly-added slots default to available, matching the squad sheet.
+  return slots.some(slot=>!a[slot.id]);
 }
 function attendancePlayerRows(){
   const matchKeys=statsSeasonKeys().filter(k=>statsFixtureStatus(k)==='completed');
