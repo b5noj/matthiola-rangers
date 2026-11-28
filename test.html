@@ -563,13 +563,28 @@
   .squad-filter-pair .admin-child-picker{display:flex;flex-wrap:wrap;gap:6px;}
   .squad-filter-pair .reason-chip{font-size:11px;padding:7px 9px;}\n  @media(max-width:520px){.squad-filter-pair{grid-template-columns:1fr 1fr;gap:7px}.squad-filter-group{padding:8px 7px 1px}.squad-filter-pair .reason-chip{font-size:10px;padding:6px 7px}}
   .squad-filter-label{font-size:10px;font-weight:900;letter-spacing:.09em;color:var(--ink-soft);margin:0 0 8px;}
-  .attendance-stats-table{min-width:720px;width:100%;table-layout:fixed;}
+  .attendance-stats-table{min-width:0;width:100%;table-layout:fixed;}
   .attendance-stats-table th:first-child,.attendance-stats-table td:first-child{width:22%;}
   .attendance-stats-table th:not(:first-child),.attendance-stats-table td:not(:first-child){width:13%;}
-  .attendance-stats-table thead tr:nth-child(2) th{width:13%;padding-left:3px;padding-right:3px;white-space:normal;text-align:center;vertical-align:middle;}
+  .attendance-stats-table thead tr:nth-child(2) th{width:13%;padding:5px 1px;white-space:nowrap;text-align:center;vertical-align:middle;}
   .attendance-stats-table thead tr:first-child th[colspan="3"]{width:39%;text-align:center;}
   .attendance-stats-table th:first-child{width:22%;}
   .attendance-stats-table thead tr:first-child th{font-size:11px;letter-spacing:.08em;font-weight:900;padding:10px 6px;}
+  .attendance-sort-btn{display:block;width:100%;padding:2px 0;border:0;background:transparent;color:inherit;font:inherit;font-size:inherit;font-weight:900;line-height:1.05;white-space:nowrap;cursor:pointer;}
+  .attendance-sort-btn .sort-arrow{display:inline-block;margin-left:2px;font-size:9px;opacity:.75;}
+  .attendance-short-label{display:none;}
+  @media(max-width:520px){
+    .attendance-stats-table th:first-child,.attendance-stats-table td:first-child{width:22%;}
+    .attendance-stats-table th:not(:first-child),.attendance-stats-table td:not(:first-child){width:13%;}
+    .attendance-stats-table thead tr:nth-child(2) th{font-size:8px;letter-spacing:-.02em;padding:5px 0;white-space:nowrap;}
+    .attendance-stats-table thead tr:first-child th{font-size:10px;padding:8px 2px;}
+    .attendance-full-label{display:none;}
+    .attendance-short-label{display:inline;}
+    .attendance-sort-btn{font-size:8px;letter-spacing:-.03em;}
+    .attendance-stats-table td{font-size:11px;padding:7px 1px;}
+    .attendance-stats-table td:first-child{text-align:left;padding-left:5px;}
+    .attendance-expand-hint{font-size:9px;}
+  }
   .attendance-training-head{background:#e8f2ff;color:#174b83;border-bottom:2px solid #8ab6e8;}
   .attendance-match-head{background:#fff0df;color:#8b4a12;border-bottom:2px solid #e8b47e;}
   .attendance-training-sub{background:#f3f8ff;color:#245987;}
@@ -2886,6 +2901,16 @@ function attendancePlayerRows(){
   });
 }
 
+let attendanceSortKey = 'totalAttended';
+let attendanceSortDir = -1;
+function attendanceSortValue(row,key){
+  if(key==='totalAttended') return row.trainingAttended+row.matchAttended;
+  return Number(row[key])||0;
+}
+function setAttendanceSort(key){
+  if(attendanceSortKey===key) attendanceSortDir*=-1;
+  else{attendanceSortKey=key;attendanceSortDir=-1;}
+}
 function attendanceDetailEvents(name){
   const startDate=playerAttendanceStartDate(name);
   const training=trainingAttendanceDates().filter(k=>k>=startDate&&trainingAttendance[k]?.completed).map(k=>{
@@ -2900,14 +2925,22 @@ function attendanceDetailEvents(name){
 }
 function renderStatsAttendance(){
   const rows=attendancePlayerRows().filter(x=>!statsSearch||x.name.toLowerCase().includes(statsSearch.toLowerCase()));
-  const h='<th>Available</th><th>Attended</th><th>No shows</th>';
+  rows.sort((a,b)=>{
+    const av=attendanceSortValue(a,attendanceSortKey),bv=attendanceSortValue(b,attendanceSortKey);
+    if(av!==bv) return (av-bv)*attendanceSortDir;
+    return a.name.localeCompare(b.name);
+  });
+  const sortHead=(label,key,shortLabel)=>'<th class="'+(key.startsWith('training')?'attendance-training-sub':'attendance-match-sub')+'"><button type="button" class="attendance-sort-btn" data-att-sort="'+key+'" aria-label="Sort by '+label+'">'+
+    '<span class="attendance-full-label">'+label+'</span><span class="attendance-short-label">'+shortLabel+'</span>'+
+    (attendanceSortKey===key?'<span class="sort-arrow">'+(attendanceSortDir===-1?'▼':'▲')+'</span>':'')+'</button></th>';
+  const h='';
   const body=rows.map(x=>{
     const detail=x.name===attendanceExpandedPlayer?attendanceDetailEvents(x.name):[];
     const detailRows=detail.map(d=>'<tr class="attendance-detail-event"><td>'+new Date(d.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+'</td><td><span class="att-type '+(d.type==='Training'?'training':'match')+'">'+d.type+'</span></td><td>'+(d.available?'Yes':'No')+'</td><td>'+(d.attended?'Yes':'No')+'</td><td>'+d.show+(d.opponent?' · '+escapeHtml(d.opponent):'')+'</td></tr>').join('');
     return '<tr class="attendance-player-row" data-att-row="'+escapeAttr(x.name)+'" tabindex="0" role="button"><td><b>'+escapeHtml(x.name)+'</b><span class="attendance-expand-hint">'+(x.name===attendanceExpandedPlayer?'Hide dates':'View dates')+'</span></td><td>'+x.trainingAvailable+'</td><td>'+x.trainingAttended+'</td><td>'+x.trainingNoShows+'</td><td>'+x.matchAvailable+'</td><td>'+x.matchAttended+'</td><td>'+x.matchNoShows+'</td></tr>'+
       (x.name===attendanceExpandedPlayer?'<tr class="attendance-detail-row"><td colspan="7"><div class="attendance-detail-panel"><div class="attendance-detail-title">'+escapeHtml(x.name)+' — event breakdown</div><div class="attendance-detail-head"><span>Date</span><span>Event</span><span>Available</span><span>Attended</span><span>Outcome</span></div><div class="attendance-detail-list">'+detail.map(d=>'<div class="attendance-detail-item"><span>'+new Date(d.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+'</span><span><span class="att-type '+(d.type==='Training'?'training':'match')+'">'+d.type+'</span></span><span><i class="att-rag '+(d.available?'good':'neutral')+'">'+(d.available?'Available':'Unavailable')+'</i></span><span><i class="att-rag '+(d.attended?'good':(d.available?'bad':'neutral'))+'">'+(d.attended?'Attended':(d.available?'Not attended':'—'))+'</i></span><span><i class="att-rag '+(d.attended?'good':(d.available?'bad':'neutral'))+'">'+d.show+'</i>'+(d.opponent?' · '+escapeHtml(d.opponent):'')+'</span></div>').join('')+'</div><div class="attendance-detail-totals"><b>Training:</b> '+x.trainingAvailable+' available · '+x.trainingAttended+' attended · '+x.trainingNoShows+' no shows <span> | </span><b>Matches:</b> '+x.matchAvailable+' available · '+x.matchAttended+' attended · '+x.matchNoShows+' no shows</div></div></td></tr>':'');
   }).join('');
-  return '<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button><button class="stats-nav-btn active" data-stats-view="attendance">Attendance</button></div><div class="stats-page-head"><div><div class="stats-page-title">Attendance</div><div class="stats-page-sub">Availability compared with recorded attendance</div></div>'+statsSeasonControl()+'</div><div class="stats-search-wrap"><input id="statsSearchInput" class="stats-search-input" value="'+escapeAttr(statsSearch)+'" placeholder="Search player…" autocomplete="off"/></div><div class="stats-table-wrap"><table class="stats-player-table attendance-stats-table"><thead><tr><th rowspan="2">Player</th><th colspan="3" class="attendance-training-head">TRAINING</th><th colspan="3" class="attendance-match-head">MATCHES</th></tr><tr><th class="attendance-training-sub">Available</th><th class="attendance-training-sub">Attended</th><th class="attendance-training-sub">No shows</th><th class="attendance-match-sub">Available</th><th class="attendance-match-sub">Attended</th><th class="attendance-match-sub">No shows</th></tr></thead><tbody>'+(body||'<tr><td colspan="7">No attendance data found for this season.</td></tr>')+'</tbody></table></div><div class="fx-hint" style="margin-top:10px;">Select a player to expand their event-by-event record. No shows are events where the player was available but not recorded as attending.</div></div>';
+  return '<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button><button class="stats-nav-btn active" data-stats-view="attendance">Attendance</button></div><div class="stats-page-head"><div><div class="stats-page-title">Attendance</div><div class="stats-page-sub">Availability compared with recorded attendance</div></div>'+statsSeasonControl()+'</div><div class="stats-search-wrap"><input id="statsSearchInput" class="stats-search-input" value="'+escapeAttr(statsSearch)+'" placeholder="Search player…" autocomplete="off"/></div><div class="stats-table-wrap"><table class="stats-player-table attendance-stats-table"><thead><tr><th rowspan="2">Player</th><th colspan="3" class="attendance-training-head">TRAINING</th><th colspan="3" class="attendance-match-head">MATCHES</th></tr><tr>'+sortHead('Available','trainingAvailable','Avail.')+sortHead('Attended','trainingAttended','Att.')+sortHead('No shows','trainingNoShows','No-shows')+sortHead('Available','matchAvailable','Avail.')+sortHead('Attended','matchAttended','Att.')+sortHead('No shows','matchNoShows','No-shows')+'</tr></thead><tbody>'+(body||'<tr><td colspan="7">No attendance data found for this season.</td></tr>')+'</tbody></table></div><div class="fx-hint" style="margin-top:10px;">Select a player to expand their event-by-event record. No shows are events where the player was available but not recorded as attending.</div></div>';
 }
 function renderStatsCurrentContent(){
   const c=document.getElementById('statsContent'); if(!c)return;
@@ -2932,6 +2965,7 @@ function wireStats(){
   content.querySelectorAll('[data-stats-suggestion]').forEach(el=>el.addEventListener('click',()=>{statsSearch=el.dataset.statsSuggestion;render();}));
   content.querySelectorAll('[data-stats-player-sort]').forEach(el=>el.addEventListener('click',()=>{const k=el.dataset.statsPlayerSort;if(statsSortKey===k)statsSortDir*=-1;else{statsSortKey=k;statsSortDir=-1;}render();}));
   content.querySelectorAll('[data-stats-opponent-sort]').forEach(el=>el.addEventListener('click',()=>{const k=el.dataset.statsOpponentSort;if(statsSortKey===k)statsSortDir*=-1;else{statsSortKey=k;statsSortDir=-1;}render();}));
+  content.querySelectorAll('[data-att-sort]').forEach(el=>el.addEventListener('click',()=>{setAttendanceSort(el.dataset.attSort);renderStatsCurrentContent();}));
   content.querySelectorAll('[data-att-row]').forEach(el=>el.addEventListener('click',()=>{attendanceExpandedPlayer=attendanceExpandedPlayer===el.dataset.attRow?null:el.dataset.attRow;renderStatsCurrentContent();}));
   content.querySelectorAll('[data-stats-result-detail]').forEach(el=>{
     const open=()=>openStatsResultDetail(el.dataset.statsResultDetail);
