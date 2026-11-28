@@ -589,7 +589,13 @@
   .attendance-training-head{background:#e8f2ff;color:#174b83;border-bottom:2px solid #8ab6e8;}
   .attendance-match-head{background:#fff0df;color:#8b4a12;border-bottom:2px solid #e8b47e;}
   .attendance-training-sub{background:#f3f8ff;color:#245987;}
+
   .attendance-match-sub{background:#fff7ef;color:#985b24;}
+  .attendance-stats-table td.attendance-rag-good{background:#edf7ef;color:#24613a;}
+  .attendance-stats-table td.attendance-rag-warn{background:#fff7e8;color:#80551a;}
+  .attendance-stats-table td.attendance-rag-bad{background:#fff0ef;color:#963f38;}
+  .attendance-stats-table td.attendance-rag-neutral{background:#f3f5f7;color:#697586;}
+
   /* Clear visual grouping between player, training and match columns. */
   .attendance-stats-table thead tr:first-child th:first-child,
   .attendance-stats-table tbody tr.attendance-player-row td:first-child{border-right:2px solid #d5dbe3;}
@@ -2945,9 +2951,17 @@ function renderStatsAttendance(){
     (attendanceSortKey===key?'<span class="sort-arrow">'+(attendanceSortDir===-1?'▼':'▲')+'</span>':'')+'</button></th>';
   const h='';
   const body=rows.map(x=>{
+    const ragClass=(attended,noShows)=>{
+      const total=attended+noShows;
+      if(!total) return 'attendance-rag-neutral';
+      const rate=attended/total;
+      return rate>=0.9?'attendance-rag-good':(rate>=0.75?'attendance-rag-warn':'attendance-rag-bad');
+    };
+    const trainingRag=ragClass(x.trainingAttended,x.trainingNoShows);
+    const matchRag=ragClass(x.matchAttended,x.matchNoShows);
     const detail=x.name===attendanceExpandedPlayer?attendanceDetailEvents(x.name):[];
     const detailRows=detail.map(d=>'<tr class="attendance-detail-event"><td>'+new Date(d.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+'</td><td><span class="att-type '+(d.type==='Training'?'training':'match')+'">'+d.type+'</span></td><td>'+(d.available?'Yes':'No')+'</td><td>'+(d.attended?'Yes':'No')+'</td><td>'+d.show+(d.opponent?' · '+escapeHtml(d.opponent):'')+'</td></tr>').join('');
-    return '<tr class="attendance-player-row" data-att-row="'+escapeAttr(x.name)+'" tabindex="0" role="button"><td><b>'+escapeHtml(x.name)+'</b><span class="attendance-expand-hint">'+(x.name===attendanceExpandedPlayer?'Hide dates':'View dates')+'</span></td><td>'+x.trainingAvailable+'</td><td>'+x.trainingAttended+'</td><td>'+x.trainingNoShows+'</td><td>'+x.matchAvailable+'</td><td>'+x.matchAttended+'</td><td>'+x.matchNoShows+'</td></tr>'+
+    return '<tr class="attendance-player-row" data-att-row="'+escapeAttr(x.name)+'" tabindex="0" role="button"><td><b>'+escapeHtml(x.name)+'</b><span class="attendance-expand-hint">'+(x.name===attendanceExpandedPlayer?'Hide dates':'View dates')+'</span></td><td>'+x.trainingAvailable+'</td><td class="'+trainingRag+'">'+x.trainingAttended+'</td><td class="'+trainingRag+'">'+x.trainingNoShows+'</td><td>'+x.matchAvailable+'</td><td class="'+matchRag+'">'+x.matchAttended+'</td><td class="'+matchRag+'">'+x.matchNoShows+'</td></tr>'+
       (x.name===attendanceExpandedPlayer?'<tr class="attendance-detail-row"><td colspan="7"><div class="attendance-detail-panel"><div class="attendance-detail-title">'+escapeHtml(x.name)+' — event breakdown</div><div class="attendance-detail-head"><span>Date</span><span>Event</span><span>Available</span><span>Attended</span><span>Outcome</span></div><div class="attendance-detail-list">'+detail.map(d=>'<div class="attendance-detail-item"><span>'+new Date(d.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+'</span><span><span class="att-type '+(d.type==='Training'?'training':'match')+'">'+d.type+'</span></span><span><i class="att-rag '+(d.available?'good':'neutral')+'">'+(d.available?'Available':'Unavailable')+'</i></span><span><i class="att-rag '+(d.attended?'good':(d.available?'bad':'neutral'))+'">'+(d.attended?'Attended':(d.available?'Not attended':'—'))+'</i></span><span><i class="att-rag '+(d.attended?'good':(d.available?'bad':'neutral'))+'">'+d.show+'</i>'+(d.opponent?' · '+escapeHtml(d.opponent):'')+'</span></div>').join('')+'</div><div class="attendance-detail-totals"><b>Training:</b> '+x.trainingAvailable+' available · '+x.trainingAttended+' attended · '+x.trainingNoShows+' no shows <span> | </span><b>Matches:</b> '+x.matchAvailable+' available · '+x.matchAttended+' attended · '+x.matchNoShows+' no shows</div></div></td></tr>':'');
   }).join('');
   return '<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button><button class="stats-nav-btn active" data-stats-view="attendance">Attendance</button></div><div class="stats-page-head"><div><div class="stats-page-title">Attendance</div><div class="stats-page-sub">Availability compared with recorded attendance</div></div>'+statsSeasonControl()+'</div><div class="stats-table-wrap"><table class="stats-player-table attendance-stats-table"><thead><tr><th rowspan="2"><button type="button" class="attendance-sort-btn" data-att-sort="name" aria-label="Sort by player name">Player'+(attendanceSortKey==='name'?'<span class="sort-arrow">'+(attendanceSortDir===-1?'▼':'▲')+'</span>':'')+'</button></th><th colspan="3" class="attendance-training-head">TRAINING</th><th colspan="3" class="attendance-match-head">MATCHES</th></tr><tr>'+sortHead('Available','trainingAvailable','Avail.')+sortHead('Attended','trainingAttended','Att.')+sortHead('No shows','trainingNoShows','No-shows')+sortHead('Available','matchAvailable','Avail.')+sortHead('Attended','matchAttended','Att.')+sortHead('No shows','matchNoShows','No-shows')+'</tr></thead><tbody>'+(body||'<tr><td colspan="7">No attendance data found for this season.</td></tr>')+'</tbody></table></div><div class="fx-hint" style="margin-top:10px;">Select a player to expand their event-by-event record. No shows are events where the player was available but not recorded as attending.</div></div>';
