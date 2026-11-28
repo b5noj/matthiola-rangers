@@ -950,7 +950,7 @@ function getDatesForSheet(type, includeHistory=false){
   const cfg = SHEETS[type];
   if(includeHistory){
     const now=new Date(),todayKey=isoDate(new Date(now.getFullYear(),now.getMonth(),now.getDate()));
-    const seasonStart=normaliseSeasons(seasons).filter(x=>x.start<=todayKey).slice(-1)[0]?.start||'2026-08-01';
+    const seasonStart=normaliseSeasons(seasons)[0]?.start||'2026-08-01';
     const end=new Date(now.getFullYear(),now.getMonth()+12,0),out=[];
     let d=new Date(seasonStart+'T00:00:00');
     const diff=(cfg.dayOfWeek-d.getDay()+7)%7;d.setDate(d.getDate()+diff);
