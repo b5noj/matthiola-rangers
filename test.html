@@ -556,9 +556,9 @@
   .stats-season-wrap label{display:block;font-size:9px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px;letter-spacing:.04em;}
   .stats-season-select{width:100%;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font:700 12px Inter,sans-serif;color:var(--ink);}
   .stats-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:12px;} .stats-nav-btn{font-size:11px;padding:9px 2px;}
-  .squad-filter-group{padding:10px 12px 1px;border:1px solid var(--border);border-radius:10px;margin:0 0 10px;background:#f8fafc;}
+   .squad-filter-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch;margin-bottom:14px;}\n  .squad-filter-group{padding:10px 12px 1px;border:1px solid var(--border);border-radius:10px;margin:0 0 10px;background:#f8fafc;}
   .squad-date-filter{border-left:4px solid #3978b8;}
-  .squad-session-filter{border-left:4px solid #b17a2b;background:#fffaf2;}
+  .squad-session-filter{border-left:4px solid #b17a2b;background:#fffaf2;}\n  .squad-filter-pair .admin-child-picker{display:flex;flex-wrap:wrap;gap:6px;}\n  .squad-filter-pair .reason-chip{font-size:11px;padding:7px 9px;}\n  @media(max-width:520px){.squad-filter-pair{grid-template-columns:1fr 1fr;gap:7px}.squad-filter-group{padding:8px 7px 1px}.squad-filter-pair .reason-chip{font-size:10px;padding:6px 7px}}
   .squad-filter-label{font-size:10px;font-weight:900;letter-spacing:.09em;color:var(--ink-soft);margin:0 0 8px;}
   .attendance-stats-table{min-width:720px;width:100%;table-layout:fixed;}
   .attendance-stats-table th:first-child,.attendance-stats-table td:first-child{width:22%;}
@@ -822,6 +822,7 @@ let roster = DEFAULT_ROSTER.slice();
 let scheduleConfig = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
 let seasons = [{name:'2026/27',start:'2026-08-01'}];
 let teamName = DEFAULT_TEAM_NAME;
+let playerStartDates = {}; // player -> first date they should be included in attendance
 let availability = {match:{}, training:{}};
 let availabilityMeta = {match:{}, training:{}}; // type -> name -> {updatedAt, updatedBy}
 let fixtures = {};        // dateKey -> {opponent, koTime, location}
@@ -1092,6 +1093,7 @@ function watchSettings(){
       if(!seasons.length) seasons = [{name:'2026/27',start:'2026-08-01'}];
       statsSeason = getDashboardSeason();
       roster = Array.isArray(data.roster) && data.roster.length ? data.roster : DEFAULT_ROSTER.slice();
+      playerStartDates = data.playerStartDates && typeof data.playerStartDates==='object' ? data.playerStartDates : {};
       const matchMin = Number(data.matchMinPlayers);
       const trainingMin = Number(data.trainingMinPlayers);
       SHEETS.match.threshold = Number.isFinite(matchMin) && matchMin >= 1 ? matchMin : 7;
@@ -1239,7 +1241,7 @@ async function removeCancelledDate(type, dateKey){
 }
 
 async function saveSettings(){
-  try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster, matchMinPlayers: SHEETS.match.threshold, trainingMinPlayers: SHEETS.training.threshold }, {merge:true}); }
+  try{ await setDoc(doc(db, 'team_config', 'settings'), { teamName, roster, playerStartDates, matchMinPlayers: SHEETS.match.threshold, trainingMinPlayers: SHEETS.training.threshold }, {merge:true}); }
   catch(e){ console.error('Failed to save settings', e); showConnectionWarning(); }
 }
 
@@ -1397,6 +1399,7 @@ function slotsForDate(type, dateKey){
   return SHEETS[type].slots;
 }
 function getAvailabilityLock(type, dateKey){
+  if(isAdmin) return {locked:false,label:''};
   const raw=type==='match'?(fixtures[dateKey]?.koTime||''):(trainingInfo[dateKey]?.time||'');
   if(!raw)return {locked:false,label:''};
   const m=String(raw).trim().toLowerCase().match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/i);
@@ -1459,6 +1462,7 @@ async function addPlayer(){
   if(!name) return;
   if(roster.includes(name)){ input.value=''; return; }
   roster.push(name);
+  playerStartDates[name] = isoDate(new Date());
   availability.match[name] = {};
   availability.training[name] = {};
   await saveSettings();
@@ -1797,14 +1801,14 @@ function renderSummaryTab(){
     return;
   }
 
-  html += `<div class="squad-filter-group squad-date-filter"><div class="squad-filter-label">DATE RANGE</div><div class="admin-child-picker" style="margin-bottom:10px;">
+  html += `<div class="squad-filter-pair"><div class="squad-filter-group squad-date-filter"><div class="squad-filter-label">DATE RANGE</div><div class="admin-child-picker" style="margin-bottom:10px;">
     <button type="button" class="reason-chip svdate-chip ${squadDateView==='current'?'selected':''}" data-svdate="current">Current &amp; future</button>
     <button type="button" class="reason-chip svdate-chip ${squadDateView==='history'?'selected':''}" data-svdate="history">Past sessions</button>
   </div></div>`;
   html += `<div class="squad-filter-group squad-session-filter"><div class="squad-filter-label">SESSION FILTER</div><div class="admin-child-picker" style="margin-bottom:16px;">
     <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='all'?'selected':''}" data-svfilter="all">All sessions</button>
     <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='problem'?'selected':''}" data-svfilter="problem">Problem sessions (below ${cfg.threshold} or cancelled)</button>
-  </div></div>`;
+  </div></div></div>`;
 
   // Pass 1: build a row entry per date
   const entries = dates.map((d) => {
@@ -2665,10 +2669,18 @@ function statsSeasons(){
 }
 function statsSeasonKeys(){ return statsFixtureKeys().filter(k=>statsFixtureSeason(k)===statsSeason); }
 function statsFixtureStatus(key){
-  // A cancellation recorded in the squad schedule is authoritative even if an old result document remains completed.
-  if(isCancelled('match',key) || results[key]?.status==='cancelled' || results[key]?.cancelled) return 'cancelled';
+  // Any cancellation marker takes precedence over a stale completed result.
+  if(isCancelled('match',key) || fixtures[key]?.status==='cancelled' || fixtures[key]?.cancelled || results[key]?.status==='cancelled' || results[key]?.cancelled) return 'cancelled';
   if(results[key]?.status==='completed') return 'completed';
   return 'pending';
+}
+function playerAttendanceStartDate(name){
+  if(playerStartDates[name]) return playerStartDates[name];
+  // Backfill existing players from their first positively recorded appearance.
+  const played=Object.keys(results).filter(k=>statsFixtureStatus(k)==='completed'&&(results[k]?.players||[]).some(p=>p.name===name&&p.played)).sort();
+  const trained=Object.keys(trainingAttendance).filter(k=>trainingAttendance[k]?.completed&&trainingAttendance[k]?.players?.[name]===true).sort();
+  const first=[...played,...trained].sort()[0];
+  return first || normaliseSeasons(seasons)[0]?.start || '9999-12-31';
 }
 function statsSeasonControl(){
   return `<div class="stats-season-wrap"><label>Season</label><select id="statsSeasonSelect" class="stats-season-select">${statsSeasons().map(s=>`<option value="${escapeAttr(s)}" ${s===statsSeason?'selected':''}>${escapeHtml(s)}</option>`).join('')}</select></div>`;
@@ -2851,18 +2863,20 @@ function attendancePlayerRows(){
   const trainKeys=trainingAttendanceDates().filter(k=>trainingAttendance[k]?.completed);
   return roster.map(name=>{
     const x={name,trainingAvailable:0,trainingAttended:0,trainingNoShows:0,matchAvailable:0,matchAttended:0,matchNoShows:0};
-    trainKeys.forEach(k=>{const slots=slotsForDate('training',k),a=(availability.training[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),attended=trainingAttendance[k]?.players?.[name]===true;if(available)x.trainingAvailable++;if(attended)x.trainingAttended++;if(available&&!attended)x.trainingNoShows++;});
-    matchKeys.forEach(k=>{const slots=slotsForDate('match',k),a=(availability.match[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),played=(results[k]?.players||[]).some(p=>p.name===name&&p.played);if(available)x.matchAvailable++;if(played)x.matchAttended++;if(available&&!played)x.matchNoShows++;});
+    const startDate=playerAttendanceStartDate(name);
+    trainKeys.filter(k=>k>=startDate).forEach(k=>{const slots=slotsForDate('training',k),a=(availability.training[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),attended=trainingAttendance[k]?.players?.[name]===true;if(available)x.trainingAvailable++;if(attended)x.trainingAttended++;if(available&&!attended)x.trainingNoShows++;});
+    matchKeys.filter(k=>k>=startDate).forEach(k=>{const slots=slotsForDate('match',k),a=(availability.match[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),played=(results[k]?.players||[]).some(p=>p.name===name&&p.played);if(available)x.matchAvailable++;if(played)x.matchAttended++;if(available&&!played)x.matchNoShows++;});
     return x;
   });
 }
 
 function attendanceDetailEvents(name){
-  const training=trainingAttendanceDates().filter(k=>trainingAttendance[k]?.completed).map(k=>{
+  const startDate=playerAttendanceStartDate(name);
+  const training=trainingAttendanceDates().filter(k=>k>=startDate&&trainingAttendance[k]?.completed).map(k=>{
     const slots=slotsForDate('training',k),a=(availability.training[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),attended=trainingAttendance[k]?.players?.[name]===true;
     return {date:k,type:'Training',available,attended,show:attended?'Attended':available?'No show':'Unavailable'};
   });
-  const matches=statsSeasonKeys().filter(k=>statsFixtureStatus(k)==='completed').map(k=>{
+  const matches=statsSeasonKeys().filter(k=>k>=startDate&&statsFixtureStatus(k)==='completed').map(k=>{
     const slots=slotsForDate('match',k),a=(availability.match[name]||{})[k]||{},available=slots.some(z=>!a[z.id]),played=(results[k]?.players||[]).some(p=>p.name===name&&p.played);
     return {date:k,type:'Match',available,attended:played,show:played?'Played':available?'No show':'Unavailable',opponent:fixtures[k]?.opponent||''};
   });
