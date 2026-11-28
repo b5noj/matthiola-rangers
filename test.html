@@ -556,7 +556,12 @@
   .stats-season-wrap label{display:block;font-size:9px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px;letter-spacing:.04em;}
   .stats-season-select{width:100%;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font:700 12px Inter,sans-serif;color:var(--ink);}
   .stats-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:12px;} .stats-nav-btn{font-size:11px;padding:9px 2px;}
-  .attendance-stats-table{min-width:720px;}
+  .attendance-stats-table{min-width:720px;width:100%;table-layout:fixed;}
+  .attendance-stats-table th:first-child,.attendance-stats-table td:first-child{width:22%;}
+  .attendance-stats-table th:not(:first-child),.attendance-stats-table td:not(:first-child){width:13%;}
+  .attendance-stats-table thead tr:nth-child(2) th{width:13%;padding-left:3px;padding-right:3px;white-space:normal;text-align:center;vertical-align:middle;}
+  .attendance-stats-table thead tr:first-child th[colspan="3"]{width:39%;text-align:center;}
+  .attendance-stats-table th:first-child{width:22%;}
   .attendance-stats-table thead tr:first-child th{font-size:11px;letter-spacing:.08em;font-weight:900;padding:10px 6px;}
   .attendance-training-head{background:#e8f2ff;color:#174b83;border-bottom:2px solid #8ab6e8;}
   .attendance-match-head{background:#fff0df;color:#8b4a12;border-bottom:2px solid #e8b47e;}
@@ -572,6 +577,11 @@
   .attendance-detail-head{font-size:10px;font-weight:900;color:var(--ink-soft);text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--border);}
   .attendance-detail-item{font-size:11px;padding:8px;border-bottom:1px solid var(--line);}
   .att-type{display:inline-block;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:900;}
+  .att-rag{display:inline-block;border-radius:5px;padding:3px 6px;font-weight:800;white-space:nowrap;}
+  .att-rag.good{background:#dff3e5;color:#176534;}
+  .att-rag.bad{background:#fde2e2;color:#a32222;}
+  .att-rag.neutral{background:#edf0f3;color:#58616b;}
+  .att-rag.check{background:#fff0c9;color:#805500;}
   .att-type.training{background:#e8f2ff;color:#174b83;}
   .att-type.match{background:#fff0df;color:#8b4a12;}
   .attendance-detail-totals{font-size:11px;margin-top:10px;padding:9px;background:#fff;border-radius:7px;}
@@ -846,6 +856,7 @@ let adminExtraMatchType = '';
 let adminExtraW3W = '';
 let weeklyCommsWeek = '';
 let squadViewFilter = 'all'; // 'all' | 'problem'
+let squadDateView = 'current'; // 'current' | 'history'
 let results = {};
 let trainingAttendance = {};
 let attendanceDate = '';
@@ -935,8 +946,18 @@ function fmtDate(d){
   const month = d.toLocaleDateString('en-GB', {month:'short'});
   return `${weekday} ${day}${ordinalSuffix(day)} ${month}`;
 }
-function getDatesForSheet(type){
+function getDatesForSheet(type, includeHistory=false){
   const cfg = SHEETS[type];
+  if(includeHistory){
+    const now=new Date(),todayKey=isoDate(new Date(now.getFullYear(),now.getMonth(),now.getDate()));
+    const seasonStart=normaliseSeasons(seasons).filter(x=>x.start<=todayKey).slice(-1)[0]?.start||'2026-08-01';
+    const end=new Date(now.getFullYear(),now.getMonth()+12,0),out=[];
+    let d=new Date(seasonStart+'T00:00:00');
+    const diff=(cfg.dayOfWeek-d.getDay()+7)%7;d.setDate(d.getDate()+diff);
+    while(d<=end){out.push(new Date(d));d.setDate(d.getDate()+7);}
+    Object.keys(extraDates[type]||{}).forEach(k=>{if(k>=seasonStart&&!out.some(x=>isoDate(x)===k))out.push(new Date(k+'T00:00:00'));});
+    return out.sort((a,b)=>a-b);
+  }
   const regular = getMonthWindowDates(cfg.dayOfWeek);
   const regularKeys = new Set(regular.map(isoDate));
   const now = new Date();
@@ -1347,7 +1368,13 @@ function showConnectionWarning(message="We couldn’t sync with the squad servic
   el.textContent = message;
   el.style.display = 'block';
   clearTimeout(warnTimer);
+  el.style.background = '#A62639';
   warnTimer = setTimeout(() => { el.style.display = 'none'; }, duration);
+}
+function showConnectionSuccess(message='Saved successfully.', duration=3000){
+  let el=document.getElementById('connWarning');
+  if(!el){el=document.createElement('div');el.id='connWarning';el.setAttribute('role','status');el.setAttribute('aria-live','polite');el.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;padding:12px 14px;border-radius:8px;font-family:Inter,sans-serif;font-size:13px;font-weight:600;line-height:1.45;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.3);color:#fff;';document.body.appendChild(el);}
+  el.textContent=message;el.style.background='#218447';el.style.display='block';clearTimeout(warnTimer);warnTimer=setTimeout(()=>{el.style.display='none';},duration);
 }
 
 // ---- Local state helpers ----
@@ -1753,7 +1780,8 @@ function renderMarkTab(){
 function renderSummaryTab(){
   const panel = document.getElementById('panel');
   const cfg = SHEETS[activeSheet];
-  const dates = getDatesForSheet(activeSheet);
+  const todayKey=isoDate(new Date());
+  const dates = getDatesForSheet(activeSheet,true).filter(d=>squadDateView==='history'?isoDate(d)<todayKey:isoDate(d)>=todayKey);
   const squadSize = roster.length;
 
   let html = `<div class="section-label">Squad availability — ${cfg.label}</div>`;
@@ -1765,6 +1793,10 @@ function renderSummaryTab(){
     return;
   }
 
+  html += `<div class="admin-child-picker" style="margin-bottom:10px;">
+    <button type="button" class="reason-chip svdate-chip ${squadDateView==='current'?'selected':''}" data-svdate="current">Current &amp; future</button>
+    <button type="button" class="reason-chip svdate-chip ${squadDateView==='history'?'selected':''}" data-svdate="history">Past sessions</button>
+  </div>`;
   html += `<div class="admin-child-picker" style="margin-bottom:16px;">
     <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='all'?'selected':''}" data-svfilter="all">All sessions</button>
     <button type="button" class="reason-chip svfilter-chip ${squadViewFilter==='problem'?'selected':''}" data-svfilter="problem">Problem sessions (below ${cfg.threshold} or cancelled)</button>
@@ -1853,6 +1885,7 @@ function renderSummaryTab(){
 }
 
 function wireSummaryFilterAndExpand(panel){
+  panel.querySelectorAll('.svdate-chip').forEach(el=>el.addEventListener('click',()=>{squadDateView=el.dataset.svdate;squadViewFilter='all';expandedSlot=null;render();}));
   panel.querySelectorAll('.svfilter-chip').forEach(el => {
     el.addEventListener('click', () => { squadViewFilter = el.dataset.svfilter; render(); });
   });
@@ -2804,7 +2837,7 @@ function renderTrainingRegisterTab(){
   document.getElementById('attSave')?.addEventListener('click',async()=>{
     if(!isAdmin||states.some(x=>x.status===null))return;
     const data={completed:true,season:getSeasonForDate(attendanceDate)||statsSeason,players:Object.fromEntries(roster.map(n=>[n,attendanceDraft[n]===true])),updatedAt:Date.now(),updatedBy:currentUser?.email||''};
-    try{await setDoc(doc(db,'training_info',attendanceDate),{...(trainingInfo[attendanceDate]||{}),attendance:data},{merge:true});trainingAttendance[attendanceDate]=data;showConnectionWarning('Training attendance saved.',3000);renderTrainingRegisterTab();}
+    try{await setDoc(doc(db,'training_info',attendanceDate),{...(trainingInfo[attendanceDate]||{}),attendance:data},{merge:true});trainingAttendance[attendanceDate]=data;showConnectionSuccess('Training attendance saved.',3000);renderTrainingRegisterTab();}
     catch(e){showStatsSyncError(e,'write');}
   });
 }
@@ -2837,7 +2870,7 @@ function renderStatsAttendance(){
     const detail=x.name===attendanceExpandedPlayer?attendanceDetailEvents(x.name):[];
     const detailRows=detail.map(d=>'<tr class="attendance-detail-event"><td>'+new Date(d.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+'</td><td><span class="att-type '+(d.type==='Training'?'training':'match')+'">'+d.type+'</span></td><td>'+(d.available?'Yes':'No')+'</td><td>'+(d.attended?'Yes':'No')+'</td><td>'+d.show+(d.opponent?' · '+escapeHtml(d.opponent):'')+'</td></tr>').join('');
     return '<tr class="attendance-player-row" data-att-row="'+escapeAttr(x.name)+'" tabindex="0" role="button"><td><b>'+escapeHtml(x.name)+'</b><span class="attendance-expand-hint">'+(x.name===attendanceExpandedPlayer?'Hide dates':'View dates')+'</span></td><td>'+x.trainingAvailable+'</td><td>'+x.trainingAttended+'</td><td>'+x.trainingNoShows+'</td><td>'+x.matchAvailable+'</td><td>'+x.matchAttended+'</td><td>'+x.matchNoShows+'</td></tr>'+
-      (x.name===attendanceExpandedPlayer?'<tr class="attendance-detail-row"><td colspan="7"><div class="attendance-detail-panel"><div class="attendance-detail-title">'+escapeHtml(x.name)+' — event breakdown</div><div class="attendance-detail-head"><span>Date</span><span>Event</span><span>Available</span><span>Attended</span><span>Outcome</span></div><div class="attendance-detail-list">'+detail.map(d=>'<div class="attendance-detail-item"><span>'+new Date(d.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+'</span><span><span class="att-type '+(d.type==='Training'?'training':'match')+'">'+d.type+'</span></span><span>'+(d.available?'Yes':'No')+'</span><span>'+(d.attended?'Yes':'No')+'</span><span>'+d.show+(d.opponent?' · '+escapeHtml(d.opponent):'')+'</span></div>').join('')+'</div><div class="attendance-detail-totals"><b>Training:</b> '+x.trainingAvailable+' available · '+x.trainingAttended+' attended · '+x.trainingNoShows+' no shows <span> | </span><b>Matches:</b> '+x.matchAvailable+' available · '+x.matchAttended+' attended · '+x.matchNoShows+' no shows</div></div></td></tr>':'');
+      (x.name===attendanceExpandedPlayer?'<tr class="attendance-detail-row"><td colspan="7"><div class="attendance-detail-panel"><div class="attendance-detail-title">'+escapeHtml(x.name)+' — event breakdown</div><div class="attendance-detail-head"><span>Date</span><span>Event</span><span>Available</span><span>Attended</span><span>Outcome</span></div><div class="attendance-detail-list">'+detail.map(d=>'<div class="attendance-detail-item"><span>'+new Date(d.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})+'</span><span><span class="att-type '+(d.type==='Training'?'training':'match')+'">'+d.type+'</span></span><span><i class="att-rag '+(d.available?'good':'neutral')+'">'+(d.available?'Available':'Unavailable')+'</i></span><span><i class="att-rag '+(d.attended?'good':(d.available?'bad':'neutral'))+'">'+(d.attended?'Attended':(d.available?'Not attended':'—'))+'</i></span><span><i class="att-rag '+(d.attended?'good':(d.available?'bad':'neutral'))+'">'+d.show+'</i>'+(d.opponent?' · '+escapeHtml(d.opponent):'')+'</span></div>').join('')+'</div><div class="attendance-detail-totals"><b>Training:</b> '+x.trainingAvailable+' available · '+x.trainingAttended+' attended · '+x.trainingNoShows+' no shows <span> | </span><b>Matches:</b> '+x.matchAvailable+' available · '+x.matchAttended+' attended · '+x.matchNoShows+' no shows</div></div></td></tr>':'');
   }).join('');
   return '<div class="stats-page"><div class="stats-nav"><button class="stats-nav-btn" data-stats-view="team">Team</button><button class="stats-nav-btn" data-stats-view="players">Players</button><button class="stats-nav-btn" data-stats-view="opponents">Opponents</button><button class="stats-nav-btn active" data-stats-view="attendance">Attendance</button></div><div class="stats-page-head"><div><div class="stats-page-title">Attendance</div><div class="stats-page-sub">Availability compared with recorded attendance</div></div>'+statsSeasonControl()+'</div><div class="stats-search-wrap"><input id="statsSearchInput" class="stats-search-input" value="'+escapeAttr(statsSearch)+'" placeholder="Search player…" autocomplete="off"/></div><div class="stats-table-wrap"><table class="stats-player-table attendance-stats-table"><thead><tr><th rowspan="2">Player</th><th colspan="3" class="attendance-training-head">TRAINING</th><th colspan="3" class="attendance-match-head">MATCHES</th></tr><tr><th class="attendance-training-sub">Available</th><th class="attendance-training-sub">Attended</th><th class="attendance-training-sub">No shows</th><th class="attendance-match-sub">Available</th><th class="attendance-match-sub">Attended</th><th class="attendance-match-sub">No shows</th></tr></thead><tbody>'+(body||'<tr><td colspan="7">No attendance data found for this season.</td></tr>')+'</tbody></table></div><div class="fx-hint" style="margin-top:10px;">Select a player to expand their event-by-event record. No shows are events where the player was available but not recorded as attending.</div></div>';
 }
