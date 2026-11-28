@@ -2865,7 +2865,13 @@ function renderTrainingRegisterTab(){
 function isRecordedAvailableForAttendance(type,name,dateKey){
   const slots=slotsForDate(type,dateKey);
   const a=(availability[type]?.[name]||{})[dateKey]||{};
-  // Unanswered/newly-added slots default to available, matching the squad sheet.
+  // Match attendance is based on the slot containing the actual kick-off time,
+  // not any other slot that happens to remain at its default-available state.
+  if(type==='match'){
+    const relevantSlot=getRelevantMatchSlot(dateKey);
+    if(relevantSlot) return !a[relevantSlot.id];
+  }
+  // Training (and matches without a usable kick-off slot) retain default-available behaviour.
   return slots.some(slot=>!a[slot.id]);
 }
 function attendancePlayerRows(){
